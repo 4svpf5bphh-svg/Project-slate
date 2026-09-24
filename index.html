@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.9.7</title>
+<title>Project Slate — Premium Presentation v3.10.0</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -625,7 +625,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.9.7';
+const VERSION='3.10.0';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -4439,9 +4439,9 @@ function filmWrapVerdictCopy(f,l=ensureLegacyState(f)){
 function wrapCapitalise(text=''){const s=String(text||'').trim();return s?s[0].toUpperCase()+s.slice(1):s}
 function filmWrapProductionMoment(f){
  const journal=ensureShootJournal(f);if(!journal.length)return null;
- const decisions=journal.filter(x=>x.mood==='decision');
+ const decisions=journal.filter(x=>x.mood==='decision'),creative=decisions.find(x=>x.topic==='creativeDirection');
  const dramatic=/injury|walk|friction|director|stunt|location|weather|overrun|story|rehears|chemistry/i;
- const chosen=decisions.find(x=>dramatic.test(x.text))||decisions[0]||journal.find(x=>x.mood==='strained')||journal[journal.length-1];
+ const chosen=creative||decisions.find(x=>dramatic.test(x.text))||decisions[0]||journal.find(x=>x.mood==='strained')||journal[journal.length-1];
  const lead=chosen.mood==='decision'?`${chosen.text} The choice became part of the film that reached the screen.`:chosen.text;
  return {phase:'PRODUCTION',label:`Production week ${chosen.productionWeek||'—'}`,text:lead,tone:chosen.mood==='strained'?'bad':chosen.mood==='steady'?'good':'neutral'};
 }
@@ -5473,7 +5473,7 @@ function greenlight(f){
  applyProductionDepthMetrics(f);Object.keys(f.metrics).forEach(k=>f.metrics[k]=clamp(f.metrics[k],20,98));
  f.productionState={schedule:0,morale:clamp(66+(f.metrics.stability-65)*.30+(directorHistory+actorHistory)*.08,35,92),extraSpend:0,cleanWeeks:0,notes:[]};
  recordProductionDaily(f);
- f.events=buildProductionEvents(f,r);
+ f.events=buildProductionEvents(f,r);ensureProductionCreativeFork(f);
  d.busyUntil=f.productionEnd+1;cast.forEach(a=>a.busyUntil=f.productionEnd+1);support.forEach(a=>a.busyUntil=f.productionEnd+1);
  const band=fitBand(f.packageFit.average);
  addNews(state,`${f.title} entered production under ${d.name}. Internal packaging view: ${band.label.toLowerCase()}.`,'Your Studio');
@@ -5544,6 +5544,78 @@ function buildProductionEvents(f,r){
  }
  events.forEach(e=>{if(f.directorAuthority?.producerCredit&&e.type==='director'){const vr=makeRng(hash(state.seed+'|producer-veto|'+f.id+'|'+e.id));if(vr()<.58){e.lockedChoices=['enforcebrief'];e.authorityNote=`${d.name}'s producer credit gives the director final authority on this creative call.`}}});return events.sort((a,b)=>a.week-b.week);
 }
+// v3.10 — The Film Story: one authored creative-direction fork per production.
+// This is deliberately not a crisis or spend decision. The dailies discover a version
+// of the film, and the studio chooses which version to pursue.
+function productionCreativeForkSpec(f){
+ const d=talentById(f.directorId),lead=talentById(f.cast?.[0]),m=f.metrics||{},genre=f.genre||'',name=d?.name||'The director',star=lead?.name||'The lead';
+ const characterLed=(m.chemistry||0)>=76||(m.performances||0)>=82||genre==='Comedy'||genre==='Prestige Drama';
+ const imageLed=(genre.includes('Action')||genre.includes('Science')||genre==='Fantasy')&&((m.technical||0)>=70||f.creative?.emphasis==='spectacle');
+ const uneasy=genre==='Psychological Horror'||genre==='Crime Thriller';
+ if(characterLed){
+  return {
+   title:'The performances are changing the centre of the film',
+   text:`The dailies have produced a more human, more observational version of the material than the screenplay suggested. ${star} is carrying quieter beats particularly well, and ${name} thinks the film may be better if it follows them.`,
+   why:'Nothing has gone wrong. The question is whether to follow what production has discovered or protect the shape you originally greenlit.',
+   choices:{
+    followperformances:{label:'Follow what the actors found',outcome:'The film becomes more intimate and performance-led, giving emotional beats more room even if the pace loosens.',impact:{performances:4,chemistry:3,direction:2,pacing:-2},segmentBias:{'Prestige / arthouse':5,'Mainstream adults':-1,'Genre fans':-1}},
+    protectengine:{label:'Protect the original engine',outcome:'The film stays tighter and more plot-forward, preserving momentum rather than rebuilding around the performances.',impact:{pacing:4,clarity:2,performances:-1},segmentBias:{'Mainstream adults':3,'Genre fans':3,'Prestige / arthouse':-2}}
+   }
+  };
+ }
+ if(imageLed){
+  return {
+   title:'The visual language is becoming the film',
+   text:`${name} has found a bolder visual approach in the dailies. The strongest material is larger, stranger and more image-driven than the original brief, but leaning into it will make the film less literal and less restrained.`,
+   why:'The footage has created a creative opportunity: push the cinematic identity, or keep the story doing the heavy lifting.',
+   choices:{
+    pushimagery:{label:'Push the visual language',outcome:'The film commits to scale, imagery and cinematic texture, accepting a little less narrative directness.',impact:{technical:4,direction:3,clarity:-2},segmentBias:{'Younger audiences':4,'Genre fans':5,'Mainstream adults':-1}},
+    storyfirst:{label:'Keep the story in front',outcome:'The production pulls the imagery back toward the original brief and prioritises clean storytelling over visual escalation.',impact:{clarity:4,pacing:2,technical:-1},segmentBias:{'Mainstream adults':4,'Families':2,'Genre fans':-2}}
+   }
+  };
+ }
+ if(uneasy){
+  return {
+   title:'The film is playing stranger than expected',
+   text:`The assembled footage is more unsettling and ambiguous than the script read on the page. ${name} believes the uncertainty is working; the alternative is to make motives and cause-and-effect more explicit while the unit can still shape them.`,
+   why:'This is a tone decision, not a repair. Either version can work, but they are different films.',
+   choices:{
+    embraceambiguity:{label:'Embrace the ambiguity',outcome:'The film becomes stranger and less explanatory, sharpening atmosphere while asking more from the audience.',impact:{direction:4,performances:2,clarity:-3},segmentBias:{'Genre fans':5,'Prestige / arthouse':4,'Mainstream adults':-3,'Families':-4}},
+    clarifyintent:{label:'Make the film more explicit',outcome:'The production protects clarity and forward motion, trading some unease for a more accessible read.',impact:{clarity:5,pacing:2,direction:-1},segmentBias:{'Mainstream adults':4,'Families':2,'Genre fans':-2,'Prestige / arthouse':-1}}
+   }
+  };
+ }
+ return {
+  title:'The dailies have found a different rhythm',
+  text:`${name} thinks the film can now go one of two ways: let scenes breathe and trust the material that is emerging, or tighten the remaining shoot around the cleaner, more propulsive version originally planned.`,
+  why:'This is the moment production stops merely executing the screenplay and decides what kind of finished film the footage is becoming.',
+  choices:{
+   breathe:{label:'Let the film breathe',outcome:'The shoot gives performances and atmosphere more space, creating a richer but slightly slower version of the film.',impact:{direction:3,performances:3,chemistry:1,pacing:-2},segmentBias:{'Prestige / arthouse':4,'Mainstream adults':-1}},
+   sharpen:{label:'Sharpen the film',outcome:'The remaining shoot prioritises pace, clarity and clean dramatic movement over additional texture.',impact:{pacing:4,clarity:3,direction:-1},segmentBias:{'Mainstream adults':4,'Younger audiences':2,'Prestige / arthouse':-2}}
+  }
+ };
+}
+function ensureProductionCreativeFork(f){
+ if(!f||f.owner!=='player'||f.stage!=='production'||!Array.isArray(f.events))return null;
+ const existing=f.events.find(e=>e.type==='creativefork');if(existing)return existing;
+ const total=Math.max(3,(f.productionEnd||state.week)-(f.productionStart||state.week)),current=Math.max(1,f.productionWeek||1);
+ const occupied=new Set(f.events.map(e=>e.week)),ideal=clamp(Math.round(total*.55),2,Math.max(2,total-1)),weeks=[];
+ for(let w=Math.max(2,current);w<total;w++)if(!occupied.has(w))weeks.push(w);
+ if(!weeks.length)return null;
+ weeks.sort((a,b)=>Math.abs(a-ideal)-Math.abs(b-ideal)||a-b);
+ const spec=productionCreativeForkSpec(f),event={
+  id:uid('event',state),week:weeks[0],type:'creativefork',creativeFork:true,resolved:false,choice:null,
+  title:spec.title,text:spec.text,why:spec.why,forkChoices:spec.choices,
+  choices:Object.entries(spec.choices).map(([id,x])=>[id,x.label])
+ };
+ f.events.push(event);f.events.sort((a,b)=>a.week-b.week);return event;
+}
+function creativeDirectionCard(f,phase='post'){
+ const x=f?.creativeDirection;if(!x)return '';
+ const line=phase==='marketing'?'The campaign now has to decide how honestly to sell the version of the film production actually made.':'This production decision is already baked into the material arriving in the edit.';
+ return `<div class="section-title"><h2>The film production chose</h2><span class="small">A creative decision from the dailies</span></div><div class="card goodline"><div class="badge">PRODUCTION DIRECTION</div><strong style="display:block;margin-top:6px">${x.label}</strong><div class="body" style="margin-top:7px">${x.outcome}</div><div class="small" style="margin-top:8px">${line}</div></div>`;
+}
+
 function applyProductionImpact(f,{cost=0,week=0,morale=0,direction=0,performances=0,technical=0,pacing=0,clarity=0,chemistry=0,stability=0,saving=0,note=''}) {
  if(cost>0&&!spend(cost))return false;
  if(cost>0){f.investment+=cost;f.productionState.extraSpend=(f.productionState.extraSpend||0)+cost}
@@ -5562,7 +5634,12 @@ function resolveEvent(f,eventId,choice){
  const e=f.events.find(x=>x.id===eventId);if(!e||e.resolved)return;if(e.lockedChoices?.includes(choice))return showToast('The director has final authority on that choice under the producer-credit agreement.');
  let ok=true,note=e.title;
  const impact=(x)=>{ok=applyProductionImpact(f,{...x,note});return ok};
- if(e.type==='location'){if(choice==='relocate')impact({cost:.5,clarity:1,technical:-1,morale:-1});else if(choice==='holdlocation')impact({cost:.8,week:1,stability:3,morale:-2});else impact({technical:-3,pacing:2,stability:-3})}
+ if(e.type==='creativefork'){
+  const fork=e.forkChoices?.[choice];if(!fork)return showToast('Choose a creative direction.');
+  impact(fork.impact||{});e.choiceLabel=fork.label;e.outcome=fork.outcome;
+  f.creativeDirection={week:state.week,productionWeek:f.productionWeek,label:fork.label,outcome:fork.outcome,segmentBias:deep(fork.segmentBias||{}),sourceTitle:e.title};
+ }
+ else if(e.type==='location'){if(choice==='relocate')impact({cost:.5,clarity:1,technical:-1,morale:-1});else if(choice==='holdlocation')impact({cost:.8,week:1,stability:3,morale:-2});else impact({technical:-3,pacing:2,stability:-3})}
  else if(e.type==='weather'){if(choice==='coverweather')impact({cost:.35,clarity:2});else if(choice==='waitweather')impact({cost:.7,week:1,technical:2,stability:2});else impact({technical:-4,stability:-3})}
  else if(e.type==='stunt'){if(choice==='restunt')impact({cost:.55,technical:2,stability:4});else if(choice==='stuntday')impact({cost:.95,week:1,technical:5,stability:4});else impact({technical:-2,pacing:1})}
  else if(e.type==='vfx'){if(choice==='vfxmoney')impact({cost:1.25,technical:6});else if(choice==='vfxpractical')impact({direction:2,technical:2,clarity:1});else impact({technical:-6})}
@@ -5586,8 +5663,14 @@ function resolveEvent(f,eventId,choice){
  else if(e.type==='safety'){if(choice==='redesign')impact({cost:.5,technical:2,stability:4});else if(choice==='delay')impact({cost:.9,week:1,technical:4,stability:6});else impact({technical:-2,pacing:1})}
  else if(e.type==='supporting'){if(choice==='expandrole')impact({cost:.4,performances:4,pacing:-2});else if(choice==='keeprole')impact({performances:1});else impact({performances:-2,pacing:2})}
  if(!ok)return;
- e.resolved=true;e.choice=choice;f.pendingEvent=null;f.history.push(`Week ${state.week}: resolved ${e.title}.`);
- ensureShootJournal(f).push({week:state.week,productionWeek:f.productionWeek,text:`${e.title}: ${e.choices.find(x=>x[0]===choice)?.[1]||choice}.`,mood:'decision'});
+ e.resolved=true;e.choice=choice;f.pendingEvent=null;
+ if(e.type==='creativefork'){
+  f.history.push(`Week ${state.week}: creative direction — ${e.choiceLabel}. ${e.outcome}`);
+  ensureShootJournal(f).push({week:state.week,productionWeek:f.productionWeek,text:`${e.choiceLabel}: ${e.outcome}`,topic:'creativeDirection',mood:'decision'});
+ }else{
+  f.history.push(`Week ${state.week}: resolved ${e.title}.`);
+  ensureShootJournal(f).push({week:state.week,productionWeek:f.productionWeek,text:`${e.title}: ${e.choices.find(x=>x[0]===choice)?.[1]||choice}.`,topic:e.type,mood:'decision'});
+ }
  rebuildDecisions();save();render();
 }
 
@@ -5812,13 +5895,13 @@ function segmentTestScores(f){
  const s=ensureScriptEcosystem(scriptById(f.scriptId)),m=f.metrics,p=ensurePostState(f),c=f.creative||defaultCreative(),cast=f.cast.map(talentById);
  const star=cast.reduce((a,b)=>a+b.star,0)/cast.length,r=makeRng(hash(state.seed+'|segments|'+f.id+'|'+state.week));
  const noise=()=> (r()-.5)*9;
- const maturePenalty=c.rating==='mature'?-11:0,broadBoost=c.rating==='broad'?5:0;
+ const maturePenalty=c.rating==='mature'?-11:0,broadBoost=c.rating==='broad'?5:0,bias=f.creativeDirection?.segmentBias||{};
  return {
-  'Mainstream adults':clamp(m.performances*.18+m.pacing*.19+m.clarity*.19+s.access*.18+s.hook*.10+p.endingStrength*.16+noise(),25,96),
-  'Younger audiences':clamp(star*.14+s.hook*.19+m.pacing*.20+m.technical*.19+s.access*.12+p.endingStrength*.10+noise(),22,96),
-  'Families':clamp(s.access*.25+m.clarity*.22+m.pacing*.14+p.endingStrength*.13+s.emotion*.13+broadBoost+maturePenalty+noise(),15,96),
-  'Genre fans':clamp(s.genreFulfillment*.28+s.hook*.17+m.technical*.16+m.direction*.15+p.endingStrength*.12+(c.tone==='heightened'?4:0)+noise(),20,98),
-  'Prestige / arthouse':clamp(m.performances*.22+m.direction*.21+s.originality*.18+s.emotion*.16+p.endingStrength*.13+(c.positioning==='prestige'?5:0)+noise(),20,98)
+  'Mainstream adults':clamp(m.performances*.18+m.pacing*.19+m.clarity*.19+s.access*.18+s.hook*.10+p.endingStrength*.16+(bias['Mainstream adults']||0)+noise(),25,96),
+  'Younger audiences':clamp(star*.14+s.hook*.19+m.pacing*.20+m.technical*.19+s.access*.12+p.endingStrength*.10+(bias['Younger audiences']||0)+noise(),22,96),
+  'Families':clamp(s.access*.25+m.clarity*.22+m.pacing*.14+p.endingStrength*.13+s.emotion*.13+broadBoost+maturePenalty+(bias['Families']||0)+noise(),15,96),
+  'Genre fans':clamp(s.genreFulfillment*.28+s.hook*.17+m.technical*.16+m.direction*.15+p.endingStrength*.12+(c.tone==='heightened'?4:0)+(bias['Genre fans']||0)+noise(),20,98),
+  'Prestige / arthouse':clamp(m.performances*.22+m.direction*.21+s.originality*.18+s.emotion*.16+p.endingStrength*.13+(c.positioning==='prestige'?5:0)+(bias['Prestige / arthouse']||0)+noise(),20,98)
  };
 }
 function runTestScreen(f){
@@ -6521,9 +6604,10 @@ function updatePlayerFilms(){
   if(f.stage==='production'){
    f.productionState=f.productionState||{schedule:0,morale:65,extraSpend:0,cleanWeeks:0,notes:[]};
    f.productionWeek=state.week-f.productionStart+1;
+   ensureProductionCreativeFork(f);
    recordProductionDaily(f);
    const ev=f.events.find(e=>e.week===f.productionWeek&&!e.resolved);
-   if(ev){const prev=f.pendingEvent;f.pendingEvent=ev.id;if(prev!==ev.id)notify(`prod:${f.id}:${ev.id}`,`${f.title}: production decision`,ev.title,f.id,true,'warning');}
+   if(ev){const prev=f.pendingEvent;f.pendingEvent=ev.id;if(prev!==ev.id)notify(`prod:${f.id}:${ev.id}`,ev.creativeFork?`${f.title}: creative direction`:`${f.title}: production decision`,ev.title,f.id,true,ev.creativeFork?'info':'warning');}
    else if(!f.pendingEvent)f.productionState.cleanWeeks=(f.productionState.cleanWeeks||0)+1;
    if(state.week>=f.productionEnd&&!f.pendingEvent){f.stage='post';ensurePostState(f);makeRoughCut(f);addNews(state,`${f.title} wrapped principal photography.`,'Your Studio');notify(`post:${f.id}`,`${f.title}: rough cut ready`,'Post-production is waiting for your screening and picture-lock decisions.',f.id,true,'info')}
   }
@@ -8690,10 +8774,10 @@ function productionPulseLabel(f){
 }
 function productionUI(f){
  f.productionState=f.productionState||{schedule:0,morale:65,extraSpend:0,cleanWeeks:0,notes:[]};
- const ev=f.pendingEvent?f.events.find(e=>e.id===f.pendingEvent):null,pulse=productionPulseLabel(f),resolved=f.events.filter(e=>e.resolved).slice(-3);
+ const ev=f.pendingEvent?f.events.find(e=>e.id===f.pendingEvent):null,pulse=productionPulseLabel(f),resolved=f.events.filter(e=>e.resolved).slice(-3),creative=!!ev?.creativeFork;
  return `<div class="grid cols4"><div class="card"><div class="badge">Production week</div><div class="kpi">${f.productionWeek}</div></div><div class="card"><div class="badge">Expected wrap</div><div class="kpi">W${f.productionEnd}</div></div><div class="card"><div class="badge">Schedule</div><div class="kpi" style="font-size:17px">${pulse.schedule}</div></div><div class="card"><div class="badge">Set morale</div><div class="kpi">${pulse.morale}</div></div></div>
- ${ev?`<div class="section-title"><h2>Decision required</h2></div><div class="card attention"><div class="row"><span class="pill warn">Production</span><span class="small">Week ${f.productionWeek}</span></div><div class="quote" style="margin-top:8px">${ev.title}</div><div class="body" style="margin-top:8px">${ev.text}</div>${ev.why?`<div class="small" style="margin-top:8px"><strong>Why this is happening:</strong> ${ev.why}</div>`:''}${ev.authorityNote?`<div class="card goodline" style="margin-top:10px"><div class="small"><strong>Producer-credit authority:</strong> ${ev.authorityNote}</div></div>`:''}<div class="grid" style="margin-top:12px">${ev.choices.map(c=>`<button class="btn" data-event-choice="${c[0]}" data-event-id="${ev.id}" ${ev.lockedChoices?.includes(c[0])?'disabled':''}>${c[1]}${ev.lockedChoices?.includes(c[0])?' · director has final say':''}</button>`).join('')}</div></div>`:`<div class="section-title"><h2>Dailies report</h2></div><div class="card ${f.metrics.stability>=76?'goodline':''}"><div class="body">${productionStatusText(f)}</div></div>`}
- ${resolved.length?`<div class="section-title"><h2>Shoot history</h2><span class="small">${f.productionState.cleanWeeks||0} calm weeks</span></div><div class="card">${resolved.map(e=>`<div class="listrow"><div><strong>${e.title}</strong><div class="small">${e.choice||'resolved'}</div></div><span class="small">PW${e.week}</span></div>`).join('')}</div>`:''}
+ ${ev?`<div class="section-title"><h2>${creative?'Which film are you making?':'Decision required'}</h2><span class="small">${creative?'One creative direction call · no spend attached':''}</span></div><div class="card ${creative?'goodline':'attention'}"><div class="row"><span class="pill ${creative?'blue':'warn'}">${creative?'Dailies discovery':'Production'}</span><span class="small">Week ${f.productionWeek}</span></div><div class="quote" style="margin-top:8px">${ev.title}</div><div class="body" style="margin-top:8px">${ev.text}</div>${ev.why?`<div class="small" style="margin-top:8px"><strong>${creative?'What the director is asking:':'Why this is happening:'}</strong> ${ev.why}</div>`:''}${ev.authorityNote?`<div class="card goodline" style="margin-top:10px"><div class="small"><strong>Producer-credit authority:</strong> ${ev.authorityNote}</div></div>`:''}<div class="grid" style="margin-top:12px">${ev.choices.map(c=>`<button class="btn" data-event-choice="${c[0]}" data-event-id="${ev.id}" ${ev.lockedChoices?.includes(c[0])?'disabled':''}>${c[1]}${ev.lockedChoices?.includes(c[0])?' · director has final say':''}</button>`).join('')}</div></div>`:`<div class="section-title"><h2>Dailies report</h2></div><div class="card ${f.metrics.stability>=76?'goodline':''}"><div class="body">${productionStatusText(f)}</div></div>`}
+ ${resolved.length?`<div class="section-title"><h2>Shoot history</h2><span class="small">${f.productionState.cleanWeeks||0} calm weeks</span></div><div class="card">${resolved.map(e=>`<div class="listrow"><div><strong>${e.title}</strong><div class="small">${e.choiceLabel||e.choice||'resolved'}</div></div><span class="small">PW${e.week}</span></div>`).join('')}</div>`:''}
  ${ensureShootJournal(f).length?`<div class="section-title"><h2>From the dailies</h2><span class="small">Observations from the shoot</span></div><div class="card">${ensureShootJournal(f).slice(-4).reverse().map(x=>`<div class="listrow"><div class="body">${x.text}</div><span class="small">PW${x.productionWeek}</span></div>`).join('')}</div>`:''}
  <div class="section-title"><h2>Production package</h2></div><div class="card"><div class="listrow"><span>Producer strategy</span><strong>${producerStrategy(f).name}</strong></div><div class="listrow"><span>Effects approach</span><strong>${effectsApproach(f).name}</strong></div><div class="listrow"><span>Additional package spend</span><strong>${money(f.productionDepthSpend??0)}</strong></div></div>
  <div class="section-title"><h2>Attached talent</h2></div><div class="grid cols2"><div class="card click" data-talent="${f.directorId}"><strong>${talentById(f.directorId).name}</strong><div class="small">Director</div></div>${f.cast.map(id=>`<div class="card click" data-talent="${id}"><strong>${talentById(id).name}</strong><div class="small">Principal cast</div></div>`).join('')}${f.supportingCastId?`<div class="card click" data-talent="${f.supportingCastId}"><strong>${talentById(f.supportingCastId).name}</strong><div class="small">Supporting cast</div></div>`:''}</div>`;
@@ -8716,6 +8800,7 @@ function postUI(f){
  const segments=p.testSegments?Object.entries(p.testSegments).sort((a,b)=>b[1]-a[1]):[];
  const sev=d=>d.severity==='critical'?'bad':d.severity==='major'?'warn':d.severity==='minor'?'good':'blue';
  return `<div class="posthero"><div><div class="badge">CUT ${p.cutVersion||1}</div><div class="quote">${postDiscoveryHeadline(f)}</div><div class="small">${p.runtime} minutes · target around ${p.targetRuntime} · ${remaining} major intervention${remaining===1?'':'s'} remaining</div></div><div class="postconfidence"><strong>${f.tested===true?Math.round(f.testScore)+'%':f.tested===false?'UNTESTED':'NO AUDIENCE DATA'}</strong><span>${f.tested===true?'test-screen average':f.tested===false?'studio trusted the cut':'audience evidence'}</span></div></div>
+ ${creativeDirectionCard(f,'post')}
  <div class="section-title"><h2>What the cut is telling you</h2><span class="small">Specific problems, not a single quality score</span></div><div class="grid cols2">${discoveries.map(d=>`<div class="card ${d.severity==='critical'?'dangerline':d.severity==='minor'?'goodline':''}"><div class="row"><strong>${d.title}</strong><span class="pill ${sev(d)}">${d.severity}</span></div><div class="body" style="margin-top:8px">${d.text}</div><div class="small" style="margin-top:8px">Likely response: ${availablePostActions(f).find(a=>a.id===d.action)?.label||'Editorial judgement'}</div></div>`).join('')}</div>
  <div class="card ${view.action==='lock'?'goodline':''}" style="margin-top:12px"><div class="badge">Director's view</div><div class="body" style="margin-top:6px">${view.text}</div></div>
  ${p.lastActionResult?`<div class="post-result-card goodline"><div class="badge">CUT ${p.lastActionResult.cutVersion} · LATEST INTERVENTION COMPLETE</div><strong>${p.lastActionResult.label}</strong><div class="small" style="margin-top:6px">Targeted: ${p.lastActionResult.targets.join(' · ')}</div>${p.lastActionResult.resultChanges.length?`<div class="post-result-changes">${p.lastActionResult.resultChanges.map(x=>`<span class="pill good">${x}</span>`).join('')}</div>`:''}</div>`:''}
@@ -8733,7 +8818,7 @@ function marketingUI(f){
  ensureDistributionState(f);const m=ensureMarketingState(f),rec=marketingRecommended(f),max=Math.max(0,Math.min(state.cash,rec*1.8)),lead=marketingLeadInfo(f),weeks=validReleaseWeeks(f),festival=festivalPotentialLabel(f),dist=distributionPlan(f);
  if(f.releaseWeek!==null&&!weeks.includes(f.releaseWeek))f.releaseWeek=null;
  const extra=publicityCost(f)+launchCost(f),totalPreview=distributionCostPreview(f);
- return `<div class="section-title"><h2>Campaign positioning</h2></div><div class="grid cols3">
+ return `${creativeDirectionCard(f,'marketing')}<div class="section-title"><h2>Campaign positioning</h2></div><div class="grid cols3">
  ${[['authentic','Authentic','Sell the film audiences are actually going to see.'],['event','Event','Build a larger cultural moment; needs more lead time and raises expectations.'],['mystery','Mystery','Reveal less, preserve flexibility and sell curiosity.']].map(c=>{const pv=campaignPositionPreview(f,c[0]);const selected=f.campaign===c[0];return `<button class="card selection-card marketing-choice ${selected?'selected-choice':''}" data-campaign="${c[0]}" aria-pressed="${selected?'true':'false'}">${selected?'<div class="selected-choice-badge">✓ Selected campaign</div>':''}<div class="row"><strong>${c[1]}</strong><span class="pill ${pv.cls}">${pv.label}</span></div><div class="small" style="margin-top:6px">${c[2]}</div><div class="promise-preview">${pv.text}</div></button>`}).join('')}</div>
  <div class="section-title"><h2>Trailer strategy</h2><span class="small">What promise are you making?</span></div><div class="grid cols2">
  ${[['concept','Concept-first'],['character','Character-first'],['spectacle','Spectacle-first'],['star','Star-first']].map(([id,label])=>{const pv=trailerPromisePreview(f,id);const selected=m.trailer===id;return `<button class="card selection-card marketing-choice ${selected?'selected-choice':''}" data-trailer="${id}" aria-pressed="${selected?'true':'false'}">${selected?'<div class="selected-choice-badge">✓ Selected trailer</div>':''}<div class="row"><strong>${label}</strong><span class="pill ${pv.cls}">${pv.label}</span></div><div class="small" style="margin-top:6px">${trailerStrategyText(id)}</div><div class="promise-preview">${pv.text}<strong>${pv.pressure}</strong></div></button>`}).join('')}</div>
@@ -9388,7 +9473,7 @@ if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&
 function projectSlateSmokeChecks(){
  const failures=[],required=[
   ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],
-  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['alignActiveTabs',typeof alignActiveTabs]
+  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
  if(!app)failures.push('#app missing');
