@@ -1,0 +1,302 @@
+name: one-shot v3.11.2 agencies deepening
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, 'v3.11.2 agencies deepening')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch Project Slate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("index.html")
+          s = path.read_text(encoding="utf-8")
+
+          def must(condition, message):
+              if not condition:
+                  raise SystemExit(message)
+
+          must("const VERSION='3.11.1';" in s, "Expected v3.11.1 baseline not found; refusing to patch")
+
+          s = s.replace(
+              "<title>Project Slate — Premium Presentation v3.11.1</title>",
+              "<title>Project Slate — Premium Presentation v3.11.2</title>",
+              1,
+          )
+          s = s.replace("const VERSION='3.11.1';", "const VERSION='3.11.2';", 1)
+
+          # ---- Agency core: derived leverage, package discovery, relationship snapshots ----
+          start = s.index("function agencyStanding(a){")
+          end = s.index("// Late-career world reaction", start)
+          agency_core = r"""function agencyStanding(a){
+           const clients=agencyClients(a),warm=clients.filter(t=>(t.relationship||0)>=12).length,cold=clients.filter(t=>(t.relationship||0)<=-12).length;
+           return {score:clamp(warm*2-cold*2,-12,12),warm,cold,label:warm>cold?'Warm':cold>warm?'Strained':'Open'};
+          }
+          function talentMarketLeverage(t){
+           ensureTalentCareer(t);
+           const awards=talentAwardCount(t),career=t.careerState||'',mom=t.momentum||60;
+           let pressure=(mom-60)*.16;
+           if(t.type==='Actor')pressure+=Math.max(0,(t.star||40)-70)*.12;
+           else pressure+=Math.max(0,(t.commercial||55)-70)*.08;
+           if(career==='Breakout')pressure+=2.5;
+           if(['Hot Streak','A-List Prime','Hot Director','Acclaimed Director'].includes(career))pressure+=5;
+           if(career==='Comeback')pressure+=2;
+           if(['Fading Star','Fading Director'].includes(career))pressure-=4;
+           pressure+=awards.wins*1.5+awards.noms*.35;
+           return clamp(pressure,-12,28);
+          }
+          function agencyMarketLeverage(t,f=null){
+           const a=talentAgency(t),standing=agencyStanding(a),pressure=talentMarketLeverage(t),clientRel=t.relationship||0;
+           const relationshipEdge=standing.score*.45+clientRel*.10+(f&&agencyWindow(t,f)?4:0),net=pressure-relationshipEdge;
+           const label=pressure>=16?'Maximum leverage':pressure>=9?'Hot market':pressure>=4?'Firm market':pressure<=-3?'Soft market':'Normal market';
+           const relationship=standing.score>=5?'Preferred buyer':standing.score<=-5?'Strained relationship':standing.score>0?'Warm relationship':standing.score<0?'Cool relationship':'Open relationship';
+           return {agency:a,standing,pressure,relationshipEdge,net,label,relationship};
+          }
+          function agencyContractMultiplier(t,f){
+           const x=agencyMarketLeverage(t,f);
+           let mult=1+clamp(x.pressure,-10,24)*.006-clamp(x.standing.score,-12,12)*.004;
+           if(f&&agencyWindow(t,f))mult-=.04;
+           return clamp(mult,.84,1.22);
+          }
+          function agencyContractContext(t,f){
+           const x=agencyMarketLeverage(t,f);
+           if(f&&agencyWindow(t,f))return `${x.agency.name} is honouring the priority conversation, taking some heat out of the quote.`;
+           if(x.pressure>=12)return `${x.agency.name} is pricing recent momentum and market demand into the deal.`;
+           if(x.pressure<=-3&&x.standing.score>=0)return `${x.agency.name} sees room to make a practical deal while the client's market is softer.`;
+           if(x.standing.score>=5)return `${x.agency.name} currently treats your studio as a preferred buyer and is negotiating accordingly.`;
+           if(x.standing.score<=-5)return `${x.agency.name}'s relationship with your studio is strained, so there is little relationship discount in the room.`;
+           return '';
+          }
+          function agencyInterestModifier(t,f){
+           const a=talentAgency(t),standing=agencyStanding(a).score,fit=t.type==='Actor'?actorRoleFit(t,f):directorProjectFit(t,f),market=talentMarketLeverage(t);
+           let modifier=standing*.55-clamp(market*.08,-2,3);
+           if(a.id==='meridian')modifier+=(f.creative?.positioning==='prestige'?4:0);
+           if(a.id==='summit')modifier+=(f.creative?.positioning==='commercial'?4:0);
+           if(a.id==='harbour')modifier+=(t.relationship||0)>=12?3:0;
+           if(a.id==='atlas')modifier+=f.budget>=25?3:-2;
+           return Math.round(modifier+(fit>=82?2:fit<50?-3:0));
+          }
+          function agencyWindow(t,f){
+           const w=state.agencyWindows?.[t?.id];
+           return w&&w.filmId===f?.id&&state.week<=w.expiresWeek&&f.stage==='development'?w:null;
+          }
+          function openAgencyWindow(t,f){
+           if(!t||!f||f.stage!=='development')return false;
+           state.agencyWindows=state.agencyWindows||{};
+           state.agencyWindows[t.id]={filmId:f.id,agencyId:talentAgency(t).id,openedWeek:state.week,expiresWeek:state.week+4};
+           return true;
+          }
+          function agencySnapshot(a){
+           const clients=agencyClients(a),standing=agencyStanding(a);
+           const windows=Object.entries(state.agencyWindows||{}).filter(([tid,w])=>w?.agencyId===a.id&&state.week<=w.expiresWeek&&filmById(w.filmId)?.stage==='development').map(([talentId,w])=>({talentId,...w}));
+           const hot=[...clients].sort((x,y)=>talentMarketLeverage(y)-talentMarketLeverage(x))[0]||null;
+           const thread=typeof careerThread==='function'?careerThread(`agency:${a.id}`):null;
+           return {agency:a,clients,standing,windows,hot,thread};
+          }
+          function agencyPackagePitchCandidate(){
+           const films=playerFilms().filter(f=>f.stage==='development'&&!f.paused);
+           let best=null;
+           films.forEach(f=>{
+            const roles=ensureFilmRoles(f),openLeads=roles.filter(r=>r.type==='lead'&&!f.roleAssignments?.[r.id]);
+            AGENCIES.forEach(a=>{
+             const clients=agencyClients(a),picks=[],used=new Set();
+             if(!f.directorId){
+              const directors=clients.filter(t=>t.type==='Director'&&!t.retired&&!talentUnavailableForFilm(t,f)&&!agencyWindow(t,f))
+               .map(t=>({t,role:'Director',score:directorProjectFit(t,f)*.70+(t.craft||70)*.20+(t.momentum||60)*.10}))
+               .sort((x,y)=>y.score-x.score);
+              if(directors[0]){picks.push(directors[0]);used.add(directors[0].t.id)}
+             }
+             openLeads.forEach(role=>{
+              const actors=clients.filter(t=>t.type==='Actor'&&!t.retired&&!used.has(t.id)&&!talentUnavailableForFilm(t,f)&&!roleForTalent(f,t.id)&&!agencyWindow(t,f))
+               .map(t=>({t,role:role.name,score:actorRoleFit(t,f,role.id)*.68+actorIndustryShortlistScore(t)*.32}))
+               .sort((x,y)=>y.score-x.score);
+              if(actors[0]){picks.push(actors[0]);used.add(actors[0].t.id)}
+             });
+             if(picks.length<2)return;
+             const chosen=picks.slice(0,2),score=chosen.reduce((n,x)=>n+x.score,0)/chosen.length+agencyStanding(a).score*.30;
+             if(!best||score>best.score)best={a,f,picks:chosen,score};
+            });
+           });
+           return best;
+          }
+          """
+          s = s[:start] + agency_core + "\n" + s[end:]
+
+          # ---- Desk: turn the agency approach into a real multi-client package ----
+          start = s.index(" {id:'agency-package'")
+          end = s.index(" {id:'talent-pitch'", start)
+          agency_template = r""" {id:'agency-package',type:'talent',source:'Agency Desk',urgency:'action',when:()=>!!agencyPackagePitchCandidate(),make:()=>{const p=agencyPackagePitchCandidate();if(!p)return null;const names=p.picks.map(x=>x.t.name),parts=p.picks.map(x=>`${x.t.name} for ${x.role}`).join(' and ');return {filmId:p.f.id,talentId:p.picks[0].t.id,talentIds:p.picks.map(x=>x.t.id),agencyId:p.a.id,source:p.a.name,subject:names.join(' + '),headline:`${p.a.name} brings a ${p.picks.length}-client package for ${p.f.title}`,body:`${p.a.name} is proposing ${parts}. The agency will hold a four-week priority conversation with the group if you take the meeting. This is access, not proof of role fit: actors still need screen-test evidence and every contract is negotiated separately.`,choices:[['meet','Hear the package'],['pass','Pass cleanly'],['hardball','Demand exclusivity']]}}},
+          """
+          s = s[:start] + agency_template + s[end:]
+
+          start = s.index(" 'agency-package':{")
+          end = s.index(" 'talent-pitch':{", start)
+          agency_effects = r""" 'agency-package':{
+            meet:{rep:{talent:2},outcome:'The agency opens the room and gives the studio a priority look at the package.'},
+            hardball:{rep:{talent:-2},outcome:'The agency rejects the exclusivity demand and the relationship cools.'},
+            pass:{outcome:'The pass is clean and costs nothing beyond the opportunity.'}
+           },
+          """
+          s = s[:start] + agency_effects + s[end:]
+
+          start = s.index("function resolveDeskChoice(id,key){")
+          end = s.index("function markDeskRead", start)
+          resolver = r"""function resolveDeskChoice(id,key){
+           const d=ensureDesk(),item=deskItemById(id,d);if(!item||item.resolved)return;const before=deskImpactSnapshot(item);item.read=true;item.expanded=true;item.resolved=true;item.resolvedWeek=state.week;item.choice=key;item.outcome=deskChoiceEffects(item,key);
+           if(item.templateId==='agency-package'){
+            const ids=[...new Set(((item.talentIds?.length?item.talentIds:[item.talentId])||[]).filter(Boolean))],people=ids.map(talentById).filter(Boolean),f=filmById(item.filmId),a=AGENCIES.find(x=>x.id===item.agencyId)||(people[0]?talentAgency(people[0]):null);
+            if(key==='meet'&&f){
+             const opened=people.filter(t=>openAgencyWindow(t,f));
+             opened.forEach(t=>t.relationship=clamp((t.relationship||0)+2,-30,40));
+             if(opened.length)item.outcome=`${a?.name||'The agency'} has opened a four-week priority conversation on ${f.title} for ${opened.map(t=>t.name).join(' and ')}. You have access, not certainty: screen tests and individual contract terms still matter.`;
+            }else if(key==='hardball'){
+             people.forEach(t=>t.relationship=clamp((t.relationship||0)-2,-30,40));
+             item.outcome=`${a?.name||'The agency'} refused to lock the package exclusively to your studio. The clients remain in the market and the relationship has cooled.`;
+            }
+           }else if(item.templateId==='talent-pitch'&&key==='meet'){
+            const t=talentById(item.talentId),f=filmById(item.filmId);
+            if(openAgencyWindow(t,f))item.outcome=`${talentAgency(t).name} has opened a priority conversation on ${f.title} through Week ${state.week+4}. ${t.name} is more receptive to a screen test or role offer while the window lasts; availability and terms still apply.`;
+           }
+           if(typeof updateCareerThreads==='function')updateCareerThreads();
+           const after=deskImpactSnapshot(item);item.impact=deskImpactSummary(before,after);addNews(state,`${state.studio.name} responded to ${item.headline.toLowerCase()}. ${item.outcome}`,'Studio Desk');save();render();
+          }
+          """
+          s = s[:start] + resolver + s[end:]
+
+          # ---- Contract terms now reflect the actual agency / market leverage story ----
+          old = """ const hot=(t.momentum||60)>84?.08:0;
+           const leverage=t.type==='Actor'?(t.star||40)>85?.08:0:(t.commercial||60)>88?.05:0;
+           const passion=fit>=82&&(c.positioning==='prestige'||c.emphasis==='performance'||t.genres.includes(f.genre))&&r()<(.24+Math.max(0,rel)/120+studioIdentityPassionBonus(t,f));
+           const relationAdj=1-clamp(rel,-25,30)*.0022;
+           const passionAdj=passion?.84:1;
+           const heldSequelOption=t.type==='Actor'&&f.sequelOptions?.includes(t.id);
+           const identityAdj=studioIdentityContractMultiplier(t,f);let flat=+(t.fee*(1+hot+leverage)*relationAdj*passionAdj*identityAdj).toFixed(2);"""
+          new = """ const hot=(t.momentum||60)>84?.08:0;
+           const leverage=t.type==='Actor'?(t.star||40)>85?.08:0:(t.commercial||60)>88?.05:0;
+           const agencyTerms=agencyMarketLeverage(t,f),agencyAdj=agencyContractMultiplier(t,f);
+           const passion=fit>=82&&(c.positioning==='prestige'||c.emphasis==='performance'||t.genres.includes(f.genre))&&r()<(.24+Math.max(0,rel)/120+studioIdentityPassionBonus(t,f));
+           const relationAdj=1-clamp(rel,-25,30)*.0022;
+           const passionAdj=passion?.84:1;
+           const heldSequelOption=t.type==='Actor'&&f.sequelOptions?.includes(t.id);
+           const identityAdj=studioIdentityContractMultiplier(t,f);let flat=+(t.fee*(1+hot+leverage)*relationAdj*passionAdj*identityAdj*agencyAdj).toFixed(2);"""
+          must(old in s, "contract offer anchor missing")
+          s = s.replace(old, new, 1)
+
+          old = """ const identityHelp=identityAdj<.995;const note=passion?`${t.name} appears unusually enthusiastic about the material and is accepting below-market structures.`:
+            identityHelp?`${state.studio.name}'s current industry identity is giving the studio a little extra leverage on these terms.`:
+            rel>=16?`Your existing relationship gives the studio some negotiating goodwill.`:
+            rel<=-8?`The relationship is cool; the studio has less leverage than usual.`:
+            ((t.momentum||60)>84?`${t.name}'s current momentum is strengthening their negotiating position.`:'Terms are broadly in line with the current market.');
+           return {options:[optionA,optionB,optionC],note,passion};"""
+          new = """ const identityHelp=identityAdj<.995,agencyNote=agencyContractContext(t,f);const note=passion?`${t.name} appears unusually enthusiastic about the material and is accepting below-market structures.`:
+            agencyNote||identityHelp?`${agencyNote||`${state.studio.name}'s current industry identity is giving the studio a little extra leverage on these terms.`}`:
+            rel>=16?`Your existing relationship gives the studio some negotiating goodwill.`:
+            rel<=-8?`The relationship is cool; the studio has less leverage than usual.`:
+            ((t.momentum||60)>84?`${t.name}'s current momentum is strengthening their negotiating position.`:'Terms are broadly in line with the current market.');
+           return {options:[optionA,optionB,optionC],note,passion,agency:agencyTerms};"""
+          must(old in s, "contract note anchor missing")
+          s = s.replace(old, new, 1)
+
+          # Fix precedence/readability in the generated note expression.
+          s = s.replace(
+              "agencyNote||identityHelp?\`\${agencyNote||\`\${state.studio.name}'s current industry identity is giving the studio a little extra leverage on these terms.\`}\`:",
+              "(agencyNote||identityHelp)?(agencyNote||\`\${state.studio.name}'s current industry identity is giving the studio a little extra leverage on these terms.\`):",
+              1,
+          )
+
+          # ---- Active Threads: agency warmth / feud / live package becomes an ongoing story ----
+          marker = " // Financial pressure persists until the underlying balance-sheet problem is actually solved."
+          must(marker in s, "career thread insertion marker missing")
+          agency_threads = r""" // Representation now carries forward as an active story instead of resetting after each Desk item.
+           AGENCIES.forEach(a=>{
+            const snap=agencySnapshot(a),st=snap.standing,key=`agency:${a.id}`;
+            if(st.score<=-4&&st.cold>=2){
+             seen.add(key);upsertCareerThread({key,type:'agency',tone:'bad',priority:74,title:`${a.name} is becoming a difficult room`,summary:`${st.cold} clients now have strained relationships with ${state.studio.name}; calls and terms are getting less forgiving.`,detail:`This is no longer one awkward negotiation. ${a.name} is reading a pattern across its client list, and future approaches will arrive with less goodwill until some of those relationships are repaired.`,progress:`${st.cold} strained clients`});
+            }else if(snap.windows.length>=2){
+             const names=snap.windows.map(w=>talentById(w.talentId)?.name).filter(Boolean);seen.add(key);upsertCareerThread({key,type:'agency',tone:'blue',priority:66,title:`${a.name} has a live package in the room`,summary:`${names.join(' and ')} are inside active priority conversations with your studio.`,detail:'The agency is temporarily treating the project as a joined-up conversation rather than separate cold calls. The window improves access but does not guarantee casting evidence or contract terms.',progress:`${snap.windows.length} priority conversations`});
+            }else if(st.score>=4&&st.warm>=2){
+             seen.add(key);upsertCareerThread({key,type:'agency',tone:'good',priority:58,title:`${a.name} is treating you as a preferred buyer`,summary:`${st.warm} clients have strong relationships with ${state.studio.name}, giving the agency reasons to bring you calls early.`,detail:'There is no permanent agency loyalty. The advantage exists because multiple clients have had good experiences with the studio, and poor handling can unwind it.',progress:`${st.warm} warm clients`});
+            }else if(careerThread(key))resolveCareerThread(key,'The agency relationship returned to a more ordinary, deal-by-deal footing.');
+           });
+          """
+          s = s.replace(marker, agency_threads + marker, 1)
+
+          # ---- People / Representation UI: show narrative posture and market leverage, not a new score ----
+          old = " const awards=talentAwardCount(t),recent=recentGeneratedCredits(t,78);"
+          must(old in s, "talent profile variable anchor missing")
+          s = s.replace(old, " const awards=talentAwardCount(t),recent=recentGeneratedCredits(t,78),rep=agencyMarketLeverage(t);", 1)
+
+          old = """ <div class="section-title"><h2>Representation</h2></div><div class="card"><strong>${talentAgency(t).name}</strong><div class="body">${talentAgency(t).focus}. Agency standing: ${agencyStanding(talentAgency(t)).label}. Client relationships and project fit influence how readily this agency takes a meeting.</div>${state.agencyWindows?.[t.id]&&state.week<=state.agencyWindows[t.id].expiresWeek&&filmById(state.agencyWindows[t.id].filmId)?.stage==='development'?`<div class="small" style="margin-top:8px">Priority conversation on ${filmById(state.agencyWindows[t.id].filmId).title} until Week ${state.agencyWindows[t.id].expiresWeek}.</div>`:''}</div>"""
+          new = """ <div class="section-title"><h2>Representation</h2></div><div class="card"><div class="row"><strong>${rep.agency.name}</strong><span class="pill ${rep.standing.score>=4?'good':rep.standing.score<=-4?'bad':'blue'}">${rep.relationship}</span></div><div class="body" style="margin-top:7px">${rep.agency.focus}. The client's current negotiating position is <strong>${rep.label.toLowerCase()}</strong>; agency warmth, recent career momentum and awards now shape access and terms without revealing hidden role fit.</div>${state.agencyWindows?.[t.id]&&state.week<=state.agencyWindows[t.id].expiresWeek&&filmById(state.agencyWindows[t.id].filmId)?.stage==='development'?`<div class="small" style="margin-top:8px">Priority conversation on ${filmById(state.agencyWindows[t.id].filmId).title} until Week ${state.agencyWindows[t.id].expiresWeek}. The agency is holding the door open, but the deal still has to make sense.</div>`:''}</div>"""
+          must(old in s, "talent representation card anchor missing")
+          s = s.replace(old, new, 1)
+
+          start = s.index(" if(filter==='agencies')return ")
+          end = s.index(" const talent=", start)
+          agencies_ui = r""" if(filter==='agencies')return `<div class="filterbar"><select id="peopleFilter" class="select"><option value="all">All people</option><option value="agencies" selected>Agencies</option></select></div><div class="section-title"><h2>Representation</h2><span class="small">${AGENCIES.length} agencies · standing is earned through client relationships</span></div><div class="grid cols2">${AGENCIES.map(a=>{const x=agencySnapshot(a),st=x.standing,clients=x.clients,hot=x.hot,market=hot?agencyMarketLeverage(hot):null;return `<div class="card ${st.score<=-4?'dangerline':st.score>=4?'goodline':''}"><div class="row"><div><div class="badge">${a.style}</div><h2 style="margin:6px 0 0">${a.name}</h2></div><span class="pill ${st.score>=4?'good':st.score<=-4?'bad':'blue'}">${st.label}</span></div><div class="body" style="margin-top:7px">${a.focus}</div><div class="small" style="margin-top:8px">${clients.length} active clients · ${st.warm} warm · ${st.cold} strained</div><div class="small">${x.windows.length} active priority conversation${x.windows.length===1?'':'s'} with your studio</div>${hot?`<div class="listrow" style="margin-top:7px"><span>Hottest client market</span><strong>${hot.name} · ${market.label}</strong></div>`:''}${x.thread?`<div class="small" style="margin-top:8px"><strong>Active thread:</strong> ${x.thread.title}</div>`:''}<div class="hr"></div>${clients.slice(0,8).map(t=>`<button class="btn ghost" data-talent="${t.id}">${t.name}</button>`).join('')}</div>`}).join('')}</div>`;
+          """
+          s = s[:start] + agencies_ui + s[end:]
+
+          # ---- Smoke checks for the deeper agency layer ----
+          old = "['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]"
+          new = "['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]"
+          must(old in s, "smoke required-functions anchor missing")
+          s = s.replace(old, new, 1)
+
+          old = """ try{if(pickerControls('Actor').includes('Project fit'))failures.push('actor fit sort leaked');if(soundtrackShortlistSize()<5)failures.push('music shortlist too small');const qs=(state.talent||[]).filter(t=>t.type==='Actor').map(t=>{ensureTalentMarketEconomy(t);return t.fee});if(qs.length&&Math.max(...qs)<7)failures.push('actor salary range compressed')}catch(e){failures.push('casting economy smoke failed')}"""
+          new = """ try{if(pickerControls('Actor').includes('Project fit'))failures.push('actor fit sort leaked');if(soundtrackShortlistSize()<5)failures.push('music shortlist too small');const qs=(state.talent||[]).filter(t=>t.type==='Actor').map(t=>{ensureTalentMarketEconomy(t);return t.fee});if(qs.length&&Math.max(...qs)<7)failures.push('actor salary range compressed');if(qs.length&&Math.min(...qs)>3.2)failures.push('low-cost actor market missing')}catch(e){failures.push('casting economy smoke failed')}
+           try{if(AGENCIES.length<4)failures.push('agency roster missing');const t=(state.talent||[]).find(x=>!x.retired);if(t){const x=agencyMarketLeverage(t);if(!Number.isFinite(x.pressure)||!x.label||!x.relationship)failures.push('agency leverage invalid')}}catch(e){failures.push('agency depth smoke failed')}"""
+          must(old in s, "casting smoke anchor missing")
+          s = s.replace(old, new, 1)
+
+          checks = [
+              "const VERSION='3.11.2';",
+              "function agencyPackagePitchCandidate()",
+              "function agencyContractMultiplier(t,f)",
+              "Active thread:",
+              "Hottest client market",
+              "agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate",
+          ]
+          for check in checks:
+              must(check in s, f"Missing post-patch marker: {check}")
+
+          path.write_text(s, encoding="utf-8")
+          print("Patched Project Slate to v3.11.2 — Agencies Deepening.")
+          PY
+
+      - name: JavaScript syntax check
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("index.html").read_text(encoding="utf-8")
+          start=s.index("<script>")+len("<script>")
+          end=s.rindex("</script>")
+          Path("/tmp/project-slate.js").write_text(s[start:end],encoding="utf-8")
+          PY
+          node --check /tmp/project-slate.js
+
+      - name: Text smoke checks
+        run: |
+          grep -q "const VERSION='3.11.2';" index.html
+          grep -q "agencyPackagePitchCandidate" index.html
+          grep -q "Hottest client market" index.html
+          grep -q "Active thread:" index.html
+          git diff --check
+
+      - name: Commit update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "v3.11.2 agencies deepening"
+          git push
