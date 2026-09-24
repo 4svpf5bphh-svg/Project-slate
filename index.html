@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.9.6.4</title>
+<title>Project Slate — Premium Presentation v3.9.6.5</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -441,12 +441,6 @@ body{
 @media(max-width:720px){.wrapmoment{height:100vh;height:100dvh;min-height:100svh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(112px + env(safe-area-inset-bottom))}.wrap-cinema{min-height:100%;padding-bottom:74px}.wrap-stagebar{grid-template-columns:54px 1fr 66px;gap:8px}.wrap-stagelabel{font-size:8px}.wrap-opening{grid-template-columns:1fr;padding:28px 0 20px;align-content:center}.wrap-opening-poster .filmkeyart-hero{width:150px;height:210px}.wrap-opening-copy{text-align:center}.wrap-opening-copy .studio-lockup{justify-content:center;margin:11px 0 20px}.wrap-opening-meta{justify-content:center}.wrap-opening h1{font-size:clamp(40px,12vw,58px);margin-inline:auto}.wrap-opening-copy>p{font-size:16px;margin-inline:auto}.wrap-endmark{font-size:12px}.wrap-actions{position:fixed;left:12px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:50;background:rgba(7,9,13,.94);border:1px solid #252a35;border-radius:16px;padding:10px 12px;box-shadow:0 18px 46px rgba(0,0,0,.58);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}.wrap-next-button{min-width:0;flex:1;min-height:48px}.wrap-text-button{min-height:44px;padding:8px 4px}.wrap-chapter{padding:36px 0 24px}.wrap-chapter>h1{font-size:clamp(34px,10vw,48px)}.wrap-scoreboard{grid-template-columns:1fr;margin-top:26px}.wrap-score-main{min-height:132px}.wrap-score-main>strong{font-size:48px}.wrap-verdict-copy{font-size:17px}.wrap-reception-strip{grid-template-columns:repeat(2,1fr)}.wrap-timeline-item{grid-template-columns:44px minmax(0,1fr);gap:13px}.wrap-timeline:before{left:21px}.wrap-timeline-num{width:44px;height:44px;box-shadow:0 0 0 5px #07090d}.wrap-timeline-copy p{font-size:16px}.wrap-people-grid{grid-template-columns:1fr}.wrap-person>p{min-height:0}.wrap-trade-quote blockquote{padding-left:36px;font-size:23px}.wrap-quote-mark{font-size:72px}.wrap-trade-byline{margin-left:36px}.wrap-leaves-grid{grid-template-columns:1fr}}
 
 
-/* v3.7.5 Signal & Consequence */
-.pulse-why{margin-top:10px;padding-top:9px;border-top:1px solid var(--border);display:grid;gap:5px}
-.pulse-move{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.pulse-move b{font-weight:650;color:var(--text);text-align:right}
-@media(max-width:620px){.pulse-move{display:block}.pulse-move b{display:block;text-align:left;margin-top:2px}}
-
 /* v3.7.6 Music & Progression */
 .route-locked{opacity:.72}
 .music-strategy{text-align:left;width:100%}
@@ -595,6 +589,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* ===== v3.9.6.2 Pulse — social layer ===== */
 :root{--pulse-pink:#ff5f91;--pulse-violet:#9668ff;--pulse-cyan:#43d7ff;--pulse-mint:#5ee6a8;--pulse-orange:#ff9b62}
+.pulse-social-card.pulse-tone-good,.pulse-detail-hero.pulse-tone-good{border-color:rgba(94,230,168,.48);background:radial-gradient(circle at 100% 0%,rgba(94,230,168,.18),transparent 38%),radial-gradient(circle at 0% 100%,rgba(67,215,255,.10),transparent 36%),linear-gradient(145deg,#151d20,#10161a)}
+.pulse-social-card.pulse-tone-warn,.pulse-detail-hero.pulse-tone-warn{border-color:rgba(255,155,98,.5);background:radial-gradient(circle at 100% 0%,rgba(255,155,98,.2),transparent 38%),radial-gradient(circle at 0% 100%,rgba(255,95,145,.11),transparent 36%),linear-gradient(145deg,#211916,#151317)}
+.pulse-social-card.pulse-tone-bad,.pulse-detail-hero.pulse-tone-bad{border-color:rgba(255,95,145,.55);background:radial-gradient(circle at 100% 0%,rgba(255,95,145,.22),transparent 38%),radial-gradient(circle at 0% 100%,rgba(150,104,255,.13),transparent 36%),linear-gradient(145deg,#21151c,#141218)}
+.pulse-social-card.pulse-tone-cool,.pulse-detail-hero.pulse-tone-cool{border-color:rgba(67,215,255,.48);background:radial-gradient(circle at 100% 0%,rgba(67,215,255,.2),transparent 38%),radial-gradient(circle at 0% 100%,rgba(150,104,255,.13),transparent 36%),linear-gradient(145deg,#141b22,#11141b)}
+
 .pulse-section-title h2,.pulse-brand{background:linear-gradient(90deg,var(--pulse-pink),var(--pulse-violet) 48%,var(--pulse-cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
 .pulse-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:11px}
 .pulse-social-card{appearance:none;-webkit-appearance:none;width:100%;min-width:0;text-align:left;color:var(--text);border:1px solid rgba(150,104,255,.25);border-radius:20px;padding:15px;background:radial-gradient(circle at 100% 0%,rgba(67,215,255,.11),transparent 35%),radial-gradient(circle at 0% 100%,rgba(255,95,145,.10),transparent 35%),linear-gradient(145deg,#171923,#11151c);box-shadow:inset 0 1px rgba(255,255,255,.04),0 12px 28px rgba(0,0,0,.2);transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;cursor:pointer}
@@ -625,7 +624,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.9.6.4';
+const VERSION='3.9.6.5';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3237,11 +3236,6 @@ function openNotificationTarget(n){
  if(t.deskId){const item=state.desk?.items?.find(x=>x.id===t.deskId);if(item)item.expanded=true}
  save();render();
 }
-function notificationOverlay(){
- // v3.7.5: Studio Desk is the sole persistent inbox. Full-screen Studio Moments and
- // hard calendar checkpoints surface the things that cannot be missed.
- return '';
-}
 function toggleProjectHold(f){
  if(!f||f.stage!=='development')return;
  f.paused=!f.paused;
@@ -4291,8 +4285,8 @@ function commitSoundtrack(f){
 function soundtrackPostUI(f){
  ensureSoundtrackState(f);if(f.soundtrack?.committed){const s=f.soundtrack,mods=soundtrackReleaseModifiers(f);return `<div class="section-title"><h2>Music & soundtrack</h2><span class="pill good">Locked</span></div><div class="card goodline"><div class="row"><div><strong>${soundtrackSummary(f)}</strong><div class="small">Creative fit ${Math.round(s.fit)} · ${money(s.cost)} committed</div></div><span class="pill good">Music locked</span></div><div class="small" style="margin-top:8px">The music plan now feeds into finished-film reception and, where relevant, pre-release awareness. It does not consume a major post intervention.</div></div>`}
  const p=ensurePostState(f),draft=p.musicDraft||{strategy:'original',trackId:null},offers=soundtrackOffers(f),strategies=['original','needle','hybrid','minimal'];
- const cards=strategies.map(id=>{const info=soundtrackStrategyInfo(f,id,draft.trackId);return `<button class="card music-strategy ${draft.strategy===id?'goodline':''}" data-music-strategy="${id}"><div class="row"><strong>${info.label}</strong><span class="pill ${info.cls}">${info.label==='Original score'?Math.round(info.fit)+' fit':info.label==='Minimal / source music'?Math.round(info.fit)+' fit':info.track?Math.round(info.fit)+' fit':'Choose song'}</span></div><div class="small" style="margin-top:7px">${info.desc}</div><div class="small" style="margin-top:7px"><strong>${money(info.cost)}</strong>${['needle','hybrid'].includes(id)&&!draft.trackId?' + song selection':''}</div></button>`}).join('');
- const songs=['needle','hybrid'].includes(draft.strategy)?`<div class="section-title"><h2>Signature song shortlist</h2><span class="small">${offers.length} deterministic music-supervisor options for this film</span></div><div class="grid">${offers.map(({track,fit})=>`<button class="card ${draft.trackId===track.id?'goodline':''}" data-music-track="${track.id}"><div class="row"><div><strong>${track.artist}</strong><div class="small">“${track.title}” · ${track.mood}</div></div><span class="pill ${fit>=82?'good':fit>=70?'blue':fit>=58?'warn':'bad'}">Fit ${fit}</span></div><div class="small" style="margin-top:7px">Licence ${money(track.license)} · familiarity ${track.familiarity}/100</div></button>`).join('')}</div>`:'';
+ const cards=strategies.map(id=>{const info=soundtrackStrategyInfo(f,id,draft.trackId);return `<button class="card music-strategy selection-card ${draft.strategy===id?'selected-choice':''}" data-music-strategy="${id}" aria-pressed="${draft.strategy===id?'true':'false'}">${draft.strategy===id?'<div class="selected-choice-badge">✓ Selected music strategy</div>':''}<div class="row"><strong>${info.label}</strong><span class="pill ${info.cls}">${info.label==='Original score'?Math.round(info.fit)+' fit':info.label==='Minimal / source music'?Math.round(info.fit)+' fit':info.track?Math.round(info.fit)+' fit':'Choose song'}</span></div><div class="small" style="margin-top:7px">${info.desc}</div><div class="small" style="margin-top:7px"><strong>${money(info.cost)}</strong>${['needle','hybrid'].includes(id)&&!draft.trackId?' + song selection':''}</div></button>`}).join('');
+ const songs=['needle','hybrid'].includes(draft.strategy)?`<div class="section-title"><h2>Signature song shortlist</h2><span class="small">${offers.length} deterministic music-supervisor options for this film</span></div><div class="grid">${offers.map(({track,fit})=>`<button class="card selection-card ${draft.trackId===track.id?'selected-choice':''}" data-music-track="${track.id}" aria-pressed="${draft.trackId===track.id?'true':'false'}">${draft.trackId===track.id?'<div class="selected-choice-badge">✓ Selected song</div>':''}<div class="row"><div><strong>${track.artist}</strong><div class="small">“${track.title}” · ${track.mood}</div></div><span class="pill ${fit>=82?'good':fit>=70?'blue':fit>=58?'warn':'bad'}">Fit ${fit}</span></div><div class="small" style="margin-top:7px">Licence ${money(track.license)} · familiarity ${track.familiarity}/100</div></button>`).join('')}</div>`:'';
  const preview=soundtrackStrategyInfo(f,draft.strategy,draft.trackId);
  return `<div class="section-title"><h2>Music & soundtrack</h2><span class="small">Required before picture lock · does not use an intervention</span></div><div class="grid cols2">${cards}</div>${songs}<div class="card music-commit-card ${preview.fit>=82?'goodline':''}" style="margin-top:12px"><div class="row"><div><strong>${preview.label}</strong><div class="small">Creative fit ${Math.round(preview.fit)} · ${money(preview.cost)}</div></div><span class="pill ${preview.cls}">${preview.label==='Licensed signature song'||preview.label.startsWith('Hybrid')?(preview.track?`${preview.track.artist} · ${preview.track.title}`:'Song required'):preview.label}</span></div><div class="body" style="margin-top:8px">Music can improve or undermine the finished film depending on fit. Recognisable songs can also add release awareness — but familiarity is not a substitute for creative fit.</div><button id="commitSoundtrack" class="btn primary block" style="margin-top:10px" ${['needle','hybrid'].includes(draft.strategy)&&!draft.trackId?'disabled':''}>Commit music plan · ${money(preview.cost)}</button></div>`;
 }
@@ -7484,7 +7478,6 @@ function ownedStreamingModel(id){return OWNED_STREAMING_MODELS[id]||null}
 function defaultOwnedStreamingState(){return {status:'none',name:null,model:null,launchWeek:null,launchCost:0,subscribers:0,peakSubscribers:0,lastQuarterSubscribers:0,lastQuarterWeek:0,exclusiveFilmIds:[],history:[],quarterly:[],lifetimeRevenue:0,lifetimeOperatingCost:0,currentQuarterRevenue:0,currentQuarterCost:0,lastWeeklyRevenue:0,lastWeeklyCost:0,lastWeeklyNet:0,lastExclusiveWeek:null,notifiedWeek:0,declinedUntil:0,woundDownWeek:null}}
 function ensureOwnedStreamingState(st=state){const c=ensureCorporateState(st);c.streamingPlatform=c.streamingPlatform||defaultOwnedStreamingState();const p=c.streamingPlatform,base=defaultOwnedStreamingState();Object.keys(base).forEach(k=>{if(p[k]===undefined)p[k]=deep(base[k])});p.exclusiveFilmIds=p.exclusiveFilmIds||[];p.history=p.history||[];p.quarterly=p.quarterly||[];return p}
 function ownedStreamingPlatformName(){const raw=String(state.studio?.name||'Studio').replace(/\b(studios?|pictures?|films?|entertainment|productions?)\b/ig,'').replace(/\s{2,}/g,' ').trim();return `${raw||state.studio?.name||'Studio'}+`}
-function ownedStreamingActive(st=state){return ensureOwnedStreamingState(st).status==='active'}
 function ownedStreamingWeeklyOverhead(st=state){const p=ensureOwnedStreamingState(st);if(p.status!=='active')return 0;const m=ownedStreamingModel(p.model);return m?+(m.fixedOverhead+p.subscribers*m.perSubscriberOverhead).toFixed(4):0}
 function ownedStreamingWeeklyRevenue(st=state){const p=ensureOwnedStreamingState(st);if(p.status!=='active')return 0;const m=ownedStreamingModel(p.model);return m?+(p.subscribers*m.weeklyRevenuePerM).toFixed(4):0}
 function ownedStreamingWeeklyNet(st=state){return +(ownedStreamingWeeklyRevenue(st)-ownedStreamingWeeklyOverhead(st)).toFixed(4)}
@@ -8212,7 +8205,7 @@ function pulseDetailScreen(id){
  <section class="pulse-detail-hero pulse-tone-${tone}"><div class="pulse-card-top"><span class="pulse-brand">PULSE</span><span class="pulse-stage">${fmtStage(f.stage)}</span></div><div class="pulse-detail-hero-grid"><div><div class="pulse-detail-score"><strong>${p.volume}</strong><span>conversation</span></div><div class="pulse-detail-status">${read.label}</div></div><p>${pulseSummaryLine(p)}</p></div></section>
  <div class="section-title"><h2>Signals</h2><span class="small">Four different things — no single score tells the whole story</span></div><div class="pulse-detail-grid">${pulseMetricCard('Conversation',p.volume,'volume','How much people are talking')}${pulseMetricCard('Sentiment',p.sentiment,'sentiment','How positive the tone is')}${pulseMetricCard('Fan intensity',p.fandom,'fandom','How invested the core audience is')}${pulseMetricCard('Controversy',p.controversy,'controversy','How much conflict is driving attention')}</div>
  ${topics.length?`<div class="section-title"><h2>What is sticking</h2><span class="small">Topics the audience keeps returning to</span></div><div class="pulse-topic-cloud">${topics.map(t=>`<span>#${t}</span>`).join('')}</div>`:''}
- <div class="section-title"><h2>Why Pulse moved</h2><span class="small">Recent causes, newest first</span></div><div class="pulse-movement-list">${moves.length?moves.map(m=>`<div class="pulse-movement-row"><div><strong>${m.reason}</strong><span>${m.week?`Week ${m.week}`:'Recent movement'}</span></div><b>${m.changes.join(' · ')}</b></div>`).join(''):`<div class="card body">No meaningful movement has been recorded yet. Pulse will start building as campaign beats and audience reactions create something worth talking about.</div>`}</div>
+ <div class="section-title"><h2>Why Pulse moved</h2><span class="small">Recent causes, newest first</span></div><div class="pulse-movement-list">${moves.length?moves.map(m=>`<div class="pulse-movement-row"><div><strong>${m.reason}</strong><span>${m.day&&typeof calendarDateLabel==='function'?calendarDateLabel(m.day):m.week?`Week ${m.week}`:'Recent movement'}</span></div><b>${m.changes.join(' · ')}</b></div>`).join(''):`<div class="card body">No meaningful movement has been recorded yet. Pulse will start building as campaign beats and audience reactions create something worth talking about.</div>`}</div>
  <div class="section-title"><h2>Live chatter</h2><span class="small">A flavour of the conversation, not a literal feed</span></div><div class="pulse-feed-list">${feed.length?feed.map(x=>`<div class="pulse-feed-post pulse-feed-${x.tone||'neutral'}"><div class="pulse-feed-avatar">◉</div><div><strong>${x.tone==='good'?'Positive signal':x.tone==='warn'?'Heated signal':'Audience signal'}</strong><p>${x.text}</p><span>${x.week?`Week ${x.week}`:'This week'}</span></div></div>`).join(''):`<div class="card body">No distinct audience chatter has surfaced yet.</div>`}</div>
  </main>${nav()}`;
 }
@@ -9033,9 +9026,12 @@ function studioMomentScreen(){
 function awardsNominationsScreen(){
  const n=state.pendingAwardsNominations||awardsNominationRecord(awardsSeasonId());if(!n)return studioScreen();
  const playerRows=n.categories.flatMap(cat=>cat.nominees.filter(x=>x.owner==='player').map(x=>({...x,category:cat.label})));
+ const nominatedFilms=[...new Set(playerRows.map(x=>x.filmId).filter(Boolean))].map(filmById).filter(Boolean);
+ const campaignRows=nominatedFilms.map(f=>{const a=ensureAfterlifeState(f),focused=+(awardsPushCost(f,1)*(1-awardsCampaignDiscount())).toFixed(2),full=+(awardsPushCost(f,2)*(1-awardsCampaignDiscount())).toFixed(2);return `<div class="card awards-nominee-campaign"><div class="row"><div><strong>${f.title}</strong><div class="small">${(a.nominations||[]).filter(x=>x.season===n.season).length||playerRows.filter(x=>x.filmId===f.id).length} nomination${((a.nominations||[]).filter(x=>x.season===n.season).length||playerRows.filter(x=>x.filmId===f.id).length)===1?'':'s'} · campaign decision before Awards Night</div></div>${a.awardsPush?'<span class="pill good">Campaign active</span>':''}</div>${!a.awardsPush?`<div class="awards-campaign-options"><button class="btn" data-nomination-campaign="${f.id}" data-campaign-level="1"><strong>Focused · ${money(focused)}</strong><span>Disciplined awards support.</span></button><button class="btn primary" data-nomination-campaign="${f.id}" data-campaign-level="2"><strong>Full · ${money(full)}</strong><span>Maximum awards push.</span></button></div>`:`<div class="small" style="margin-top:8px">${a.awardsPushLevel===2?'Full-scale':'Focused'} campaign already active · ${money(a.awardsPushCost)} committed.</div>`}</div>`}).join('');
  return `<div class="ceremony nominations-night"><div class="ceremony-inner"><div class="ceremony-kicker">YEAR ${n.season} · NOMINATIONS DAY</div><h1>The final field is set</h1>${state.studio?playerStudioLogoHTML('sm',true):''}<p class="ceremony-sub">${playerRows.length?`${state.studio.name} has ${playerRows.length} nomination${playerRows.length===1?'':'s'} across the Year ${n.season} Slate Awards.`:`${state.studio.name} is outside the final field this year. Awards Night still belongs to the wider industry.`}</p>
  <div class="nomination-summary"><div><strong>${playerRows.length}</strong><span>Your nominations</span></div><div><strong>${n.categories.reduce((s,c)=>s+c.nominees.length,0)}</strong><span>Total nominations</span></div><div><strong>W${n.season*52}</strong><span>Awards Night · Y${n.season}W52</span></div></div>
  <div class="ceremony-grid">${n.categories.map(cat=>`<div class="awardcard"><div class="awardlabel">${cat.label}</div><div class="nominees">${cat.nominees.length?cat.nominees.map(x=>`<div class="${x.owner==='player'?'winner':''}">${x.owner==='player'?'YOUR STUDIO · ':''}${x.subject}<span>${x.studio}</span></div>`).join(''):'<div>No nominees</div>'}</div></div>`).join('')}</div>
+ ${campaignRows?`<div class="section-title" style="margin-top:18px"><h2>Awards campaign</h2><span class="small">Your nominated films can still be pushed before Awards Night</span></div><div class="grid">${campaignRows}</div>`:''}
  <button id="closeNominations" class="btn primary ceremony-continue">Return to the studio</button></div></div>`;
 }
 function awardsCareerThreadContext(){const t=typeof activeCareerThreads==='function'?activeCareerThreads(1)[0]:null;if(!t)return '';return `<div class="card ceremony-thread-context"><div class="badge">THE STORY AROUND YOUR STUDIO</div><strong>${t.title}</strong><div class="small" style="margin-top:5px">${t.summary}</div></div>`}
@@ -9156,7 +9152,7 @@ function bind(){
  const pickerAvailable=document.getElementById('pickerAvailable');if(pickerAvailable)pickerAvailable.onchange=()=>{state.uiPickerAvailable=pickerAvailable.checked;save();render()};
  const pickerContinue=document.getElementById('pickerContinue');if(pickerContinue)pickerContinue.onclick=()=>{state.uiPickerSearch='';state.history=[];state.screen='slate';state.detail={type:'film',id:currentFilmId};save();render()};
  document.querySelectorAll('[data-budget]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);f.budget=+b.dataset.budget;save();render()});
- const budgetSlider=document.getElementById('budgetSlider');if(budgetSlider){budgetSlider.oninput=()=>{const f=filmById(currentFilmId),sc=scriptById(f.scriptId);f.budget=+budgetSlider.value;document.getElementById('budgetRead').textContent=money(f.budget);document.getElementById('budgetAdvice').textContent=budgetAdvice(f.budget,sc);const fees=packageTalentIds(f).reduce((a,id)=>a+(f.contracts[id]?.upfront??talentById(id)?.fee??0),0),depth=productionDepthCost(f);document.getElementById('cashAfter').textContent=`Estimated cash after package + production: ${money(state.cash-f.budget-fees-depth)}`;save()};budgetSlider.onchange=()=>{save();render()}};
+ const budgetSlider=document.getElementById('budgetSlider');if(budgetSlider){budgetSlider.oninput=()=>{const f=filmById(currentFilmId),sc=scriptById(f.scriptId);f.budget=+budgetSlider.value;document.getElementById('budgetRead').textContent=money(f.budget);document.getElementById('budgetAdvice').textContent=budgetAdvice(f.budget,sc);const fees=packageTalentIds(f).reduce((a,id)=>a+(f.contracts[id]?.upfront??talentById(id)?.fee??0),0),depth=productionDepthCost(f);document.getElementById('cashAfter').textContent=`Estimated cash after package + production: ${money(state.cash-f.budget-fees-depth)}`;scheduleDraftSave()};budgetSlider.onchange=()=>{save();render()}};
  document.querySelectorAll('[data-creative-field]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);f.creative=f.creative||defaultCreative();f.creative[b.dataset.creativeField]=b.dataset.creativeValue;save();render()});
  document.querySelectorAll('[data-producer-strategy]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureProductionDepth(f);f.producerStrategy=b.dataset.producerStrategy;save();render()});
  document.querySelectorAll('[data-effects-approach]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureProductionDepth(f);f.effectsApproach=b.dataset.effectsApproach;save();render()});
@@ -9192,9 +9188,10 @@ function bind(){
  document.querySelectorAll('[data-campaign]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);f.campaign=b.dataset.campaign;if(f.releaseWeek!==null&&!validReleaseWeeks(f).includes(f.releaseWeek))f.releaseWeek=null;save();render()});
  document.querySelectorAll('[data-trailer]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureMarketingState(f).trailer=b.dataset.trailer;save();render()});
  document.querySelectorAll('[data-publicity]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureMarketingState(f).publicity=b.dataset.publicity;save();render()});
+ document.querySelectorAll('[data-nomination-campaign]').forEach(b=>b.onclick=()=>{const f=filmById(b.dataset.nominationCampaign);if(f)commitAwardsPush(f,+b.dataset.campaignLevel||1)});
  document.querySelectorAll('[data-launch]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureMarketingState(f).launch=b.dataset.launch;if(f.releaseWeek!==null&&!validReleaseWeeks(f).includes(f.releaseWeek))f.releaseWeek=null;save();render()});
  document.querySelectorAll('[data-marketing-choice]').forEach(b=>b.onclick=()=>resolveMarketingIntervention(filmById(currentFilmId),b.dataset.marketingChoice));
- const ms=document.getElementById('marketingSlider');if(ms){ms.oninput=()=>{const f=filmById(currentFilmId);f.marketing=+ms.value;const rd=document.getElementById('marketingRead');if(rd)rd.textContent=money(f.marketing);const li=marketingLeadInfo(f),ld=document.getElementById('marketingLead');if(ld)ld.innerHTML=`<strong>${li.tier}</strong> · minimum ${li.lead}-week build · earliest release Week ${li.earliest}.`;save()};ms.onchange=()=>{const f=filmById(currentFilmId);if(f.releaseWeek!==null&&!validReleaseWeeks(f).includes(f.releaseWeek))f.releaseWeek=null;save();render()}}
+ const ms=document.getElementById('marketingSlider');if(ms){ms.oninput=()=>{const f=filmById(currentFilmId);f.marketing=+ms.value;const rd=document.getElementById('marketingRead');if(rd)rd.textContent=money(f.marketing);const li=marketingLeadInfo(f),ld=document.getElementById('marketingLead');if(ld)ld.innerHTML=`<strong>${li.tier}</strong> · minimum ${li.lead}-week build · earliest release Week ${li.earliest}.`;scheduleDraftSave()};ms.onchange=()=>{const f=filmById(currentFilmId);if(f.releaseWeek!==null&&!validReleaseWeeks(f).includes(f.releaseWeek))f.releaseWeek=null;save();render()}}
  document.querySelectorAll('[data-distribution]').forEach(b=>b.onclick=()=>setDistributionStrategy(filmById(currentFilmId),b.dataset.distribution));
  document.querySelectorAll('[data-release-week]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);f.releaseWeek=+b.dataset.releaseWeek;save();render()});
  document.querySelectorAll('[data-move-release-week]').forEach(b=>b.onclick=()=>moveScheduledRelease(filmById(currentFilmId),+b.dataset.moveReleaseWeek));
@@ -9246,12 +9243,12 @@ function renderMotionClass(next,prev){
 }
 function alignActiveTabs(){
  if(typeof document==='undefined')return;
- document.querySelectorAll('.industrytabs').forEach(t=>{
+ requestAnimationFrame(()=>document.querySelectorAll('.industrytabs').forEach(t=>{
   const active=t.querySelector('.btn.primary');if(!active)return;
   const max=Math.max(0,t.scrollWidth-t.clientWidth);if(max<=0){t.scrollLeft=0;return}
-  const target=active.offsetLeft-(t.clientWidth-active.offsetWidth)/2;
-  t.scrollLeft=Math.max(0,Math.min(max,target));
- });
+  const target=Math.max(0,Math.min(max,active.offsetLeft-(t.clientWidth-active.offsetWidth)/2));
+  if(typeof t.scrollTo==='function')t.scrollTo({left:target,behavior:'auto'});else t.scrollLeft=target;
+ }));
 }
 
 function renderFamilyClass(){
