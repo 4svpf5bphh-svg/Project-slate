@@ -1,0 +1,126 @@
+name: one-shot v3.11.1 actor market patch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, 'v3.11.1 actor market expansion')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch Project Slate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("index.html")
+          s = path.read_text(encoding="utf-8")
+
+          if "const VERSION='3.11.0';" not in s:
+              raise SystemExit("Expected v3.11.0 baseline not found; refusing to patch")
+
+          s = s.replace(
+              "<title>Project Slate — Premium Presentation v3.11.0</title>",
+              "<title>Project Slate — Premium Presentation v3.11.1</title>",
+              1,
+          )
+          s = s.replace("const VERSION='3.11.0';", "const VERSION='3.11.1';", 1)
+
+          old_curve = """ if(t.type==='Actor'){
+            const star=Math.max(0,(t.star||20)-20)*.10;
+            const heat=Math.max(0,mom-50)*.035;
+            const craft=Math.max(0,(t.acting||70)-75)*.045;
+            const status=['A-List Prime','Hot Streak','Comeback'].includes(t.careerState)?1.0:t.careerState==='Breakout'?.45:0;
+            const target=.35+star+heat+craft+status+awards.wins*.45+awards.noms*.08;
+            return clamp(target,.35,12.5);
+           }"""
+          new_curve = """ if(t.type==='Actor'){
+            const draw=Number(t.star||20),acting=Number(t.acting||70);
+            const star=Math.max(0,Math.min(draw,70)-35)*.055+Math.max(0,draw-70)*.18;
+            const heat=Math.max(0,mom-55)*.035;
+            const craft=Math.max(0,acting-78)*.045;
+            const status=draw>=92?1.5:draw>=88?.75:['A-List Prime','Hot Streak','Comeback'].includes(t.careerState)?.75:t.careerState==='Breakout'?.35:0;
+            const target=.45+star+heat+craft+status+awards.wins*.45+awards.noms*.08;
+            return clamp(target,.35,12.5);
+           }"""
+          if old_curve not in s:
+              raise SystemExit("Actor fee curve marker not found; refusing to patch")
+          s = s.replace(old_curve, new_curve, 1)
+
+          s = s.replace("if(t.marketEconomyVersion!==311){", "if(t.marketEconomyVersion!==3111){", 1)
+          s = s.replace("t.marketEconomyVersion=311;", "t.marketEconomyVersion=3111;", 1)
+
+          new_rows = """ ['Scott Eastwood',69,62,54,81,1.8,['Action Thriller','Crime Thriller'],'Commercial Supporting Lead',40,['Fury','The Outpost','Fast X']],
+           ['Ruby Rose',67,58,48,74,1.4,['Action Thriller','Crime Thriller','Science Fiction'],'Genre Supporting Lead',40,['John Wick: Chapter 2','Pitch Perfect 3','Batwoman']],
+           ['Jai Courtney',72,61,50,82,1.8,['Action Thriller','Science Fiction','Crime Thriller'],'Action Ensemble Player',40,['The Suicide Squad','Jack Reacher','Terminator Genisys']],
+           ['Samara Weaving',84,67,72,86,2.4,['Psychological Horror','Comedy','Action Thriller'],'Genre Lead',34,['Ready or Not','Guns Akimbo','The Babysitter']],
+           ['Maika Monroe',87,64,79,88,2.2,['Psychological Horror','Crime Thriller','Science Fiction'],'Indie Genre Lead',33,['It Follows','Longlegs','Watcher']],
+           ['Boyd Holbrook',82,66,65,85,2.4,['Crime Thriller','Action Thriller','Science Fiction'],'Character / Genre Lead',45,['Logan','The Bikeriders','Narcos']],
+           ['Betty Gilpin',88,61,63,89,2.0,['Comedy','Prestige Drama','Action Thriller'],'Character Lead',40,['The Hunt','GLOW','The Tomorrow War']],
+           ['Dan Stevens',89,70,82,88,3.5,['Psychological Horror','Fantasy','Comedy'],'Versatile Genre Lead',43,['The Guest','Abigail','Godzilla x Kong: The New Empire']],
+           ['Alison Brie',88,72,66,90,3.6,['Comedy','Prestige Drama','Crime Thriller'],'Comedy / Drama Lead',43,['GLOW','Community','Promising Young Woman']],
+           ['Taron Egerton',87,82,72,87,5.5,['Action Thriller','Prestige Drama','Crime Thriller'],'Commercial Lead',36,['Rocketman','Kingsman: The Secret Service','Tetris']],
+           ['Nicholas Hoult',90,82,88,90,5.5,['Fantasy','Comedy','Action Thriller','Prestige Drama'],'Versatile Event Lead',36,['Mad Max: Fury Road','The Menu','Juror #2']],
+           ['Dave Bautista',81,85,80,90,6.5,['Action Thriller','Science Fiction','Crime Thriller'],'Event Character Star',57,['Guardians of the Galaxy','Dune: Part Two','Knock at the Cabin']],
+           ['Megan Fox',68,82,57,78,4.5,['Action Thriller','Comedy','Psychological Horror'],'Commercial Genre Name',40,['Transformers','Jennifer’s Body','Teenage Mutant Ninja Turtles']],
+           ['Jason Statham',74,94,80,92,14.0,['Action Thriller','Crime Thriller'],'Global Action Star',59,['The Beekeeper','Crank','Fast & Furious Presents: Hobbs & Shaw']],
+           ['Chris Pratt',78,94,76,88,14.0,['Action Thriller','Science Fiction','Comedy','Family Adventure'],'Global Franchise Star',47,['Guardians of the Galaxy','Jurassic World','The Super Mario Bros. Movie']]"""
+
+          actor_start = s.find("const actorSeed=[")
+          actor_end_marker = "\n];\n\nconst directorSeed=["
+          actor_end = s.find(actor_end_marker, actor_start)
+          if actor_start < 0 or actor_end < 0:
+              raise SystemExit("actorSeed block not found; refusing to patch")
+          actor_block = s[actor_start:actor_end]
+          if "Scott Eastwood" in actor_block:
+              raise SystemExit("New actor rows already present")
+          s = s[:actor_end] + ",\n" + new_rows + s[actor_end:]
+
+          # Validation: 15 new real actors, real-person portrait pipeline still present,
+          # and the resulting roster spans a true low-to-high market.
+          names = [
+              "Scott Eastwood","Ruby Rose","Jai Courtney","Samara Weaving","Maika Monroe",
+              "Boyd Holbrook","Betty Gilpin","Dan Stevens","Alison Brie","Taron Egerton",
+              "Nicholas Hoult","Dave Bautista","Megan Fox","Jason Statham","Chris Pratt"
+          ]
+          for name in names:
+              if s.count("'" + name + "'") < 1:
+                  raise SystemExit(f"Missing actor after patch: {name}")
+          if "https://en.wikipedia.org/w/api.php?action=query" not in s or "isRealPerson:true" not in s:
+              raise SystemExit("Real-person portrait pipeline missing")
+          if "const VERSION='3.11.1';" not in s:
+              raise SystemExit("Version bump failed")
+
+          path.write_text(s, encoding="utf-8")
+          print("Patched Project Slate to v3.11.1 with 15 real actors and revised fee curve.")
+          PY
+
+      - name: Smoke checks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("index.html").read_text(encoding="utf-8")
+          assert "<title>Project Slate — Premium Presentation v3.11.1</title>" in s
+          assert "const VERSION='3.11.1';" in s
+          assert "marketEconomyVersion!==3111" in s
+          assert "ROLE FIT UNKNOWN" in s
+          assert "Scott Eastwood" in s and "Chris Pratt" in s
+          assert "fetchPortraitForTalent" in s and "wikipedia.org/w/api.php" in s
+          print("v3.11.1 smoke checks passed")
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --check
+          git commit -m "v3.11.1 actor market expansion"
+          git push
