@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.9.6.2</title>
+<title>Project Slate — Premium Presentation v3.9.6.3</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -588,7 +588,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* ===== v3.9.6.2 Interaction clarity ===== */
 .selection-card{position:relative;text-align:left;width:100%;transition:border-color .14s ease,background .14s ease,box-shadow .14s ease,transform .14s ease}
 .selection-card.selected-choice{border:2px solid color-mix(in srgb,var(--accent2) 76%,white 8%);background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 20%,#20242d),color-mix(in srgb,var(--accent) 9%,#151922));box-shadow:inset 4px 0 0 var(--accent2),0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent),0 14px 32px rgba(0,0,0,.22)}
-.selection-card.selected-choice strong{color:#fff}.selected-choice-badge{display:inline-flex;align-items:center;gap:5px;margin:0 0 10px;padding:5px 8px;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-size:9px;line-height:1;font-weight:900;letter-spacing:.09em;text-transform:uppercase;box-shadow:0 5px 15px color-mix(in srgb,var(--accent) 20%,transparent)}
+.selection-card.selected-choice strong{color:#fff}.selected-choice-badge{display:flex;width:max-content;max-width:100%;align-items:center;gap:5px;margin:0 0 10px;padding:5px 8px;border-radius:999px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-size:9px;line-height:1;font-weight:900;letter-spacing:.09em;text-transform:uppercase;box-shadow:0 5px 15px color-mix(in srgb,var(--accent) 20%,transparent)}
 .selection-card[aria-pressed="true"] .pill{border-color:color-mix(in srgb,var(--accent2) 42%,var(--border));color:#eef0ff;background:color-mix(in srgb,var(--accent) 8%,transparent)}
 .post-action-choice.selected-post-action{border-width:2px;transform:none}
 @media(max-width:620px){.selection-card.selected-choice{box-shadow:inset 4px 0 0 var(--accent2),0 0 0 2px color-mix(in srgb,var(--accent) 16%,transparent),0 10px 24px rgba(0,0,0,.2)}}
@@ -607,6 +607,74 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .pulse-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pulse-detail-metric{border:1px solid var(--border);border-radius:17px;padding:14px;background:linear-gradient(145deg,#181d26,#12161d)}.pulse-detail-metric-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.pulse-detail-metric-head span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9aa4b3;font-weight:800}.pulse-detail-metric-head strong{font-size:25px}.pulse-detail-bar{height:7px;margin-top:10px;border-radius:99px;background:#0b0e13;overflow:hidden}.pulse-detail-bar i{display:block;height:100%;border-radius:inherit}.pulse-metric-volume .pulse-detail-bar i{background:linear-gradient(90deg,var(--pulse-violet),var(--pulse-cyan))}.pulse-metric-sentiment .pulse-detail-bar i{background:linear-gradient(90deg,var(--pulse-pink),var(--pulse-mint))}.pulse-metric-fandom .pulse-detail-bar i{background:linear-gradient(90deg,var(--pulse-violet),var(--pulse-pink))}.pulse-metric-controversy .pulse-detail-bar i{background:linear-gradient(90deg,var(--pulse-orange),var(--pulse-pink))}.pulse-detail-metric-foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:10px;color:#8791a0}.pulse-detail-metric-foot b{font-size:11px}.pulse-word-good{color:var(--pulse-mint)}.pulse-word-warm{color:var(--pulse-orange)}.pulse-word-bad{color:var(--pulse-pink)}.pulse-word-cool{color:var(--pulse-cyan)}.pulse-word-hot{color:#caa9ff}.pulse-word-muted{color:#8d96a5}
 .pulse-topic-cloud{display:flex;flex-wrap:wrap;gap:8px}.pulse-topic-cloud span{padding:8px 11px;border-radius:999px;background:linear-gradient(135deg,rgba(150,104,255,.12),rgba(67,215,255,.07));border:1px solid rgba(150,104,255,.24);color:#d8ccff;font-size:11px}.pulse-movement-list,.pulse-feed-list{display:grid;gap:8px}.pulse-movement-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:#151a22}.pulse-movement-row strong,.pulse-movement-row span{display:block}.pulse-movement-row strong{font-size:12px}.pulse-movement-row span{font-size:9px;color:#7f8998;margin-top:3px}.pulse-movement-row>b{font-size:10px;color:#c8d0da;text-align:right}.pulse-feed-post{display:grid;grid-template-columns:34px minmax(0,1fr);gap:11px;padding:13px;border:1px solid var(--border);border-radius:16px;background:linear-gradient(145deg,#171c24,#12161d)}.pulse-feed-avatar{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,var(--pulse-pink),var(--pulse-violet));color:white;box-shadow:0 6px 16px rgba(150,104,255,.18)}.pulse-feed-post strong{font-size:10px;color:#b9c1cd}.pulse-feed-post p{font-size:12.5px;line-height:1.48;margin:4px 0;color:#e2e5ea}.pulse-feed-post span{font-size:9px;color:#7f8998}.pulse-feed-good{border-color:rgba(94,230,168,.17)}.pulse-feed-warn{border-color:rgba(255,155,98,.20)}
 @media(max-width:680px){.pulse-board{grid-template-columns:1fr}.pulse-detail-hero-grid{grid-template-columns:1fr;gap:18px}.pulse-detail-score strong{font-size:64px}.pulse-detail-grid{grid-template-columns:1fr}.pulse-movement-row{grid-template-columns:1fr}.pulse-movement-row>b{text-align:left}.pulse-detail-hero-grid p{font-size:17px}}
+
+/* ===== v3.9.6.3 Mobile interaction + narrative polish ===== */
+button.card.goodline[data-contract-offer],
+button.card.goodline[data-campaign],
+button.card.goodline[data-trailer],
+button.card.goodline[data-publicity],
+button.card.goodline[data-launch],
+button.card.goodline[data-distribution],
+button.release-window.goodline{
+ position:relative;
+ border:2px solid color-mix(in srgb,var(--accent2) 82%,white 8%);
+ border-left-width:5px;
+ background:radial-gradient(circle at 100% 0%,color-mix(in srgb,var(--accent2) 15%,transparent),transparent 34%),linear-gradient(145deg,color-mix(in srgb,var(--accent) 28%,#20242d),color-mix(in srgb,var(--accent) 12%,#151922));
+ box-shadow:inset 3px 0 0 var(--accent2),0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent),0 15px 34px rgba(0,0,0,.25)
+}
+button.card.goodline[data-contract-offer]::before,
+button.card.goodline[data-campaign]::before,
+button.card.goodline[data-trailer]::before,
+button.card.goodline[data-publicity]::before,
+button.card.goodline[data-launch]::before,
+button.card.goodline[data-distribution]::before,
+button.release-window.goodline::before{
+ content:"✓ SELECTED";
+ display:flex;
+ width:max-content;
+ max-width:100%;
+ margin:0 0 10px;
+ padding:5px 8px;
+ border-radius:999px;
+ background:linear-gradient(135deg,var(--accent),var(--accent2));
+ color:#fff;
+ font-size:9px;
+ line-height:1;
+ font-weight:900;
+ letter-spacing:.09em;
+ box-shadow:0 5px 15px color-mix(in srgb,var(--accent) 20%,transparent)
+}
+#app:has(#clearSupportingCast) .pickerpad{padding-bottom:174px}
+.pickerbar:has(#clearSupportingCast) .pickerbar-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px}
+.pickerbar:has(#clearSupportingCast) .pickerbar-inner>.row{display:flex;gap:9px;align-items:center}
+.pickerbar:has(#clearSupportingCast) .pickerbar-inner>div:first-child{min-width:0}
+.pickerbar:has(#clearSupportingCast) .pickerbar-inner strong{overflow-wrap:anywhere}
+.thread-resolved{margin-top:10px;border:1px solid var(--hairline);border-radius:15px;background:rgba(255,255,255,.018);overflow:hidden}
+.thread-resolved>span{display:block;padding:9px 12px;border-bottom:1px solid var(--hairline);font-size:9px;letter-spacing:.13em;text-transform:uppercase;font-weight:900;color:#8e98a7}
+.thread-resolved>small{display:block;padding:11px 12px;font-size:11px;line-height:1.45;color:var(--muted)}
+.thread-resolved>small+small{border-top:1px solid var(--hairline)}
+.thread-resolved>small b{display:block;color:var(--text);font-size:12px;line-height:1.35;margin-bottom:3px}
+.production-wire-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.production-wire-card{appearance:none;-webkit-appearance:none;width:100%;text-align:left;color:var(--text);cursor:pointer}
+.production-wire-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.production-wire-top strong{display:block;margin-top:5px;font-size:15px}
+.production-wire-card p{margin:12px 0 0;font-family:Georgia,"Times New Roman",serif;font-size:14px;line-height:1.5;color:#d9dde4}
+.production-wire-foot{display:flex;justify-content:space-between;gap:10px;margin-top:12px;padding-top:9px;border-top:1px solid var(--hairline);font-size:10px;color:var(--muted)}
+.production-wire-foot b{color:var(--accent2)}
+.route-industry .listrow:has(>span):has(>strong)>span,
+.route-industry .listrow:has(>span):has(>strong)>strong{min-width:0;overflow-wrap:anywhere}
+@media(max-width:620px){
+ .pickerbar:has(#clearSupportingCast){padding-top:9px;padding-bottom:9px}
+ .pickerbar:has(#clearSupportingCast) .pickerbar-inner{grid-template-columns:1fr;gap:9px}
+ .pickerbar:has(#clearSupportingCast) .pickerbar-inner>div:first-child strong{font-size:13px}
+ .pickerbar:has(#clearSupportingCast) .pickerbar-inner>div:first-child .small{font-size:10px;margin-top:2px}
+ .pickerbar:has(#clearSupportingCast) .pickerbar-inner>.row{display:grid;grid-template-columns:minmax(88px,.72fr) minmax(0,1.45fr);width:100%;gap:8px}
+ .pickerbar:has(#clearSupportingCast) .pickerbar-inner>.row .btn{width:100%;min-width:0;min-height:44px;padding:8px 10px;white-space:normal}
+ .production-wire-grid{grid-template-columns:1fr}
+ .route-industry .listrow:has(>span):has(>strong){display:grid;grid-template-columns:minmax(0,.58fr) minmax(0,1.42fr);gap:10px;align-items:start}
+ .route-industry .listrow:has(>span):has(>strong)>strong{text-align:right}
+}
+
 </style>
 </head>
 <body>
@@ -614,7 +682,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.9.6.2';
+const VERSION='3.9.6.3';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -4293,14 +4361,18 @@ function recordProductionDaily(f){
  if(journal.some(x=>x.week===week))return;
  const ps=f.productionState||{},m=f.metrics||{},director=talentById(f.directorId),lead=talentById(f.cast?.[0]);
  const pool=[];
+ const pw=Math.max(1,f.productionWeek||1),phasePool=pw<=2?['The shoot is still finding its working tempo; the early material is more about coverage than verdicts.','The first blocks are in the can. Editorial can see texture, but it is too early to call the film.','The unit is establishing its rhythm and nothing in the rushes is forcing a studio intervention.']:pw>=5?['The production is moving into its back stretch; the dailies are beginning to show the shape of the finished film.','Editorial is now talking about what the cut already has, not simply what remains on the call sheet.','With more of the film assembled, production choices are reading as patterns rather than isolated shooting days.']:['The shoot has settled into its working rhythm and the dailies are starting to reveal what is surviving from page to screen.','There is enough footage now for editorial to see a consistent visual and performance language.','The current material feels more like a film than a collection of successful shooting days.'];
+ phasePool.forEach(x=>pool.push(x));
  if((ps.schedule||0)>0)pool.push(`The unit is ${ps.schedule} week${ps.schedule===1?'':'s'} behind. ${director?.name||'The director'} is prioritising the scenes that cannot be moved.`);
  if((ps.morale||65)<54)pool.push('The crew is getting the pages, but the long days are beginning to show in the dailies.');
  if((m.chemistry||0)>=78&&lead)pool.push(`${lead.name} and the ensemble are finding moments between the scripted beats; the edit may have more to work with than expected.`);
  if((m.technical||0)<58)pool.push('The technical footage is usable, though the team is watching the more ambitious setups closely.');
  if((m.stability||0)>=78)pool.push(`${director?.name||'The director'} is bringing the shoot in steadily; coverage is arriving without major surprises.`);
  if(!pool.length)pool.push('The production report is measured: planned scenes are in the can, with no new decision for the studio this week.');
+ const recent=new Set(journal.slice(-2).map(x=>x.text)),choices=pool.filter(x=>!recent.has(x));
+ const usable=choices.length?choices:pool;
  const r=makeRng(hash(state.seed+'|daily|'+f.id+'|'+week));
- journal.push({week,productionWeek:f.productionWeek,text:pool[Math.floor(r()*pool.length)],mood:(ps.morale||65)<54?'strained':(m.stability||0)>=78?'steady':'mixed'});
+ journal.push({week,productionWeek:f.productionWeek,text:usable[Math.floor(r()*usable.length)],mood:(ps.morale||65)<54?'strained':(m.stability||0)>=78?'steady':'mixed'});
  if(journal.length>24)journal.shift();
 }
 function priorFilmCallback(f,currentProfit=f.studioRevenue-f.investment){
@@ -7674,6 +7746,16 @@ function studioIdentityBody(){
  <div class="section-title"><h2>Filmography shape</h2><span class="small">${snap.done.length} completed film${snap.done.length===1?'':'s'}</span></div>${snap.genres.length?`<div class="card">${snap.genres.map(x=>`<div class="listrow"><div><strong>${x.genre}</strong><div class="small">Critics ${Math.round(x.avgCritics)}% · Audience ${Math.round(x.avgAudience)}%</div></div><div style="text-align:right"><strong>${x.count}</strong><div class="small">${Math.round(x.share*100)}% of slate</div></div></div>`).join('')}</div>`:`<div class="card body">No released filmography yet.</div>`}
  <div class="section-title"><h2>Identity history</h2></div><div class="card">${mem.history.length?mem.history.slice(0,8).map(x=>`<div class="listrow"><span>Week ${x.week}</span><strong>${x.label}</strong></div>`).join(''):`<div class="body">Your first durable industry identity has not formed yet.</div>`}</div>`;
 }
+function productionDailiesSnapshot(){
+ const films=playerFilms().filter(f=>f.stage==='production').sort((a,b)=>(b.productionWeek||0)-(a.productionWeek||0));
+ if(!films.length)return '';
+ const rows=films.slice(0,3).map(f=>{
+  const journal=ensureShootJournal(f),latest=journal[journal.length-1],pulse=productionPulseLabel(f);
+  const cls=pulse.schedule==='On schedule'?'good':pulse.schedule==='Slightly behind'?'warn':'bad';
+  return '<button class="card production-wire-card" data-film="'+f.id+'"><div class="production-wire-top"><div><span class="badge">FROM PRODUCTION</span><strong>'+f.title+'</strong></div><span class="pill '+cls+'">'+pulse.schedule+'</span></div><p>'+(latest?.text||productionStatusText(f))+'</p><div class="production-wire-foot"><span>Production week '+(f.productionWeek||1)+'</span><b>Open dailies →</b></div></button>';
+ }).join('');
+ return '<div class="section-title"><h2>From production</h2><span class="small">Latest passive dailies · no response required</span></div><div class="production-wire-grid">'+rows+'</div>';
+}
 function journalistProfileCard(n){
  const j=journalistProfileById(n?.journalistId);if(!j)return '';const mem=ensurePressMemory()[j.id]||{};
  return `<div class="journalist-card"><div><div class="badge">RECURRING VOICE</div><strong>${j.name}</strong><span>${j.tone} · ${j.beat}</span></div><div class="small">${j.bio}${mem.playerMentions?` ${mem.playerMentions} previous ${state.studio?.name||'studio'} mention${mem.playerMentions===1?'':'s'} recorded in this career.`:''}</div></div>`;
@@ -8261,6 +8343,7 @@ function studioScreen(){
    <div><div class="kpi">${money(state.cash)}</div><div class="small">Cash</div></div>
   </div></div>
   ${careerThreadsSnapshot()}
+  ${productionDailiesSnapshot()}
   ${studioMilestoneSnapshot()}
   ${studioDeskSnapshot()}
   ${homeNewsDesk()}
