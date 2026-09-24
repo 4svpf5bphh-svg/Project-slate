@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.10.2</title>
+<title>Project Slate — Premium Presentation v3.10.3</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -625,7 +625,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.10.2';
+const VERSION='3.10.3';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -2565,16 +2565,16 @@ function buildFilmLegacy(f,talentBefore={}){
 function ensureWrapQueue(st=state){st.pendingFilmWraps=st.pendingFilmWraps||[];return st.pendingFilmWraps}
 function queueFilmWrap(f){const q=ensureWrapQueue();if(!q.includes(f.id))q.push(f.id)}
 function surfacePendingFilmWrap(){
- if(state.pendingCeremony||state.pendingAwardsNominations)return false;
+ if(state.pendingCeremony||state.pendingAwardsNominations||state.activeLegendUnlockId||state.activeStudioMoment||state.screen==='legendUnlock'||state.screen==='studioMoment')return false;
  const q=ensureWrapQueue();while(q.length){const id=q.shift(),f=filmById(id);if(f&&f.owner==='player'&&f.stage==='complete'){state.activeFilmWrapId=id;state.uiFilmWrapStep=0;state.screen='filmWrap';state.detail=null;state.history=[];return true}}
  return false;
 }
 function continueFilmWrap(){
  const id=state.activeFilmWrapId;state.activeFilmWrapId=null;state.uiFilmWrapStep=0;
- if(surfacePendingFilmWrap()){save();render();return}
  if(state.pendingCeremony){state.screen='ceremony';state.detail=null;save();render();return}
  if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;save();render();return}
  if(surfacePendingLegendUnlock()){save();render();return}
+ if(surfacePendingFilmWrap()){save();render();return}
  if(surfacePendingStudioMoment()){save();render();return}
  state.screen='studio';state.uiStudioTab='library';state.detail=null;state.history=[];requestScrollTop();save();render();
 }
@@ -2641,8 +2641,8 @@ function continueStudioMoment(){
  state.activeStudioMoment=null;
  if(state.pendingCeremony){state.screen='ceremony';state.detail=null;save();render();return}
  if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;save();render();return}
- if(surfacePendingFilmWrap()){save();render();return}
  if(surfacePendingLegendUnlock()){save();render();return}
+ if(surfacePendingFilmWrap()){save();render();return}
  if(surfacePendingStudioMoment()){save();render();return}
  state.screen=m.returnScreen||'studio';state.detail=m.returnDetail||null;state.history=m.returnHistory||[];save();render();
 }
@@ -4726,6 +4726,22 @@ function legendUnlockBlocked(){return !!state.pendingCeremony||!!state.pendingAw
 function surfacePendingLegendUnlock(){
  if(legendUnlockBlocked()||state.activeLegendUnlockId)return false;const a=ensureLegendsArchive();
  while(a.pending.length){const id=a.pending.shift();if(!legendUnlocked(id))continue;state.activeLegendUnlockId=id;state.screen='legendUnlock';state.detail=null;state.history=[];requestScrollTop();return true}return false;
+}
+function enforceActiveSignatureRoute(){
+ if(!state.studio||state.screen==='setup')return false;
+ if(state.activeLegendUnlockId){
+  if(legendUnlocked(state.activeLegendUnlockId)&&legendEntryById(state.activeLegendUnlockId)){state.screen='legendUnlock';state.detail=null;state.history=[];requestScrollTop();return true}
+  state.activeLegendUnlockId=null;
+ }
+ if(state.activeFilmWrapId){
+  const f=filmById(state.activeFilmWrapId);
+  if(f&&f.owner==='player'){state.screen='filmWrap';state.detail=null;state.history=[];requestScrollTop();return true}
+  state.activeFilmWrapId=null;state.uiFilmWrapStep=0;
+ }
+ if(state.activeStudioMoment){
+  state.screen='studioMoment';state.detail=null;state.history=[];requestScrollTop();return true;
+ }
+ return false;
 }
 function continueLegendUnlock(){
  state.activeLegendUnlockId=null;
@@ -6841,9 +6857,10 @@ function continueToNextEvent(){
 
 
 function surfaceDecisionInterrupt(){
+ if(enforceActiveSignatureRoute())return true;
  if(state.pendingCeremony){state.screen='ceremony';state.detail=null;state.history=[];return true}
  if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;state.history=[];return true}
- if(surfacePendingFilmWrap())return true;if(surfacePendingLegendUnlock())return true;if(surfacePendingStudioMoment())return true;
+ if(surfacePendingLegendUnlock())return true;if(surfacePendingFilmWrap())return true;if(surfacePendingStudioMoment())return true;
  if(typeof ensureDesk==='function'){const item=ensureDesk().items.find(x=>!x.resolved&&x.requiresAction);if(item){state.screen='studio';state.uiStudioTab='desk';state.detail=null;state.history=[];requestScrollTop();return true}}
  rebuildDecisions();const d=state.decisions.find(x=>['production','post','marketing','campaign'].includes(x.type));if(d){const f=filmById(d.filmId);state.screen='slate';state.detail={type:'film',id:f.id};state.history=[];requestScrollTop();return true}
  return false;
@@ -6918,10 +6935,11 @@ function calendarHardBlocker(){
  return state.decisions.find(x=>x.type==='production'||(x.type==='post'&&!ensurePostState(filmById(x.filmId)).firstDecisionMade)||x.type==='marketing')||null;
 }
 function surfaceCalendarInterrupt(){
+ if(enforceActiveSignatureRoute())return true;
  if(state.pendingCeremony){state.screen='ceremony';state.detail=null;state.history=[];return true}
  if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;state.history=[];return true}
- if(surfacePendingFilmWrap())return true;
  if(surfacePendingLegendUnlock())return true;
+ if(surfacePendingFilmWrap())return true;
  if(surfacePendingStudioMoment())return true;
  if(typeof nextUrgentDeskItem==='function'){const urgent=nextUrgentDeskItem();if(urgent){state.screen='studio';state.uiStudioTab='desk';state.detail=null;state.history=[];requestScrollTop();return true}}
  const blocker=calendarHardBlocker();
@@ -9376,10 +9394,10 @@ function bind(){
  const globalAdvanceWeek=document.getElementById('globalAdvanceWeek');if(globalAdvanceWeek)globalAdvanceWeek.onclick=()=>continueTime();
  const globalAdvanceNextEvent=document.getElementById('globalAdvanceNextEvent');if(globalAdvanceNextEvent)globalAdvanceNextEvent.onclick=()=>continueToNextEvent();
  const globalAdvanceNextDecision=document.getElementById('globalAdvanceNextDecision');if(globalAdvanceNextDecision)globalAdvanceNextDecision.onclick=()=>continueToNextDecision();
- const closeNominations=document.getElementById('closeNominations');if(closeNominations)closeNominations.onclick=()=>{state.pendingAwardsNominations=null;if(surfacePendingFilmWrap()){save();render();return}if(surfacePendingLegendUnlock()){save();render();return}if(surfacePendingStudioMoment()){save();render();return}state.screen='studio';state.detail=null;state.uiStudioTab='awards';requestScrollTop();save();render()};
+ const closeNominations=document.getElementById('closeNominations');if(closeNominations)closeNominations.onclick=()=>{state.pendingAwardsNominations=null;if(surfacePendingLegendUnlock()){save();render();return}if(surfacePendingFilmWrap()){save();render();return}if(surfacePendingStudioMoment()){save();render();return}state.screen='studio';state.detail=null;state.uiStudioTab='awards';requestScrollTop();save();render()};
  const advanceCeremony=document.getElementById('advanceCeremony');if(advanceCeremony)advanceCeremony.onclick=()=>{state.awardsCeremonyStep=Math.min((state.pendingCeremony?.categories?.length||0),(state.awardsCeremonyStep||0)+1);save();render()};
  const viewAllCeremony=document.getElementById('viewAllCeremony');if(viewAllCeremony)viewAllCeremony.onclick=()=>{state.awardsCeremonyStep=state.pendingCeremony?.categories?.length||0;save();render()};
- const closeCeremony=document.getElementById('closeCeremony');if(closeCeremony)closeCeremony.onclick=()=>{state.pendingCeremony=null;state.awardsCeremonyStep=0;if(surfacePendingFilmWrap()){save();render();return}if(surfacePendingLegendUnlock()){save();render();return}if(surfacePendingStudioMoment()){save();render();return}state.screen='studio';state.detail=null;state.uiStudioTab='awards';requestScrollTop();save();render()};
+ const closeCeremony=document.getElementById('closeCeremony');if(closeCeremony)closeCeremony.onclick=()=>{state.pendingCeremony=null;state.awardsCeremonyStep=0;if(surfacePendingLegendUnlock()){save();render();return}if(surfacePendingFilmWrap()){save();render();return}if(surfacePendingStudioMoment()){save();render();return}state.screen='studio';state.detail=null;state.uiStudioTab='awards';requestScrollTop();save();render()};
  const filmWrapNext=document.getElementById('filmWrapNext');if(filmWrapNext)filmWrapNext.onclick=e=>{e?.stopPropagation?.();advanceFilmWrapChapter(1)};
  const filmWrapBack=document.getElementById('filmWrapBack');if(filmWrapBack)filmWrapBack.onclick=e=>{e?.stopPropagation?.();advanceFilmWrapChapter(-1)};
  const filmWrapSkip=document.getElementById('filmWrapSkip');if(filmWrapSkip)filmWrapSkip.onclick=e=>{e?.stopPropagation?.();state.uiFilmWrapStep=4;requestScrollTop();save();render()};
@@ -9427,6 +9445,7 @@ function renderFamilyClass(){
 
 function render(){
  if(state.studio&&typeof ensureCalendarState==='function')ensureCalendarState();
+ if(state.screen!=='setup')enforceActiveSignatureRoute();
  if(state.detail?.type==='greenlightReview'){
   const gf=filmById(state.detail.id);
   if(gf&&gf.stage!=='development'){
@@ -9497,7 +9516,7 @@ if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&
 function projectSlateSmokeChecks(){
  const failures=[],required=[
   ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],
-  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
+  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
  if(!app)failures.push('#app missing');
@@ -9520,6 +9539,7 @@ function projectSlateBootFailure(check,error){
  app.innerHTML=`<main class="screen"><div class="card dangerline"><div class="badge">PROJECT SLATE · BUILD ${VERSION}</div><h2 style="margin:8px 0">The build could not start.</h2><div class="body">A boot check caught the problem before the app fell to a blank screen.</div><div class="small" style="margin-top:10px">${details.join(' · ')||'Unknown boot error'}</div></div></main>`;
 }
 window.ProjectSlate={reset:resetGame,state:()=>deep(state),smokeTest:projectSlateSmokeChecks};
+if(state.screen!=='setup')enforceActiveSignatureRoute();
 if(state.screen!=='setup'&&!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.studioMomentQueue?.length)surfacePendingStudioMoment();
 const bootCheck=projectSlateSmokeChecks();
 if(!bootCheck.ok)projectSlateBootFailure(bootCheck);else{try{render()}catch(e){console.error(e);projectSlateBootFailure(bootCheck,e)}}
