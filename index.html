@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.10.1</title>
+<title>Project Slate — Premium Presentation v3.10.2</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -625,7 +625,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.10.1';
+const VERSION='3.10.2';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3958,7 +3958,7 @@ function currentRightsOffer(f){
  const demand=Math.max(opp.score,status.rightsInterest);if(demand<46)return null;
  const period=Math.floor(state.week/6),r=makeRng(hash(state.seed+'|rights-offer-v33|'+franchiseRootId(f)+'|'+period)),chance=clamp((demand-42)/70,.06,.58);if(r()>chance)return null;
  const base=rightsSaleValue(f),offers=state.rivals.filter(rv=>aiFinancialHealth(rv)!=='Financial distress').map(rv=>{
-  const fit=(rv.profile?.genres||[]).includes(f.genre),builder=rv.style==='Franchise Builder'||rivalSignatureIdentity?.(rv)?.id==='franchise';
+  const fit=(rv.profile?.genres||[]).includes(f.genre),builder=rv.style==='Franchise Builder'||rivalSignature(rv).label==='IP Builder';
   const strategic=(fit?1.10:.82)*(builder?1.10:1)*(status.gap>=104?1.05:1),appetite=.76+r()*.26;
   return {rv,offer:+(base*strategic*appetite).toFixed(1)}
  }).filter(x=>x.offer>=.4&&x.rv.cash>x.offer+5);
@@ -9497,10 +9497,11 @@ if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&
 function projectSlateSmokeChecks(){
  const failures=[],required=[
   ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],
-  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['alignActiveTabs',typeof alignActiveTabs]
+  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
  if(!app)failures.push('#app missing');
+ if(typeof rivalSignatureIdentity!=='undefined')failures.push('stale rivalSignatureIdentity symbol present');
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
   const unique=new Set(probe.scripts.map(x=>x.title.toLowerCase())).size,quantified=probe.scripts.filter(x=>/^(No One|Nobody|Someone|Everyone)\b/i.test(x.title)).length;
