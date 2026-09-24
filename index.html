@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.10.3</title>
+<title>Project Slate — Premium Presentation v3.11.0</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -625,7 +625,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.10.3';
+const VERSION='3.11.0';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -846,12 +846,13 @@ function legendEntryById(id){return LEGEND_ARCHIVE.find(x=>x.id===id)||null}
 
 
 function privateRosterFee(seed,type){
- const raw=seed[5];
+ const raw=Number(seed[5])||1;
  if(type==='Actor'){
-  const mult=raw>=9?.62:raw>=6?.58:raw>=4?.52:raw>=3?.48:.45;
-  return +Math.max(.8,raw*mult).toFixed(2);
+  const acting=Number(seed[1])||70,star=Number(seed[2])||40,momentum=Number(seed[3])||60;
+  const market=raw*.72+Math.max(0,star-70)*.13+Math.max(0,acting-88)*.05+Math.max(0,momentum-75)*.03;
+  return +clamp(market,.45,12.5).toFixed(2);
  }
- const mult=raw>=10?.58:raw>=7?.55:raw>=5?.50:.45;
+ const mult=raw>=10?.70:raw>=7?.62:raw>=5?.56:.50;
  return +Math.max(1.0,raw*mult).toFixed(2);
 }
 
@@ -894,7 +895,7 @@ function syncPrivateRealRoster(st){
    careerState:old.careerState||profile.careerState,momentum:Math.round(old.momentum??profile.momentum),star:Math.round(old.star??profile.star),
    momentumDelta:old.momentumDelta||0,momentumHistory:old.momentumHistory||[],careerMilestones:old.careerMilestones||[],
    careerPeakMomentum:old.careerPeakMomentum??old.momentum??profile.momentum,careerPeakStar:old.careerPeakStar??old.star??profile.star,
-   personalStatus:old.personalStatus||null,personalStatusUntil:old.personalStatusUntil||0,fee:old.fee??profile.fee
+   personalStatus:old.personalStatus||null,personalStatusUntil:old.personalStatusUntil||0,fee:old.fee??profile.fee,marketEconomyVersion:old.marketEconomyVersion||0
   });
   next.push(profile);
  });
@@ -905,7 +906,7 @@ function syncPrivateRealRoster(st){
    careerState:old.careerState||profile.careerState,momentum:Math.round(old.momentum??profile.momentum),
    momentumDelta:old.momentumDelta||0,momentumHistory:old.momentumHistory||[],careerMilestones:old.careerMilestones||[],
    careerPeakMomentum:old.careerPeakMomentum??old.momentum??profile.momentum,
-   personalStatus:old.personalStatus||null,personalStatusUntil:old.personalStatusUntil||0,fee:old.fee??profile.fee
+   personalStatus:old.personalStatus||null,personalStatusUntil:old.personalStatusUntil||0,fee:old.fee??profile.fee,marketEconomyVersion:old.marketEconomyVersion||0
   });
   next.push(profile);
  });
@@ -918,7 +919,7 @@ function syncPrivateRealRoster(st){
    star:profile.type==='Actor'?Math.round(old.star??profile.star):profile.star,
    momentumDelta:old.momentumDelta||0,momentumHistory:old.momentumHistory||[],careerMilestones:old.careerMilestones||[],
    careerPeakMomentum:old.careerPeakMomentum??old.momentum??profile.momentum,careerPeakStar:old.careerPeakStar??old.star??profile.star,
-   personalStatus:old.personalStatus||null,personalStatusUntil:old.personalStatusUntil||0,fee:old.fee??profile.fee,
+   personalStatus:old.personalStatus||null,personalStatusUntil:old.personalStatusUntil||0,fee:old.fee??profile.fee,marketEconomyVersion:old.marketEconomyVersion||0,
    genreCareer:old.genreCareer||{},relationshipHistory:old.relationshipHistory||[],trustedBudget:old.trustedBudget||0
   });
   next.push(profile);
@@ -1311,20 +1312,40 @@ function targetTalentFee(t){
  ensureTalentCareer(t);
  const awards=talentAwardCount(t),mom=t.momentum||60;
  if(t.type==='Actor'){
-  const target=.42+Math.max(0,(t.star||20)-20)*.050+Math.max(0,mom-50)*.020+Math.max(0,(t.acting||70)-75)*.038+awards.wins*.14+awards.noms*.025;
-  return clamp(target,.35,6.6);
+  const star=Math.max(0,(t.star||20)-20)*.10;
+  const heat=Math.max(0,mom-50)*.035;
+  const craft=Math.max(0,(t.acting||70)-75)*.045;
+  const status=['A-List Prime','Hot Streak','Comeback'].includes(t.careerState)?1.0:t.careerState==='Breakout'?.45:0;
+  const target=.35+star+heat+craft+status+awards.wins*.45+awards.noms*.08;
+  return clamp(target,.35,12.5);
  }
- const target=.70+Math.max(0,(t.craft||70)-70)*.064+Math.max(0,(t.commercial||55)-55)*.038+Math.max(0,mom-50)*.020+awards.wins*.15+awards.noms*.03;
- return clamp(target,.55,6.2);
+ const target=.70+Math.max(0,(t.craft||70)-70)*.070+Math.max(0,(t.commercial||55)-55)*.045+Math.max(0,mom-50)*.025+awards.wins*.22+awards.noms*.04;
+ return clamp(target,.55,8.5);
 }
 function repriceTalent(t){
  ensureTalentCareer(t);
  const target=targetTalentFee(t),old=t.fee||target;
- let next=old+(target-old)*.24;
- if(t.momentum<45)next*=.97;
- if(t.careerState==='Hot Streak'||t.careerState==='Hot Director')next*=1.01;
- t.fee=+clamp(next,t.type==='Actor'?.35:.55,t.type==='Actor'?6.6:6.2).toFixed(2);
+ let next=old+(target-old)*.30;
+ if(t.momentum<45)next*=.96;
+ if(t.careerState==='Hot Streak'||t.careerState==='Hot Director')next*=1.025;
+ t.fee=+clamp(next,t.type==='Actor'?.35:.55,t.type==='Actor'?12.5:8.5).toFixed(2);
 }
+function ensureTalentMarketEconomy(t){
+ ensureTalentCareer(t);if(!t)return t;
+ if(t.marketEconomyVersion!==311){
+  const target=targetTalentFee(t);
+  t.fee=+clamp((t.fee||target)*.35+target*.65,t.type==='Actor'?.35:.55,t.type==='Actor'?12.5:8.5).toFixed(2);
+  t.marketEconomyVersion=311;
+ }
+ return t;
+}
+function actorCommercialDraw(t){
+ ensureTalentCareer(t);
+ const awards=talentAwardCount(t),career=t.careerState||'';
+ const status=['A-List Prime','Hot Streak'].includes(career)?6:career==='Comeback'?3:career==='Breakout'?2:0;
+ return clamp((t.star||30)*.74+(t.momentum||60)*.18+Math.min(7,awards.wins*1.8+awards.noms*.35)+status,10,99);
+}
+function actorIndustryShortlistScore(t){return (t.acting||70)*.44+actorCommercialDraw(t)*.34+(t.reliability||70)*.10+(t.momentum||60)*.12}
 function careerStateNews(t,oldState,newState){
  if(oldState===newState)return;
  const big=['Breakout','Hot Streak','A-List Prime','Comeback','Fading Star','Hot Director','Acclaimed Director','Fading Director'];
@@ -1904,7 +1925,7 @@ const STUDIO_UPGRADES={
  casting:[{name:'Agency Relationships',cost:2.5,overhead:.012,recognition:20,desc:'Adds an audition slot and sharpens scouting.'},{name:'In-house Casting Team',cost:5.5,overhead:.026,recognition:48,desc:'Adds another audition slot and makes extra rounds cheaper.'}],
  publicity:[{name:'Awards & Publicity Desk',cost:3,overhead:.015,recognition:24,desc:'Reduces awards-campaign cost and improves festival execution.'},{name:'Full Publicity Department',cost:7,overhead:.034,recognition:55,desc:'Further improves publicity execution and awards efficiency.'}],
  development:[{name:'Story Department',cost:4.5,overhead:.020,recognition:32,desc:'Keeps one additional screenplay live on your market board and modestly improves First Look access.'},{name:'Rights & Packaging Unit',cost:9,overhead:.042,recognition:62,desc:'Keeps a second additional screenplay live and extends exclusive First Look windows.'}],
- post:[{name:'In-house Editorial Suite',cost:4,overhead:.019,recognition:34,desc:'Surfaces one additional editorial option in post and expands the music-supervisor shortlist.'},{name:'Post & Music Campus',cost:8.5,overhead:.038,recognition:64,desc:'Surfaces two additional editorial options and expands licensed-song shortlists to five choices.'}]
+ post:[{name:'In-house Editorial Suite',cost:4,overhead:.019,recognition:34,desc:'Surfaces one additional editorial option in post and expands the music-supervisor shortlist.'},{name:'Post & Music Campus',cost:8.5,overhead:.038,recognition:64,desc:'Surfaces two additional editorial options and expands licensed-song shortlists to seven choices.'}]
 };
 function ensureStudioGrowth(t=state){
  if(!t.studioGrowth)t.studioGrowth={fans:.04,recognition:12,upgrades:{},history:[]};
@@ -1924,7 +1945,7 @@ function publicityExecutionBonus(){return studioUpgradeLevel('publicity')===0?0:
 function screenplayMarketCapacity(){return 9+studioUpgradeLevel('development')}
 function firstLookDepartmentWeeks(){return studioUpgradeLevel('development')}
 function postOptionLimit(){return 4+studioUpgradeLevel('post')}
-function soundtrackShortlistSize(){return 3+studioUpgradeLevel('post')}
+function soundtrackShortlistSize(){return 5+studioUpgradeLevel('post')}
 function studioUpgradeBenefitLabel(k){
  if(k==='production')return `${playerProductionCapacity()} production slots`;
  if(k==='casting')return `${auditionSlotLimit()} audition slots`;
@@ -2306,10 +2327,10 @@ function clearSupportingCast(f){
  ensureProductionDepth(f);ensureFilmRoles(f);f.supportingCastIds.forEach(id=>clearTalentContract(f,id));delete f.roleAssignments.support1;delete f.roleAssignments.support2;syncRoleAssignments(f);save();render();
 }
 function ensembleCampaignStar(f){
- const principals=(f.cast||[]).map(talentById).filter(Boolean),support=supportingActors(f);
- const base=principals.length?principals.reduce((a,t)=>a+(t.star||0),0)/principals.length:0;
- const bonus=support.reduce((a,t)=>a+Math.max(0,(t.star||0)-55)*.055,0);
- return clamp(base+Math.min(8,bonus),0,99);
+ const principals=(f.cast||[]).map(talentById).filter(Boolean).map(t=>{ensureTalentMarketEconomy(t);return actorCommercialDraw(t)}).sort((a,b)=>b-a),support=supportingActors(f).map(t=>actorCommercialDraw(t)).sort((a,b)=>b-a);
+ const base=principals.length===1?principals[0]:principals.length?principals[0]*.62+principals[1]*.38:0;
+ const bonus=support.slice(0,2).reduce((a,v)=>a+Math.max(0,v-52)*.07,0);
+ return clamp(base+Math.min(9,bonus),0,99);
 }
 function producerStrategy(f){ensureProductionDepth(f);return PRODUCER_STRATEGIES[f.producerStrategy]||PRODUCER_STRATEGIES.lean}
 function effectsApproach(f){ensureProductionDepth(f);return EFFECTS_APPROACHES[f.effectsApproach]||EFFECTS_APPROACHES.hybrid}
@@ -3591,7 +3612,7 @@ function talentProjectInterest(t,f,roleRef=null,mode='select'){
  // Agreeing to audition means the performer is genuinely open to this exact role.
  // Contract terms still matter later, but we do not make them randomly refuse the role
  // immediately after voluntarily reading for it.
- if(mode==='select'&&audition)return {accept:true,score:Math.max(76,fit),reason:`Having auditioned for ${role.name}, the performer remains open to the role.`,fit,roleId:role.id};
+ if(mode==='select'&&audition)return {accept:true,score:Math.max(76,fit),reason:`Having screen-tested for ${role.name}, the performer remains open to the role.`,fit,roleId:role.id};
  let score=48+(fit-62)*.58+studioRel*.22;
  score+=agencyInterestModifier(t,f);
  if(agencyWindow(t,f))score+=12;
@@ -3646,15 +3667,16 @@ function rolePackageSummary(f){
 // Greenlight review: executive-facing summary before irreversible production spend.
 function greenlightReviewData(f){
  ensurePackagingState(f);ensureProductionDepth(f);ensureFilmRoles(f);
- const s=ensureScriptEcosystem(scriptById(f.scriptId)),cov=scriptCoverage(s),d=talentById(f.directorId),fit=packageFitSummary(f),req=supportingCastRequirement(f);
+ const s=ensureScriptEcosystem(scriptById(f.scriptId)),cov=scriptCoverage(s),d=talentById(f.directorId),fit=packageFitSummary(f),castingEvidence=packageCastingEvidence(f),req=supportingCastRequirement(f);
  const natural=s.naturalBudget||f.budget,ratio=f.budget/Math.max(1,natural),depth=productionDepthCost(f),talent=agreedUpfront(f),commitment=f.budget+talent+depth,cashAfter=state.cash-commitment;
- const roleRows=rolePackageSummary(f).filter(x=>x.role.type==='lead'||x.tid).map(x=>({role:x.role,talent:x.talent,fit:x.talent?actorRoleFit(x.talent,f,x.role.id):null}));
+ const roleRows=rolePackageSummary(f).filter(x=>x.role.type==='lead'||x.tid).map(x=>({role:x.role,talent:x.talent,evidence:x.talent?castingEvidenceFor(x.talent,f,x.role.id):null}));
  const attached=[d,...roleRows.map(x=>x.talent)].filter(Boolean),unavailable=attached.filter(t=>talentUnavailableForFilm(t,f));
  const strengths=[],risks=[];
  if(cov.readiness==='Packaging-ready')strengths.push('The screenplay is entering production from a strong development position.');
  else if(cov.readiness==='Needs development')risks.push('Coverage still sees unresolved screenplay risk going into production.');
- if(fit?.average>=76)strengths.push('The director and principal cast form a strong project-specific package.');
- else if(fit?.average<58)risks.push('The current package contains meaningful project-fit risk despite the names attached.');
+ if(castingEvidence.cls==='good')strengths.push('Both principal roles produced strong screen-test evidence.');
+ else if(castingEvidence.tested<2)risks.push('At least one principal role is being greenlit without a screen test. The market profile is known; the role fit is not.');
+ else if(castingEvidence.cls==='warn'||castingEvidence.cls==='bad')risks.push('The principal cast produced mixed role-specific evidence before greenlight.');
  if(ratio<.80)risks.push(`The production budget is materially below the screenplay's natural ${money(natural)} scale.`);
  else if(ratio>=.95&&ratio<=1.18)strengths.push('Production funding is close to the screenplay’s natural scale.');
  else if(ratio>1.35)risks.push('The film is funded well above its natural scale, increasing break-even pressure without equivalent creative upside.');
@@ -3664,7 +3686,7 @@ function greenlightReviewData(f){
  else if(cashAfter>=20)strengths.push('The studio retains meaningful liquidity after the production commitment.');
  if(req.required&&req.complete)strengths.push(`${req.label} casting is complete for the current production scale.`);
  if(unavailable.length)risks.unshift(`${unavailable.map(t=>t.name).join(', ')} ${unavailable.length===1?'is':'are'} currently unavailable, so greenlight is blocked until the package is repaired.`);
- return {script:s,coverage:cov,director:d,fit,requirement:req,natural,ratio,depth,talent,commitment,cashAfter,roleRows,unavailable,strengths:strengths.slice(0,4),risks:risks.slice(0,5)};
+ return {script:s,coverage:cov,director:d,fit,castingEvidence,requirement:req,natural,ratio,depth,talent,commitment,cashAfter,roleRows,unavailable,strengths:strengths.slice(0,4),risks:risks.slice(0,5)};
 }
 function greenlightRiskLabel(data){
  const n=data.risks.length;
@@ -4296,7 +4318,19 @@ const SOUNDTRACK_TRACKS=[
  {id:'forest',artist:'The Cure',title:'A Forest',license:.58,familiarity:70,genres:['Psychological Horror','Crime Thriller','Fantasy'],tones:['grounded','balanced'],mood:'Cold / atmospheric'},
  {id:'dance-yourself',artist:'LCD Soundsystem',title:'Dance Yrself Clean',license:.68,familiarity:68,genres:['Comedy','Prestige Drama','Crime Thriller'],tones:['balanced','heightened'],mood:'Slow-burn / explosive'},
  {id:'intro',artist:'The xx',title:'Intro',license:.52,familiarity:75,genres:['Prestige Drama','Crime Thriller','Science Fiction'],tones:['grounded','balanced'],mood:'Minimal / cinematic'},
- {id:'electric-feel',artist:'MGMT',title:'Electric Feel',license:.72,familiarity:86,genres:['Comedy','Science Fiction','Family Adventure'],tones:['heightened','balanced'],mood:'Colourful / strange'}
+ {id:'electric-feel',artist:'MGMT',title:'Electric Feel',license:.72,familiarity:86,genres:['Comedy','Science Fiction','Family Adventure'],tones:['heightened','balanced'],mood:'Colourful / strange'},
+ {id:'immigrant-song',artist:'Led Zeppelin',title:'Immigrant Song',license:1.65,familiarity:96,genres:['Action Thriller','Fantasy','Science Fiction'],tones:['heightened','balanced'],mood:'Mythic / charging'},
+ {id:'wicked-game',artist:'Chris Isaak',title:'Wicked Game',license:.88,familiarity:89,genres:['Prestige Drama','Crime Thriller','Psychological Horror'],tones:['grounded','balanced'],mood:'Romantic / haunted'},
+ {id:'heart-glass',artist:'Blondie',title:'Heart of Glass',license:.98,familiarity:92,genres:['Comedy','Crime Thriller','Prestige Drama'],tones:['heightened','balanced'],mood:'Cool / ironic'},
+ {id:'everybody-rule',artist:'Tears for Fears',title:'Everybody Wants to Rule the World',license:1.18,familiarity:94,genres:['Prestige Drama','Science Fiction','Crime Thriller','Comedy'],tones:['balanced','heightened'],mood:'Nostalgic / uneasy'},
+ {id:'house-rising-sun',artist:'The Animals',title:'The House of the Rising Sun',license:.86,familiarity:93,genres:['Crime Thriller','Psychological Horror','Prestige Drama'],tones:['grounded','heightened'],mood:'Doomed / timeless'},
+ {id:'you-spin',artist:'Dead or Alive',title:'You Spin Me Round (Like a Record)',license:.72,familiarity:90,genres:['Comedy','Psychological Horror','Science Fiction'],tones:['heightened','balanced'],mood:'Camp / kinetic'},
+ {id:'under-pressure',artist:'Queen & David Bowie',title:'Under Pressure',license:1.55,familiarity:97,genres:['Prestige Drama','Family Adventure','Comedy','Science Fiction'],tones:['grounded','balanced'],mood:'Human / escalating'},
+ {id:'bad-moon',artist:'Creedence Clearwater Revival',title:'Bad Moon Rising',license:.82,familiarity:92,genres:['Psychological Horror','Crime Thriller','Action Thriller'],tones:['grounded','balanced'],mood:'Foreboding / jaunty'},
+ {id:'love-tear',artist:'Joy Division',title:'Love Will Tear Us Apart',license:.70,familiarity:85,genres:['Prestige Drama','Psychological Horror','Crime Thriller'],tones:['grounded','balanced'],mood:'Bleak / romantic'},
+ {id:'paper-planes',artist:'M.I.A.',title:'Paper Planes',license:.90,familiarity:89,genres:['Crime Thriller','Comedy','Action Thriller'],tones:['heightened','balanced'],mood:'Rebellious / playful'},
+ {id:'young-folks',artist:'Peter Bjorn and John',title:'Young Folks',license:.62,familiarity:82,genres:['Comedy','Prestige Drama','Family Adventure'],tones:['grounded','balanced'],mood:'Warm / offbeat'},
+ {id:'personal-jesus',artist:'Depeche Mode',title:'Personal Jesus',license:.92,familiarity:90,genres:['Crime Thriller','Psychological Horror','Science Fiction'],tones:['heightened','grounded'],mood:'Dark / swaggering'}
 ];
 function soundtrackTrack(id){return SOUNDTRACK_TRACKS.find(x=>x.id===id)||null}
 function ensureSoundtrackState(f){
@@ -5291,18 +5325,48 @@ function auditionGrade(v){
  if(v>=52)return 'Mixed';
  return 'Poor';
 }
+function actorDrawLabel(v){return v>=88?'Marquee draw':v>=76?'Major draw':v>=63?'Recognisable':v>=48?'Some awareness':'Limited draw'}
+function actorActingLabel(v){return v>=94?'Elite craft':v>=88?'Acclaimed':v>=80?'Strong':v>=70?'Proven':'Unproven'}
+function actorReliabilityLabel(v){return v>=90?'Very reliable':v>=80?'Reliable':v>=67?'Normal reliability':'Production risk'}
+function actorPublicRoleSignals(t,f,roleRef=null){
+ const role=roleRef&&typeof roleRef==='object'?roleRef:roleById(f,roleRef||castingTargetRole(f).id),out=[];
+ if((t.genres||[]).includes(f.genre))out.push(`Established ${f.genre.toLowerCase()} experience.`);
+ else if((t.genres||[]).some(g=>adjacentGenre(g,f.genre)))out.push('Some adjacent genre experience, but not a direct precedent.');
+ else out.push(`This would be a visible move outside the actor's usual genre lane.`);
+ if(Number.isFinite(t.age)){
+  if(t.age>=role.ageMin&&t.age<=role.ageMax)out.push(`Naturally sits inside the current screen-age brief for ${role.name}.`);
+  else out.push(`Would reframe the current screen-age brief for ${role.name}.`);
+ }
+ out.push(`${actorReliabilityLabel(t.reliability||70)} on production.`);
+ return out.slice(0,3);
+}
+function castingEvidenceFor(t,f,roleId){
+ const aud=auditionForRole(f,t.id,roleId);
+ if(!aud)return {label:'Role fit untested',cls:'warn',detail:'No screen test has been run for this specific role.'};
+ const cls=['Outstanding','Strong'].includes(aud.grade)?'good':aud.grade==='Solid'?'blue':aud.grade==='Mixed'?'warn':'bad';
+ return {label:`${aud.grade} screen test`,cls,detail:aud.note};
+}
+function packageCastingEvidence(f){
+ ensureFilmRoles(f);const leads=['lead1','lead2'].map(id=>({id,t:f.roleAssignments?.[id]?talentById(f.roleAssignments[id]):null})).filter(x=>x.t);
+ if(leads.length<2)return {label:'Incomplete cast',cls:'bad',tested:0};
+ const evidence=leads.map(x=>castingEvidenceFor(x.t,f,x.id)),tested=evidence.filter(x=>!x.label.startsWith('Role fit')).length,strong=evidence.filter(x=>x.cls==='good').length,weak=evidence.filter(x=>x.cls==='bad'||(x.cls==='warn'&&!x.label.startsWith('Role fit'))).length;
+ if(tested===2&&strong===2)return {label:'Strong tested cast',cls:'good',tested};
+ if(tested===2&&weak)return {label:'Mixed casting evidence',cls:'warn',tested};
+ if(tested===2)return {label:'Tested cast',cls:'blue',tested};
+ return {label:'Limited casting evidence',cls:'warn',tested};
+}
 function auditionActor(f,tid){
  const y=typeof window!=='undefined'?(window.scrollY||0):0;ensurePackagingState(f);ensureFilmRoles(f);
  const t=talentById(tid),role=castingTargetRole(f),key=auditionKey(tid,role.id);
  if(!t||t.type!=='Actor'||talentUnavailableForFilm(t,f))return showToast(talentAvailabilityReason(t,f)||'That actor is not currently available.');
- if(auditionForRole(f,tid,role.id))return showToast(`You already have an audition report for ${t.name} as ${role.name}.`);
+ if(auditionForRole(f,tid,role.id))return showToast(`You already have an screen-test report for ${t.name} as ${role.name}.`);
  const declined=talentDeclineForRole(f,tid,role.id);if(declined)return showToast(`${t.name} has already passed on ${role.name}.`);
  if(f.auditionSlotsUsed>=auditionSlotLimit())return showToast('This audition round is full. Open another round if you want to see more performers.');
  const interest=talentProjectInterest(t,f,role,'audition');
  f.auditionSlotsUsed++;
  if(!interest.accept){
   markTalentDecline(f,t,role.id,interest.reason,'audition');
-  addNews(state,`${t.name}'s representatives declined an audition for ${role.name} in ${f.title}.`,'Casting');
+  addNews(state,`${t.name}'s representatives declined a screen test for ${role.name} in ${f.title}.`,'Casting');
   save();render();if(typeof window!=='undefined')setTimeout(()=>window.scrollTo(0,y),0);return;
  }
  const preAuditionSortEstimate=actorScoutingView(t,f,role.id).estimate,trueFit=actorRoleFit(t,f,role.id),base=scoutingConfidence(t);
@@ -5323,7 +5387,7 @@ function auditionActor(f,tid){
        spark>=52?`The read had usable moments, but ${role.name} never fully settled. The team left with real questions.`:
        `The audition went badly. The room did not believe ${t.name} in ${role.name}, and the report materially weakens the casting case.`
  };
- addNews(state,`${t.name} auditioned for ${role.name} in ${f.title}. The casting report was ${f.auditions[key].grade.toLowerCase()}.`,'Casting');
+ addNews(state,`${t.name} screen-tested for ${role.name} in ${f.title}. The casting report was ${f.auditions[key].grade.toLowerCase()}.`,'Casting');
  save();render();if(typeof window!=='undefined')setTimeout(()=>window.scrollTo(0,y),0);
 }
 function extraAuditionRound(f){
@@ -5333,16 +5397,16 @@ function extraAuditionRound(f){
  if(blocking.length)return showToast('Resolve the active production decision before spending a week on more auditions.');
  const extraCost=extraAuditionCost();if(!spend(extraCost))return;
  f.investment+=extraCost;f.auditionRound++;f.auditionSlotsUsed=0;f.extraAuditionRounds++;
- addNews(state,`${f.title} opened an additional audition round, costing a week of development time.`,'Casting');
+ addNews(state,`${f.title} opened an additional screen-test round, costing a week of development time.`,'Casting');
  advanceWeek();
 }
 function dynamicCastingTags(t,f){
- const role=castingTargetRole(f),view=actorScoutingView(t,f,role.id),aud=auditionForRole(f,t.id,role.id),tags=[];
+ const role=castingTargetRole(f),aud=auditionForRole(f,t.id,role.id),tags=[];ensureTalentMarketEconomy(t);
  if(f.sequelOptions?.includes(t.id))tags.push('Under Sequel Option');
- if(aud&&['Outstanding','Strong'].includes(aud.grade))tags.push('Audition Standout');
- if(!t.genres.includes(f.genre)&&aud&&['Outstanding','Strong'].includes(aud.grade))tags.push('Against Type');
- if(t.reliability>=88&&view.estimate>=66)tags.push('Safe Bet');
- if(t.fee<=2.2&&view.estimate>=72)tags.push('Best Value');
+ if(aud&&['Outstanding','Strong'].includes(aud.grade))tags.push('Screen-Test Standout');
+ if(!(t.genres||[]).includes(f.genre)&&aud&&['Outstanding','Strong'].includes(aud.grade))tags.push('Against Type');
+ if((t.reliability||0)>=88&&(t.acting||0)>=80)tags.push('Safe Bet');
+ if(t.fee<=2.4&&(t.acting||0)>=84&&(t.star||0)<72)tags.push('Value Performer');
  if(t.acting>=82&&t.momentum<55)tags.push('Comeback Candidate');
  if(f.directorId){
   const c=collaborationScore(f.directorId,t.id);
@@ -5351,7 +5415,7 @@ function dynamicCastingTags(t,f){
  return [...new Set(tags)].slice(0,2);
 }
 function contractOffers(f,t){
- ensurePackagingState(f);
+ ensurePackagingState(f);ensureTalentMarketEconomy(t);
  const c=f.creative||defaultCreative();
  const fit=t.type==='Director'?directorProjectFit(t,f):actorProjectFit(t,f);
  const rel=t.relationship||0;
@@ -8625,11 +8689,11 @@ function greenlightReviewUI(f){
  <div class="greenlight-grid">
   <div class="card"><div class="badge">SCREENPLAY</div><div class="kpi small-kpi">${data.coverage.readiness}</div><div class="body">${data.coverage.strengths[0]?.text||'The material has a workable foundation.'}</div></div>
   <div class="card"><div class="badge">PRODUCTION SCALE</div><div class="kpi small-kpi">${money(f.budget)}</div><div class="small">Natural scale ${money(data.natural)} · ${Math.round(data.ratio*100)}% funded</div></div>
-  <div class="card"><div class="badge">PACKAGE</div><div class="kpi small-kpi">${data.fit?fitBand(data.fit.average).label:'Incomplete'}</div><div class="small">${data.director?.name||'No director'} · ${roles.filter(x=>x.talent).length} performers attached</div></div>
+  <div class="card"><div class="badge">CASTING EVIDENCE</div><div class="kpi small-kpi">${data.castingEvidence?.label||'Incomplete'}</div><div class="small">${data.director?.name||'No director'} · ${data.castingEvidence?.tested||0}/2 principal roles screen tested</div></div>
   <div class="card"><div class="badge">CASH AFTER COMMITMENT</div><div class="kpi small-kpi">${money(data.cashAfter)}</div><div class="small">Before later post-production and release campaign costs</div></div>
  </div>
  <div class="section-title"><h2>Role package</h2><span class="small">The film is now cast role-by-role</span></div>
- <div class="grid cols2">${roles.map(x=>`<div class="card ${x.talent&&x.fit>=75?'goodline':x.talent&&x.fit<55?'dangerline':''}"><div class="row"><div><div class="badge">${x.role.type==='lead'?'PRINCIPAL':'SUPPORTING'}</div><strong>${x.role.name}</strong></div>${x.talent?portraitHTML(x.talent,'xs'):''}</div><div class="body" style="margin-top:7px">${x.role.desc}</div><div class="small" style="margin-top:8px">${x.talent?`${x.talent.name} · ${fitBand(x.fit).label.replace(' project fit','')}`:'Not cast'}</div></div>`).join('')}</div>
+ <div class="grid cols2">${roles.map(x=>{const ev=x.evidence;return `<div class="card ${x.role.type==='lead'&&ev?.cls==='good'?'goodline':x.role.type==='lead'&&ev?.cls==='bad'?'dangerline':x.role.type==='lead'&&ev?.cls==='warn'?'attention':''}"><div class="row"><div><div class="badge">${x.role.type==='lead'?'PRINCIPAL':'SUPPORTING'}</div><strong>${x.role.name}</strong></div>${x.talent?portraitHTML(x.talent,'xs'):''}</div><div class="body" style="margin-top:7px">${x.role.desc}</div><div class="small" style="margin-top:8px">${x.talent?`${x.talent.name} · ${ev?.label||'Role fit untested'}`:'Not cast'}</div></div>`}).join('')}</div>
  <div class="section-title"><h2>Production plan</h2></div>
  <div class="card"><div class="listrow"><span>Director</span><strong>${data.director?.name||'—'}</strong></div><div class="listrow"><span>Positioning</span><strong>${c.positioning}</strong></div><div class="listrow"><span>Producer strategy</span><strong>${producer.name}</strong></div><div class="listrow"><span>Effects approach</span><strong>${effects.name}</strong></div><div class="listrow"><span>Production budget</span><strong>${money(f.budget)}</strong></div><div class="listrow"><span>Talent upfront</span><strong>${money(data.talent)}</strong></div><div class="listrow"><span>Production package</span><strong>${money(data.depth)}</strong></div><div class="listrow total"><span>Total commitment now</span><strong>${money(data.commitment)}</strong></div></div>
  ${data.strengths.length?`<div class="section-title"><h2>Reasons to greenlight</h2></div><div class="greenlight-points">${data.strengths.map(x=>`<div class="card goodline"><span>✓</span><div>${x}</div></div>`).join('')}</div>`:''}
@@ -8647,20 +8711,20 @@ function castingPicker(f){
  const continuityNote=!parent?'':mode==='reboot'?`<div class="card goodline" style="margin-bottom:12px"><strong>Continuity reset</strong><div class="small" style="margin-top:6px">This project is being sold as a reboot. New principal casting will not carry the normal recasting penalty, although the film receives less benefit from existing audience familiarity.</div></div>`:mode==='spinoff'?`<div class="card blue" style="margin-bottom:12px"><strong>New branch of the property</strong><div class="small" style="margin-top:6px">A spin-off can build around new principal characters with less continuity pressure than a direct sequel.</div></div>`:`<div class="card ${returningSelected>=2?'goodline':returningSelected===0?'attention':''}" style="margin-bottom:12px"><div class="row"><strong>Audience continuity</strong><span class="pill">${returningSelected}/2 returning leads selected</span></div><div class="small" style="margin-top:6px">${returningSelected>=2?'The principal cast is reunited, preserving the strongest continuity benefit.':returningSelected===1?'Partial continuity: one familiar lead remains, but the audience will notice the recast.':'No returning leads are selected. On a familiar direct continuation, replacing both principals can create resistance unless the new film gives audiences a strong reason to accept it.'}</div></div>`;
  const returningSection=returning.length?`${continuityNote}<div class="section-title"><h2>Returning cast</h2><span class="small">${franchiseModeLabel(mode)} · familiarity ${Math.round(franchiseStatus(parent).familiarity)} · fatigue ${Math.round(franchiseStatus(parent).fatigue)}</span></div><div class="grid cols2">${returning.map(t=>{const held=f.sequelOptions?.includes(t.id),assigned=roleForTalent(f,t.id);return `<div class="card ${assigned?'goodline':''}"><div class="talenthead"><div class="click talentidentity" data-talent="${t.id}">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${parent.title} · returning principal${assigned?` · ${assigned.name}`:''}</div></div></div><span class="pill ${held?'good':'blue'}">${held?'Sequel option held':'Fresh negotiation'}</span></div><button class="btn block" style="margin-top:10px" data-toggle-cast="${t.id}" ${talentUnavailableForFilm(t,f)?'disabled':''}>Consider for ${target.name}</button></div>`}).join('')}</div>`:'';
  return topbar('Casting',f.title)+`<main class="screen pickerpad">${backHead('Principal Cast',`Cast the role, not just the name · ${f.cast.length}/2 leads attached`)}
- <div class="role-casting-board">${leads.map(role=>{const tid=castingRoleAssignment(f,role.id),t=tid?talentById(tid):null;return `<button class="role-casting-card ${target.id===role.id?'active-role':''} ${t?'filled-role':''}" data-casting-role="${role.id}"><div class="row"><div><div class="badge">${role.id==='lead1'?'LEAD I':'LEAD II'}</div><strong>${role.name}</strong></div>${t?portraitHTML(t,'xs'):'<span class="role-open">OPEN</span>'}</div><div class="small" style="margin-top:7px">${role.desc}</div><div class="role-specs"><span>Screen age ${role.ageMin}–${role.ageMax}</span><span>${role.craft>=.58?'Performance-heavy':role.star>=.30?'Charisma / campaign value':'Balanced demands'}</span></div>${t?`<div class="role-attached">${t.name} · role fit ${fitBand(actorRoleFit(t,f,role.id)).label.replace(' project fit','')}</div>`:''}</button>`}).join('')}</div>
+ <div class="role-casting-board">${leads.map(role=>{const tid=castingRoleAssignment(f,role.id),t=tid?talentById(tid):null;return `<button class="role-casting-card ${target.id===role.id?'active-role':''} ${t?'filled-role':''}" data-casting-role="${role.id}"><div class="row"><div><div class="badge">${role.id==='lead1'?'LEAD I':'LEAD II'}</div><strong>${role.name}</strong></div>${t?portraitHTML(t,'xs'):'<span class="role-open">OPEN</span>'}</div><div class="small" style="margin-top:7px">${role.desc}</div><div class="role-specs"><span>Screen age ${role.ageMin}–${role.ageMax}</span><span>${role.craft>=.58?'Performance-heavy':role.star>=.30?'Charisma / campaign value':'Balanced demands'}</span></div>${t?`<div class="role-attached">${t.name} · ${castingEvidenceFor(t,f,role.id).label}</div>`:''}</button>`}).join('')}</div>
  <div class="casting-target"><span>Currently casting</span><strong>${target.name}</strong><small>${target.desc}</small></div>
  ${returningSection}
  ${pickerControls('Actor')}
- <div class="card ${slots===0?'attention':''}" style="margin-bottom:12px"><div class="row"><div><strong>Audition Round ${f.auditionRound}</strong><div class="small">An audition is evidence for <strong>${target.name}</strong>, not a universal actor rating. Talent may decline to read; if they agree to audition, they are considered open to accepting that role if you later offer it.</div></div><span class="pill ${slots?'blue':'warn'}">${slots}/${auditionSlotLimit()} slots left</span></div>${slots===0?`<button id="extraAuditions" class="btn block" style="margin-top:10px">Open another round · ${money(extraAuditionCost())} + 1 week</button>`:''}</div>
+ <div class="card ${slots===0?'attention':''}" style="margin-bottom:12px"><div class="row"><div><strong>Screen-Test Round ${f.auditionRound}</strong><div class="small">A screen test is the only role-specific evidence you get before casting. Market reputation, star power and genre history are known; whether the actor actually unlocks <strong>${target.name}</strong> is not. Talent may decline to test.</div></div><span class="pill ${slots?'blue':'warn'}">${slots}/${auditionSlotLimit()} slots left</span></div>${slots===0?`<button id="extraAuditions" class="btn block" style="margin-top:10px">Open another round · ${money(extraAuditionCost())} + 1 week</button>`:''}</div>
  <div class="grid">${available.map(t=>{
-  const view=actorScoutingView(t,f,target.id),band=fitBand(view.estimate),ev=roleFitEvidence(t,f,target.id),aud=auditionForRole(f,t.id,target.id),decline=talentDeclineForRole(f,t.id,target.id),roleDecline=decline?.mode==='role',auditionDecline=decline?.mode==='audition',tags=dynamicCastingTags(t,f),assigned=roleForTalent(f,t.id),assignedElsewhere=assigned&&assigned.id!==target.id,interest=talentProjectInterest(t,f,target,'select');
-  return `<div class="card ${decline?'dangerline':assigned?.id===target.id?'goodline':''}"><div class="talenthead"><div class="click talentidentity" data-talent="${t.id}">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${t.tag} · ${t.careerState}${assigned?` · attached as ${assigned.name}`:''}</div></div></div><strong>${money(t.fee)}</strong></div>
-  <div style="margin-top:8px"><span class="pill ${band.cls}">${view.source==='Audition'?'Audition view':'Scouting view'}: ${band.label.replace(' project fit','')}</span><span class="pill">${view.confidence} confidence</span><span class="pill">Acting ${Math.round(t.acting)}</span><span class="pill">Star ${Math.round(t.star)}</span>${tags.map(x=>`<span class="pill blue">${x}</span>`).join('')}${talentUnavailableForFilm(t,f)?'<span class="pill bad">Unavailable</span>':''}</div>
-  ${roleDecline?`<div class="casting-decline"><strong>Passed on ${target.name}</strong><span>${decline.reason}</span></div>`:auditionDecline?`<div class="casting-decline audition-only"><strong>Declined the audition</strong><span>${decline.reason} You can still make a direct offer for ${target.name}.</span></div>`:''}
-  ${aud?`<div class="card ${['Outstanding','Strong'].includes(aud.grade)?'goodline':aud.grade==='Poor'?'dangerline':aud.grade==='Mixed'?'attention':''}" style="margin-top:10px"><div class="row"><strong>Audition for ${target.name}: ${aud.grade}</strong><span class="small">${aud.confidence} confidence</span></div><div class="small" style="margin-top:6px">${aud.note}</div></div>`:''}
-  <div class="hr"></div>${ev.slice(0,3).map(x=>`<div class="small" style="margin-top:6px">• ${x}</div>`).join('')}
-  <div class="small casting-interest">${agencyWindow(t,f)?`Priority agency conversation through Week ${agencyWindow(t,f).expiresWeek}. `:''}${assignedElsewhere?`${t.name} is already attached as ${assigned.name}.`:aud?`Audition accepted: representatives are open to ${target.name}; contract terms are still to be agreed.`:auditionDecline?'Representatives would not audition, but a direct role offer can still be considered.':f.sequelOptions?.includes(t.id)?'Contractual sequel option held.':interest.score>=72?'Representatives are likely to engage.':interest.score>=50?'Interest looks plausible, not guaranteed.':'There are signs the performer may pass on this role.'}</div>
-  <div class="grid cols2" style="margin-top:10px"><button class="btn" data-audition="${t.id}" ${talentUnavailableForFilm(t,f)||aud||decline||assignedElsewhere||slots===0?'disabled':''}>${aud?'Auditioned':auditionDecline?'Audition declined':roleDecline?'Passed on role':assignedElsewhere?'Already cast':'Audition'}</button><button class="btn ${assigned?.id===target.id?'primary':''}" data-toggle-cast="${t.id}" ${talentUnavailableForFilm(t,f)||roleDecline||assignedElsewhere?'disabled':''}>${assigned?.id===target.id?`Selected for ${target.name}`:assignedElsewhere?`Already cast as ${assigned.name}`:`Offer ${target.name}`}</button></div></div>`}).join('')}</div>
+  ensureTalentMarketEconomy(t);const aud=auditionForRole(f,t.id,target.id),decline=talentDeclineForRole(f,t.id,target.id),roleDecline=decline?.mode==='role',auditionDecline=decline?.mode==='audition',tags=dynamicCastingTags(t,f),assigned=roleForTalent(f,t.id),assignedElsewhere=assigned&&assigned.id!==target.id,interest=talentProjectInterest(t,f,target,'select'),signals=actorPublicRoleSignals(t,f,target),draw=actorCommercialDraw(t),evidence=castingEvidenceFor(t,f,target.id);
+  return `<div class="card ${decline?'dangerline':assigned?.id===target.id?'goodline':''}"><div class="talenthead"><div class="click talentidentity" data-talent="${t.id}">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${t.tag} · ${t.careerState}${assigned?` · attached as ${assigned.name}`:''}</div></div></div><div style="text-align:right"><strong>${money(t.fee)}</strong><div class="small">market quote</div></div></div>
+  <div style="margin-top:8px"><span class="pill">${actorActingLabel(t.acting)}</span><span class="pill">${actorDrawLabel(draw)}</span><span class="pill">Momentum ${Math.round(t.momentum||60)}</span>${tags.map(x=>`<span class="pill blue">${x}</span>`).join('')}${talentUnavailableForFilm(t,f)?'<span class="pill bad">Unavailable</span>':''}</div>
+  ${roleDecline?`<div class="casting-decline"><strong>Passed on ${target.name}</strong><span>${decline.reason}</span></div>`:auditionDecline?`<div class="casting-decline audition-only"><strong>Declined the screen test</strong><span>${decline.reason} You can still make a direct offer for ${target.name}.</span></div>`:''}
+  ${aud?`<div class="card ${evidence.cls==='good'?'goodline':evidence.cls==='bad'?'dangerline':evidence.cls==='warn'?'attention':''}" style="margin-top:10px"><div class="row"><strong>Screen test · ${aud.grade}</strong><span class="small">${aud.confidence} confidence</span></div><div class="small" style="margin-top:6px">${aud.note}</div></div>`:`<div class="card" style="margin-top:10px"><div class="badge">ROLE FIT UNKNOWN</div><div class="small" style="margin-top:6px">The market profile is known. Whether ${t.name} actually unlocks ${target.name} is not — run a screen test for role-specific evidence.</div></div>`}
+  <div class="hr"></div>${signals.map(x=>`<div class="small" style="margin-top:6px">• ${x}</div>`).join('')}
+  <div class="small casting-interest">${agencyWindow(t,f)?`Priority agency conversation through Week ${agencyWindow(t,f).expiresWeek}. `:''}${assignedElsewhere?`${t.name} is already attached as ${assigned.name}.`:aud?`Screen test accepted: representatives are open to ${target.name}; contract terms are still to be agreed.`:auditionDecline?'Representatives would not test, but a direct role offer can still be considered.':f.sequelOptions?.includes(t.id)?'Contractual sequel option held.':interest.score>=72?'Representatives are likely to engage.':interest.score>=50?'Interest looks plausible, not guaranteed.':'There are signs the performer may pass on this role.'}</div>
+  <div class="grid cols2" style="margin-top:10px"><button class="btn" data-audition="${t.id}" ${talentUnavailableForFilm(t,f)||aud||decline||assignedElsewhere||slots===0?'disabled':''}>${aud?'Screen tested':auditionDecline?'Test declined':roleDecline?'Passed on role':assignedElsewhere?'Already cast':'Screen test'}</button><button class="btn ${assigned?.id===target.id?'primary':''}" data-toggle-cast="${t.id}" ${talentUnavailableForFilm(t,f)||roleDecline||assignedElsewhere?'disabled':''}>${assigned?.id===target.id?`Selected for ${target.name}`:assignedElsewhere?`Already cast as ${assigned.name}`:`Offer ${target.name}`}</button></div></div>`}).join('')}</div>
  </main><div class="pickerbar"><div class="pickerbar-inner"><div><strong>${chosen.length?chosen.map(x=>x.name).join(' + '):'No actors attached'}</strong><div class="small">${f.cast.length}/2 lead roles filled · currently casting ${target.name}</div></div><button id="pickerContinue" class="btn primary" ${f.cast.length===2?'':'disabled'}>Continue with cast</button></div></div>${nav()}`;
 }
 function supportingCastingPicker(f){
@@ -8671,7 +8735,7 @@ function supportingCastingPicker(f){
  ${selected.length?`<div class="section-title"><h2>Selected ensemble</h2><span class="small">Tap a selected performer below to remove them</span></div><div class="selected-support-strip">${selected.map((t,i)=>`<div>${portraitHTML(t,'sm')}<span><strong>Supporting ${i+1}</strong><small>${t.name}</small></span></div>`).join('')}</div>`:''}
  ${pickerControls('Actor')}
  <div class="card"><div class="body"><strong>Why this matters:</strong> supporting performers now contribute directly to the finished ensemble. Strong fit/acting can lift performances and chemistry, reliable performers help production stability, and recognisable supporting names can add publicity value. Larger productions are required to carry a deeper cast.</div></div>
- <div class="grid" style="margin-top:12px">${available.map(t=>{const assigned=roleForTalent(f,t.id),candidateRole=assigned?.type==='support'?assigned:supportRole,view=actorScoutingView(t,f,candidateRole.id),band=fitBand(view.estimate),ev=roleFitEvidence(t,f,candidateRole.id),decline=talentDeclineForRole(f,t.id,candidateRole.id),isSelected=selectedIds.has(t.id);return `<div class="card ${isSelected?'goodline':decline?'dangerline':''}"><div class="talenthead"><div class="click talentidentity" data-talent="${t.id}">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${t.tag} · ${t.careerState}</div></div></div><strong>${money(t.fee)}</strong></div><div style="margin-top:8px"><span class="pill ${band.cls}">${band.label}</span><span class="pill">Acting ${Math.round(t.acting)}</span><span class="pill">Star ${Math.round(t.star)}</span><span class="pill">Reliability ${Math.round(t.reliability)}</span>${talentUnavailableForFilm(t,f)?'<span class="pill bad">Unavailable</span>':''}</div>${decline?`<div class="casting-decline"><strong>Passed on ${candidateRole.name}</strong><span>${decline.reason}</span></div>`:''}<div class="hr"></div>${ev.slice(0,2).map(x=>`<div class="small" style="margin-top:6px">• ${x}</div>`).join('')}<button class="btn block ${isSelected?'primary':''}" style="margin-top:10px" data-select-support="${t.id}" ${((talentUnavailableForFilm(t,f)||selected.length>=req.max||decline)&&!isSelected)?'disabled':''}>${isSelected?`Selected as ${assigned?.name||'support'} · tap to remove`:decline?'Passed on role':selected.length>=req.max?'Supporting package full':`Offer ${supportRole.name}`}</button></div>`}).join('')}</div>
+ <div class="grid" style="margin-top:12px">${available.map(t=>{ensureTalentMarketEconomy(t);const assigned=roleForTalent(f,t.id),candidateRole=assigned?.type==='support'?assigned:supportRole,decline=talentDeclineForRole(f,t.id,candidateRole.id),isSelected=selectedIds.has(t.id),signals=actorPublicRoleSignals(t,f,candidateRole),draw=actorCommercialDraw(t);return `<div class="card ${isSelected?'goodline':decline?'dangerline':''}"><div class="talenthead"><div class="click talentidentity" data-talent="${t.id}">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${t.tag} · ${t.careerState}</div></div></div><div style="text-align:right"><strong>${money(t.fee)}</strong><div class="small">market quote</div></div></div><div style="margin-top:8px"><span class="pill">${actorActingLabel(t.acting)}</span><span class="pill">${actorDrawLabel(draw)}</span><span class="pill">${actorReliabilityLabel(t.reliability)}</span>${talentUnavailableForFilm(t,f)?'<span class="pill bad">Unavailable</span>':''}</div>${decline?`<div class="casting-decline"><strong>Passed on ${candidateRole.name}</strong><span>${decline.reason}</span></div>`:''}<div class="hr"></div>${signals.slice(0,2).map(x=>`<div class="small" style="margin-top:6px">• ${x}</div>`).join('')}<button class="btn block ${isSelected?'primary':''}" style="margin-top:10px" data-select-support="${t.id}" ${((talentUnavailableForFilm(t,f)||selected.length>=req.max||decline)&&!isSelected)?'disabled':''}>${isSelected?`Selected as ${assigned?.name||'support'} · tap to remove`:decline?'Passed on role':selected.length>=req.max?'Supporting package full':`Offer ${supportRole.name}`}</button></div>`}).join('')}</div>
  </main><div class="pickerbar supporting-pickerbar"><div class="pickerbar-inner"><div class="pickerbar-summary"><strong>${selected.length?selected.map(t=>t.name).join(' · '):'No supporting performers selected'}</strong><div class="small">${req.complete?req.required?`${req.label} requirement complete.`:'Optional role — greenlight does not require one.':`${req.required-req.selected} more supporting performer${req.required-req.selected===1?'':'s'} required at the current budget.`}</div></div><div class="pickerbar-actions"><button id="clearSupportingCast" class="btn">${selected.length?'Clear support':'Skip'}</button><button id="supportingContinue" class="btn primary">Return to package</button></div></div></div>${nav()}`;
 }
 
@@ -8765,16 +8829,16 @@ function developmentUI(f,s){
  <button id="greenlight" class="btn primary block" style="margin-top:14px" ${!d||cast.length<2||!supportReq.complete||!allContractsAgreed(f)?'disabled':''}>${!supportReq.complete?`Cast ${supportReq.required-supportReq.selected} more supporting performer${supportReq.required-supportReq.selected===1?'':'s'} before greenlight`:d&&cast.length===2&&!allContractsAgreed(f)?'Agree all talent terms before greenlight':'Review Greenlight'}</button>`;
 }
 function pickerList(type,f,roleId=null){
- const q=(state.uiPickerSearch||'').trim().toLowerCase(),sort=state.uiPickerSort||'fit',availableOnly=!!state.uiPickerAvailable;
- let list=state.talent.filter(t=>t.type===type&&!t.retired);
+ const q=(state.uiPickerSearch||'').trim().toLowerCase(),rawSort=state.uiPickerSort||'fit',sort=type==='Actor'&&rawSort==='fit'?'market':rawSort,availableOnly=!!state.uiPickerAvailable;
+ let list=state.talent.filter(t=>t.type===type&&!t.retired);list.forEach(ensureTalentMarketEconomy);
  if(q)list=list.filter(t=>`${t.name} ${t.tag} ${(t.genres||[]).join(' ')}`.toLowerCase().includes(q));
  if(availableOnly)list=list.filter(t=>!talentUnavailableForFilm(t,f));
- const score=t=>type==='Director'?directorProjectFit(t,f):(auditionForRole(f,t.id,roleId||castingTargetRole(f).id)?.sortEstimate??actorScoutingView(t,f,roleId).estimate);
  list.sort((a,b)=>{
-  if(sort==='fit')return score(b)-score(a);
+  if(sort==='fit'&&type==='Director')return directorProjectFit(b,f)-directorProjectFit(a,f);
+  if(sort==='market')return actorIndustryShortlistScore(b)-actorIndustryShortlistScore(a);
   if(sort==='fee')return a.fee-b.fee;
   if(sort==='ability')return type==='Director'?(b.craft-a.craft):(b.acting-a.acting);
-  if(sort==='commercial')return type==='Director'?(b.commercial-a.commercial):(b.star-a.star);
+  if(sort==='commercial')return type==='Director'?(b.commercial-a.commercial):(actorCommercialDraw(b)-actorCommercialDraw(a));
   if(sort==='momentum')return (b.momentum||0)-(a.momentum||0);
   if(sort==='name')return a.name.localeCompare(b.name);
   return 0;
@@ -8782,13 +8846,14 @@ function pickerList(type,f,roleId=null){
  return list;
 }
 function pickerControls(type){
+ const sort=type==='Actor'&&(state.uiPickerSort||'fit')==='fit'?'market':(state.uiPickerSort||'fit');
  return `<div class="filterbar"><input id="pickerSearch" class="search" placeholder="Search ${type==='Director'?'directors':'actors'}" value="${state.uiPickerSearch||''}"><select id="pickerSort" class="select">
-  <option value="fit" ${state.uiPickerSort==='fit'?'selected':''}>Sort: Project fit</option>
-  <option value="fee" ${state.uiPickerSort==='fee'?'selected':''}>Sort: Fee low → high</option>
-  <option value="ability" ${state.uiPickerSort==='ability'?'selected':''}>Sort: ${type==='Director'?'Craft':'Acting'}</option>
-  <option value="commercial" ${state.uiPickerSort==='commercial'?'selected':''}>Sort: ${type==='Director'?'Commercial instinct':'Star power'}</option>
-  ${type==='Actor'?`<option value="momentum" ${state.uiPickerSort==='momentum'?'selected':''}>Sort: Momentum</option>`:''}
-  <option value="name" ${state.uiPickerSort==='name'?'selected':''}>Sort: Name</option>
+  ${type==='Director'?`<option value="fit" ${sort==='fit'?'selected':''}>Sort: Project fit</option>`:`<option value="market" ${sort==='market'?'selected':''}>Sort: Industry shortlist</option>`}
+  <option value="fee" ${sort==='fee'?'selected':''}>Sort: Fee low → high</option>
+  <option value="ability" ${sort==='ability'?'selected':''}>Sort: ${type==='Director'?'Craft':'Acting reputation'}</option>
+  <option value="commercial" ${sort==='commercial'?'selected':''}>Sort: ${type==='Director'?'Commercial instinct':'Commercial draw'}</option>
+  ${type==='Actor'?`<option value="momentum" ${sort==='momentum'?'selected':''}>Sort: Momentum</option>`:''}
+  <option value="name" ${sort==='name'?'selected':''}>Sort: Name</option>
  </select></div><label class="small" style="display:flex;gap:8px;align-items:center;margin:0 0 12px"><input id="pickerAvailable" type="checkbox" ${state.uiPickerAvailable?'checked':''}> Show available talent only</label>`;
 }
 function directorPicker(f){
@@ -9512,6 +9577,7 @@ if(state&&state.films){playerFilms().filter(f=>f.stage==='complete').forEach(f=>
 // Run retroactive lifecycle checks only after every module-level const/table has initialized.
 // This is essential for existing-career reloads: bootstrapStudioMilestones reads STUDIO_MILESTONES.
 if(state.studio&&state.careerStarted)bootstrapStudioMilestones();
+if(state?.talent)state.talent.forEach(ensureTalentMarketEconomy);
 if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.legends?.pending?.length)surfacePendingLegendUnlock()}
 function projectSlateSmokeChecks(){
  const failures=[],required=[
@@ -9521,6 +9587,7 @@ function projectSlateSmokeChecks(){
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
  if(!app)failures.push('#app missing');
  if(typeof rivalSignatureIdentity!=='undefined')failures.push('stale rivalSignatureIdentity symbol present');
+ try{if(pickerControls('Actor').includes('Project fit'))failures.push('actor fit sort leaked');if(soundtrackShortlistSize()<5)failures.push('music shortlist too small');const qs=(state.talent||[]).filter(t=>t.type==='Actor').map(t=>{ensureTalentMarketEconomy(t);return t.fee});if(qs.length&&Math.max(...qs)<7)failures.push('actor salary range compressed')}catch(e){failures.push('casting economy smoke failed')}
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
   const unique=new Set(probe.scripts.map(x=>x.title.toLowerCase())).size,quantified=probe.scripts.filter(x=>/^(No One|Nobody|Someone|Everyone)\b/i.test(x.title)).length;
