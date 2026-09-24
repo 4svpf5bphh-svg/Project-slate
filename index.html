@@ -5365,9 +5365,496 @@ function createPlayerFilmFromOwnedScript(s){
   reputationDelta:{creative:0,commercial:0,talent:0}};
  state.films.push(f);
  if(s.invitationDirectorId&&state.week<=(s.invitationAttachUntil||0)){
-  const d=talentById(s.invitationDir
-... 52068 bytes omitted ...
+  const d=talentById(s.invitationDirectorId);if(d&&!d.retired){f.directorId=d.id;f.history.push(`Week ${state.week}: ${d.name} entered development attached from the original industry invitation.`)}
+ }
+ if(s.invitationActorId&&state.week<=(s.invitationAttachUntil||0)){
+  const a=talentById(s.invitationActorId);if(a&&!a.retired&&typeof openAgencyWindow==='function')openAgencyWindow(a,f);
+ }
+ addNews(state,`${state.studio.name} moved ${s.title} into film development.`,'Your Studio');
+ state.screen='slate';state.detail={type:'film',id:f.id};state.history=[];save();render();
+}
+function createPlayerFilm(scriptId){const s=scriptById(scriptId);if(s&&s.owner==='player')beginOwnedScript(scriptId);else showToast('Acquire the screenplay rights first.')}
 
+function attachDirector(f,tid){
+ ensurePackagingState(f);const t=talentById(tid);
+ if(!t||talentUnavailableForFilm(t,f))return showToast(talentAvailabilityReason(t,f)||'That director is not currently available.');
+ if(f.directorId&&f.directorId!==tid)clearTalentContract(f,f.directorId);
+ f.directorId=tid;f.history.push(`Week ${state.week}: ${t.name} attached as director.`);save();render()
+}
+function toggleCast(f,tid){
+ ensurePackagingState(f);ensureFilmRoles(f);const y=typeof window!=='undefined'?(window.scrollY||0):0,role=castingTargetRole(f);
+ const current=f.roleAssignments?.[role.id]||null;
+ if(current===tid){delete f.roleAssignments[role.id];clearTalentContract(f,tid);syncRoleAssignments(f)}
+ else assignLeadRole(f,role.id,tid);
+ save();render();if(typeof window!=='undefined')setTimeout(()=>window.scrollTo(0,y),0);
+}
+function greenlight(f){
+ if(!f)return false;
+ // Greenlight must be idempotent. A queued second tap/event after a successful
+ // greenlight should never re-run validation against talent who are now busy
+ // on this film, nor spend the production cost twice.
+ if(f.stage==='production')return true;
+ if(f.stage!=='development'){showToast('This project is no longer awaiting a greenlight decision.');return false}
+ ensurePackagingState(f);ensureFilmRoles(f);
+ if(!f.directorId||f.cast.length<2){showToast('Attach a director and two principal actors first.');return false}
+ ensureProductionDepth(f);const req=supportingCastRequirement(f);
+ if(!req.complete){showToast(`${req.label} productions require ${req.required} supporting performer${req.required===1?'':'s'} before greenlight.`);return false}
+ if(!allContractsAgreed(f)){showToast('Agree terms with every attached director and performer before greenlighting.');return false}
+ if(playerFilms().filter(x=>x.stage==='production').length>=playerProductionCapacity()){showToast(`All ${playerProductionCapacity()} production slots are currently occupied.`);return false}
+ const d=talentById(f.directorId),cast=f.cast.map(talentById),support=supportingActors(f),attached=[d,...cast,...support].filter(Boolean);
+ const unavailable=attached.filter(t=>talentUnavailableForFilm(t,f));
+ if(unavailable.length){showToast(`${unavailable.map(t=>t.name).join(', ')} ${unavailable.length===1?'is':'are'} no longer available for this production.`);return false}
+ const depthCost=productionDepthCost(f),cost=f.budget+agreedUpfront(f)+depthCost;
+ if(!spend(cost))return false;
+ f.investment+=cost;f.productionDepthSpend=depthCost;f.stage='production';f.productionStart=state.week;const sc=ensureScriptEcosystem(scriptById(f.scriptId));
+ const r=makeRng(hash(state.seed+'|green|'+f.id));
+ const length=5+Math.round(sc.difficulty/25);f.productionEnd=state.week+length;f.productionWeek=1;
+ const natural=sc.naturalBudget,ratio=f.budget/natural,budgetFactor=ratio<.6?.44:ratio<.8?.66:ratio<.92?.84:ratio<=1.15?1:1+Math.min(.035,(ratio-1.15)*.035);
+ const c=f.creative||defaultCreative(),dFit=directorProjectFit(d,f),aFits=cast.map((a,i)=>actorRoleFit(a,f,`lead${i+1}`)),fitAvg=(aFits[0]+aFits[1])/2;
+ const actorHistory=collaborationScore(cast[0].id,cast[1].id),directorHistory=(collaborationScore(d.id,cast[0].id)+collaborationScore(d.id,cast[1].id))/2;
+ const fitDirection=(dFit-65)*.34+directorHistory*.10,fitPerformance=(fitAvg-65)*.34+directorHistory*.13;
+ const act=cast.reduce((a,b)=>a+b.acting,0)/cast.length;
+ f.packageFit={director:dFit,actors:aFits,average:(dFit+aFits[0]+aFits[1])/3};f.directorAuthority={producerCredit:!!f.contracts?.[d.id]?.producerCredit,vetoesUsed:0};
+ f.metrics={
+  direction:clamp((d.craft+(d.genres.includes(f.genre)?4:-5))*budgetFactor+fitDirection+(r()-.5)*10,24,97),
+  performances:clamp((act*.64+d.actorDirection*.22+sc.characters*.08+sc.emotion*.06)*budgetFactor+fitPerformance+(r()-.5)*12,24,98),
+  technical:clamp((45+d.budgetControl*.26+sc.difficulty*.13)*budgetFactor+(dFit-65)*.10+(r()-.5)*14,20,96),
+  pacing:clamp(42+sc.access*.13+sc.structure*.18+(d.commercial-70)*.10+(dFit-65)*.10+(r()-.5)*25,24,95),
+  clarity:clamp(sc.story*.47+sc.structure*.28+d.craft*.11+(dFit-65)*.08+(r()-.5)*16,26,97),
+  chemistry:clamp(40+act*.25+d.actorDirection*.18+(fitAvg-65)*.22+actorHistory*.28+(r()-.5)*26,22,96),
+  stability:clamp(cast.reduce((a,b)=>a+b.reliability,0)/cast.length*.50+d.budgetControl*.28-(Math.max(0,f.budget-directorScaleComfort(d))*.45)+(r()-.5)*12,22,97)
+ };
+ if(c.positioning==='prestige'){f.metrics.direction+=3;f.metrics.clarity+=2;f.metrics.pacing-=1}
+ if(c.positioning==='commercial'){f.metrics.pacing+=3;f.metrics.clarity-=1}
+ if(c.tone==='grounded'){f.metrics.direction+=2;f.metrics.performances+=2;f.metrics.technical-=1}
+ if(c.tone==='heightened'){f.metrics.technical+=2;f.metrics.pacing+=2;f.metrics.clarity-=1}
+ if(c.emphasis==='performance'){f.metrics.performances+=5;f.metrics.technical-=2}
+ if(c.emphasis==='spectacle'){f.metrics.technical+=5;f.metrics.performances-=2;if(ratio<.9)f.metrics.technical-=6}
+ applyProductionDepthMetrics(f);Object.keys(f.metrics).forEach(k=>f.metrics[k]=clamp(f.metrics[k],20,98));
+ f.productionState={schedule:0,morale:clamp(66+(f.metrics.stability-65)*.30+(directorHistory+actorHistory)*.08,35,92),extraSpend:0,cleanWeeks:0,notes:[]};
+ recordProductionDaily(f);
+ f.events=buildProductionEvents(f,r);
+ d.busyUntil=f.productionEnd+1;cast.forEach(a=>a.busyUntil=f.productionEnd+1);support.forEach(a=>a.busyUntil=f.productionEnd+1);
+ const band=fitBand(f.packageFit.average);
+ addNews(state,`${f.title} entered production under ${d.name}. Internal packaging view: ${band.label.toLowerCase()}.`,'Your Studio');
+
+ // Replace the review route with the live production film page.
+ // The previous film-detail history entry is no longer useful after the irreversible transition,
+ // so pop it and keep the screen beneath it (normally Slate) as the Back destination.
+ if(state.detail?.type==='greenlightReview'&&state.detail.id===f.id&&state.history?.length){
+  const previous=state.history.at(-1);
+  if(previous?.detail?.type==='film'&&previous.detail.id===f.id)state.history.pop();
+ }
+ state.screen='slate';state.detail={type:'film',id:f.id};requestScrollTop();
+ save();render();return true;
+}
+function productionRisk(f){
+ const s=ensureScriptEcosystem(scriptById(f.scriptId)),d=talentById(f.directorId),cast=f.cast.map(talentById);
+ const underfund=Math.max(0,1-f.budget/s.naturalBudget)*35;
+ const reliability=100-cast.reduce((a,b)=>a+b.reliability,0)/cast.length;
+ return clamp(s.difficulty*.36+underfund+(d.budgetControl<65?8:0)+reliability*.14+(100-f.metrics.stability)*.24,0,100);
+}
+function weightedProductionPick(pool,r){
+ const total=pool.reduce((a,e)=>a+Math.max(.1,e.weight||1),0);let x=r()*total;
+ for(const e of pool){x-=Math.max(.1,e.weight||1);if(x<=0)return e}
+ return pool.at(-1);
+}
+function buildProductionEvents(f,r){
+ const s=ensureScriptEcosystem(scriptById(f.scriptId)),d=talentById(f.directorId),cast=f.cast.map(talentById),c=f.creative||defaultCreative();
+ const avgRel=cast.reduce((a,b)=>a+b.reliability,0)/cast.length,avgStar=cast.reduce((a,b)=>a+b.star,0)/cast.length,ratio=f.budget/s.naturalBudget;
+ const pool=[];
+ const add=(e)=>pool.push(e);
+ add({type:'location',weight:1.0+s.difficulty/90,title:'Location access problem',text:'A key location has become unavailable at short notice.',why:'Location-heavy material and schedule pressure have collided.',choices:[
+  ['relocate','Relocate and redesign · $0.5m'],['holdlocation','Hold for the location · $0.8m + 1 week'],['compresslocation','Compress the sequence']]});
+ add({type:'weather',weight:.7+s.difficulty/120,title:'Weather closes the set',text:'Conditions have wiped out a planned exterior day.',why:'Exterior work always carries exposure, but this project has little slack.',choices:[
+  ['coverweather','Move to coverage · $0.35m'],['waitweather','Wait for conditions · $0.7m + 1 week'],['rushweather','Rush the remaining exterior work']]});
+ if(f.genre.includes('Action')||s.difficulty>72)add({type:'stunt',weight:1.4,title:'Stunt design hits a limit',text:'The stunt team believes the planned sequence is too aggressive for the remaining time and resources.',why:'The film’s physical ambition is pressing against schedule and safety margins.',choices:[
+  ['restunt','Redesign safely · $0.55m'],['stuntday','Add a stunt day · $0.95m + 1 week'],['cutstunt','Cut the most ambitious beat']]});
+ if(f.genre.includes('Science')||f.genre.includes('Fantasy')||c.emphasis==='spectacle')add({type:'vfx',weight:1.5,title:'Effects plan is not holding up',text:'Pre-visualisation shows an effects-heavy sequence will not reach the intended standard.',why:'The film is asking more of its technical plan than the current allocation comfortably supports.',choices:[
+  ['vfxmoney','Increase the effects allocation · $1.25m'],['vfxpractical','Redesign around practical elements'],['vfxaccept','Accept the current plan']]});
+ if(avgRel<75||f.packageFit?.average<63)add({type:'rehearsal',weight:1.25,title:'A performance is not settling',text:'One of the principal performances is inconsistent in the dailies and the schedule offers little rehearsal time.',why:'Preparation, role fit and schedule pressure are combining.',choices:[
+  ['rehearse','Pause for rehearsal · $0.35m'],['reshuffle','Reshuffle the schedule · $0.55m'],['pushperformance','Keep shooting']]});
+ if(avgStar>78)add({type:'star',weight:.75,title:'Star requests a change',text:'A principal actor wants a scene reworked around their character before it shoots.',why:'The project carries enough star leverage for creative requests to reach the studio.',choices:[
+  ['indulgestar','Approve the rewrite · $0.3m'],['negotiate','Let the director negotiate'],['refusestar','Hold the existing scene']]});
+ if(d.commercial<65||f.packageFit?.director<58)add({type:'director',weight:1.15,title:'Director challenges the brief',text:'The director wants to take a major sequence further away from the studio’s stated positioning.',why:'The director’s instincts and the project brief are not perfectly aligned.',choices:[
+  ['trustdirector','Trust the director'],['directorcompromise','Find a compromise'],['enforcebrief','Enforce the studio brief']]});
+ if(f.metrics.chemistry>78)add({type:'chemistry',weight:1.15,title:'Unexpected chemistry in the dailies',text:'The leads are producing something stronger together than the screenplay predicted.',why:'A genuine on-screen relationship has emerged during production.',choices:[
+  ['expandchemistry','Expand their material · $0.45m'],['smallchemistry','Add a few beats'],['keepchemistry','Stay on script']]});
+ if(f.metrics.stability>80)add({type:'opportunity',weight:1.05,title:'The shoot gets ahead',text:'The production has unexpectedly created a little time and budget flexibility.',why:'A stable package and disciplined set have created an opportunity rather than a problem.',choices:[
+  ['coverageop','Shoot extra coverage · $0.35m'],['bankop','Bank part of the saving'],['creativeop','Give the director a creative day · $0.65m']]});
+ if(d.budgetControl<72||ratio<.9)add({type:'overrun',weight:1.4,title:'Contingency is disappearing',text:'The line producer warns that the current approach is burning through contingency faster than planned.',why:'Budget control and the production’s ambition are out of balance.',choices:[
+  ['resourceoverrun','Protect the plan · $1.0m'],['simplifyoverrun','Simplify upcoming setups'],['ignoreoverrun','Hold the line']]});
+ if(f.metrics.performances>84)add({type:'breakout',weight:.7,title:'A supporting performance breaks out',text:'A supporting player is stealing scenes and the director wants to give the role more space.',why:'The footage has revealed an opportunity nobody could confidently predict in development.',choices:[
+  ['expandbreakout','Expand the role · $0.4m'],['keepbreakout','Keep the existing balance'],['trimbreakout','Protect the leads']]});
+ if(s.structure<60||f.metrics.clarity<60)add({type:'story',weight:1.2,title:'A story problem is visible on set',text:'As the footage assembles, a transition that worked on the page is proving unclear on screen.',why:'The screenplay’s structural risk is becoming concrete during production.',choices:[
+  ['pickupstory','Shoot connective material · $0.6m'],['restagestory','Restage the transition'],['deferstory','Leave it for the edit']]});
+ if((f.genre.includes('Action')||s.difficulty>80)&&r()<.36)add({type:'injury',weight:.35,title:'Minor injury disrupts the schedule',text:'A principal performer cannot complete today’s planned work.',why:'Physical production carries a small but real injury risk.',choices:[
+  ['injurycover','Shoot around the performer · $0.35m'],['injuryrest','Give the unit a recovery day · $0.75m + 1 week'],['injurypush','Push lighter material through']]});
+
+ const risk=clamp((s.difficulty*.34)+(100-f.metrics.stability)*.32+Math.max(0,.92-ratio)*48+(100-avgRel)*.12,0,100);
+ let count=risk>72?3:risk>52?2:risk>31?1:0;
+ if(f.metrics.stability>88&&risk<42&&r()<.60)count=0;
+ else if(count===0&&r()<.28)count=1;
+ const weeks=[];for(let w=2;w<Math.max(3,f.productionEnd-f.productionStart);w++)weeks.push(w);
+ for(let i=weeks.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[weeks[i],weeks[j]]=[weeks[j],weeks[i]]}
+ const used=new Set(),events=[];
+ for(let i=0;i<count&&i<weeks.length&&pool.length;i++){
+  let e=weightedProductionPick(pool.filter(x=>!used.has(x.type)),r);if(!e)break;
+  used.add(e.type);events.push({id:uid('event',state),week:weeks[i],...deep(e),resolved:false,choice:null})
+ }
+ events.forEach(e=>{if(f.directorAuthority?.producerCredit&&e.type==='director'){const vr=makeRng(hash(state.seed+'|producer-veto|'+f.id+'|'+e.id));if(vr()<.58){e.lockedChoices=['enforcebrief'];e.authorityNote=`${d.name}'s producer credit gives the director final authority on this creative call.`}}});return events.sort((a,b)=>a.week-b.week);
+}
+function applyProductionImpact(f,{cost=0,week=0,morale=0,direction=0,performances=0,technical=0,pacing=0,clarity=0,chemistry=0,stability=0,saving=0,note=''}) {
+ if(cost>0&&!spend(cost))return false;
+ if(cost>0){f.investment+=cost;f.productionState.extraSpend=(f.productionState.extraSpend||0)+cost}
+ if(saving>0){earn(saving);f.investment=Math.max(0,f.investment-saving)}
+ if(week){
+  f.productionEnd+=week;f.productionState.schedule+=(week>0?week:0);
+  const ids=[f.directorId,...f.cast];ids.forEach(id=>{const t=talentById(id);if(t)t.busyUntil=Math.max(t.busyUntil||0,f.productionEnd+1)})
+ }
+ const m=f.metrics;m.direction+=direction;m.performances+=performances;m.technical+=technical;m.pacing+=pacing;m.clarity+=clarity;m.chemistry+=chemistry;m.stability+=stability;
+ Object.keys(m).forEach(k=>m[k]=clamp(m[k],20,98));
+ f.productionState.morale=clamp((f.productionState.morale||65)+morale,20,98);
+ if(note)f.productionState.notes.unshift(note);
+ return true;
+}
+function resolveEvent(f,eventId,choice){
+ const e=f.events.find(x=>x.id===eventId);if(!e||e.resolved)return;if(e.lockedChoices?.includes(choice))return showToast('The director has final authority on that choice under the producer-credit agreement.');
+ let ok=true,note=e.title;
+ const impact=(x)=>{ok=applyProductionImpact(f,{...x,note});return ok};
+ if(e.type==='location'){if(choice==='relocate')impact({cost:.5,clarity:1,technical:-1,morale:-1});else if(choice==='holdlocation')impact({cost:.8,week:1,stability:3,morale:-2});else impact({technical:-3,pacing:2,stability:-3})}
+ else if(e.type==='weather'){if(choice==='coverweather')impact({cost:.35,clarity:2});else if(choice==='waitweather')impact({cost:.7,week:1,technical:2,stability:2});else impact({technical:-4,stability:-3})}
+ else if(e.type==='stunt'){if(choice==='restunt')impact({cost:.55,technical:2,stability:4});else if(choice==='stuntday')impact({cost:.95,week:1,technical:5,stability:4});else impact({technical:-2,pacing:1})}
+ else if(e.type==='vfx'){if(choice==='vfxmoney')impact({cost:1.25,technical:6});else if(choice==='vfxpractical')impact({direction:2,technical:2,clarity:1});else impact({technical:-6})}
+ else if(e.type==='rehearsal'){if(choice==='rehearse')impact({cost:.35,performances:5,morale:3});else if(choice==='reshuffle')impact({cost:.55,stability:5,performances:2});else impact({performances:-5,stability:-3,morale:-3})}
+ else if(e.type==='star'){if(choice==='indulgestar')impact({cost:.3,performances:2,pacing:-1,morale:2});else if(choice==='negotiate')impact({direction:1,performances:1});else impact({performances:-2,morale:-4})}
+ else if(e.type==='director'){if(choice==='trustdirector')impact({direction:5,clarity:2,pacing:-1,morale:3});else if(choice==='directorcompromise')impact({direction:2,clarity:1});else impact({direction:-4,pacing:2,morale:-4})}
+ else if(e.type==='chemistry'){if(choice==='expandchemistry')impact({cost:.45,performances:5,chemistry:4,pacing:-2});else if(choice==='smallchemistry')impact({performances:3,chemistry:2});else impact({performances:-1})}
+ else if(e.type==='opportunity'){if(choice==='coverageop')impact({cost:.35,clarity:3});else if(choice==='bankop')impact({saving:.25,stability:1});else impact({cost:.65,direction:3,performances:2,morale:3})}
+ else if(e.type==='overrun'){if(choice==='resourceoverrun')impact({cost:1,stability:5,technical:2});else if(choice==='simplifyoverrun')impact({clarity:2,technical:-2,stability:2});else impact({stability:-6,pacing:-2,morale:-2})}
+ else if(e.type==='breakout'){if(choice==='expandbreakout')impact({cost:.4,performances:4,pacing:-2});else if(choice==='keepbreakout')impact({performances:1});else impact({performances:-2,pacing:2})}
+ else if(e.type==='story'){if(choice==='pickupstory')impact({cost:.6,clarity:5,pacing:-1});else if(choice==='restagestory')impact({direction:2,clarity:3});else impact({clarity:-2})}
+ else if(e.type==='injury'){if(choice==='injurycover')impact({cost:.35,stability:2,clarity:-1});else if(choice==='injuryrest')impact({cost:.75,week:1,stability:5,morale:2});else impact({performances:-2,stability:-2})}
+ else if(e.type==='walkoff'){const t=talentById(e.talentId);if(choice==='mediatewalkoff'){impact({cost:.45,morale:2,stability:2});if(t)adjustTalentRelationship(t,1,`${f.title}: studio mediated an on-set dispute`,f.id)}else if(choice==='holdwalkoff')impact({cost:.8,week:1,morale:-1,stability:3});else{impact({direction:f.directorId===e.talentId?-4:-1,performances:(f.cast||[]).includes(e.talentId)?-4:-1,stability:-5,morale:-5});if(t)adjustTalentRelationship(t,-4,`${f.title}: studio took a hard line during an on-set dispute`,f.id)}}
+ else if(e.type==='creativefriction'){const t=talentById(e.talentId);if(choice==='creativecompromise'){impact({cost:.3,direction:1,performances:1,stability:2,morale:2});if(t)adjustTalentRelationship(t,1,`${f.title}: creative compromise`,f.id)}else if(choice==='creativerehearse'){impact({cost:.55,week:1,performances:3,chemistry:2,stability:1});if(t)adjustTalentRelationship(t,2,`${f.title}: rehearsal/reset backed the talent`,f.id)}else{impact({direction:-1,performances:-2,stability:-3,morale:-3});if(t)adjustTalentRelationship(t,-3,`${f.title}: studio overruled creative concerns`,f.id)}}
+ // v1.8 compatibility
+ else if(e.type==='smooth'){if(choice==='coverage')impact({cost:.4,clarity:3});else if(choice==='save')impact({saving:.25});else impact({cost:.7,direction:3,performances:2})}
+ else if(e.type==='complex'){if(choice==='extra')impact({cost:1.4,technical:6});else if(choice==='simplify')impact({clarity:3,technical:-2});else impact({technical:-7})}
+ else if(e.type==='cast'){if(choice==='rehearse')impact({cost:.3,performances:4});else if(choice==='move')impact({cost:.6,stability:5});else impact({performances:-5,stability:-4})}
+ else if(e.type==='creative'){if(choice==='trust')impact({direction:5,clarity:2});else if(choice==='compromise')impact({direction:2});else impact({direction:-5,pacing:2})}
+ else if(e.type==='budget'){if(choice==='resources')impact({cost:1.1,stability:5,technical:3});else if(choice==='simplify')impact({clarity:2,technical:-2});else impact({stability:-6,pacing:-3})}
+ else if(e.type==='safety'){if(choice==='redesign')impact({cost:.5,technical:2,stability:4});else if(choice==='delay')impact({cost:.9,week:1,technical:4,stability:6});else impact({technical:-2,pacing:1})}
+ else if(e.type==='supporting'){if(choice==='expandrole')impact({cost:.4,performances:4,pacing:-2});else if(choice==='keeprole')impact({performances:1});else impact({performances:-2,pacing:2})}
+ if(!ok)return;
+ e.resolved=true;e.choice=choice;f.pendingEvent=null;f.history.push(`Week ${state.week}: resolved ${e.title}.`);
+ ensureShootJournal(f).push({week:state.week,productionWeek:f.productionWeek,text:`${e.title}: ${e.choices.find(x=>x[0]===choice)?.[1]||choice}.`,mood:'decision'});
+ rebuildDecisions();save();render();
+}
+
+function commitRelease(f){
+ ensureMarketingState(f);
+ if(!f.campaign||f.releaseWeek===null)return showToast('Choose a campaign and release week.');
+ const allowed=validReleaseWeeks(f);if(!allowed.includes(f.releaseWeek)){f.releaseWeek=null;save();render();return showToast('That date no longer fits the campaign lead time. Choose a valid release week.');}
+ ensureDistributionState(f);const plan=distributionPlan(f),ops=plan.opsCost,total=f.marketing+ops+publicityCost(f)+launchCost(f);
+ if(!spend(total))return;
+ f.releaseOps=ops;f.distributionDeal={...plan,committedWeek:state.week,partnerName:f.distributorName||null};f.investment+=total;f.stage='scheduled';f.campaignStart=state.week;f.campaignStartDay=typeof currentCalendarDay==='function'?currentCalendarDay():null;f.releaseDay=typeof releaseDayForWeek==='function'?releaseDayForWeek(f.releaseWeek):null;
+ f.marketingState.committed=true;buildMarketingMilestones(f);recordTrackingSnapshot(f,'Campaign committed');
+ f.history.push(`${typeof calendarDateLabel==='function'?calendarDateLabel():'Week '+state.week}: ${marketingLeadInfo(f).tier} committed for ${f.releaseDay&&typeof calendarDateLabel==='function'?calendarDateLabel(f.releaseDay):'Week '+f.releaseWeek}.`);
+ addNews(state,f.distributionStrategy==='partner'?`${state.studio.name} has partnered with ${f.distributorName||distributionPartnerName(f)} to release ${f.title} in Week ${f.releaseWeek}.`:f.distributionStrategy==='platform'?`${state.studio.name} will open ${f.title} on a platform rollout in Week ${f.releaseWeek}, expanding if early response supports it.`:`${state.studio.name} will self-distribute ${f.title} in Week ${f.releaseWeek}, retaining the theatrical upside while carrying the full release operation.`,'Press Release');
+ maybeRivalReleaseResponse(f);rebuildDecisions();save();render();
+}
+function releaseFilm(f){
+ const s=scriptById(f.scriptId),d=talentById(f.directorId),cast=f.cast.map(talentById),m=f.metrics,r=makeRng(hash(state.seed+'|release|'+f.id)),c=f.creative||defaultCreative();
+ const dFit=f.packageFit?.director??directorProjectFit(d,f),aFits=f.packageFit?.actors??cast.map(a=>actorProjectFit(a,f)),fitAvg=(aFits[0]+aFits[1])/2;
+ ensureScriptEcosystem(s);
+ const postEnding=f.post?.endingStrength??clamp((s.emotion+s.structure+m.clarity)/3,30,95),runtime=f.post?.runtime??f.post?.targetRuntime??105,targetRuntime=f.post?.targetRuntime??runtime;
+ const runtimePenalty=Math.max(0,Math.abs(runtime-targetRuntime)-8)*.16;
+ const quality=clamp(s.story*.08+s.structure*.055+s.characters*.055+s.emotion*.035+s.originality*.065+m.direction*.155+m.performances*.20+m.technical*.095+m.pacing*.095+m.clarity*.105+postEnding*.035-runtimePenalty,18,97);
+ let criticBias=(c.positioning==='prestige'?3:c.positioning==='commercial'?-1:0)+(c.tone==='grounded'?1:0)+(dFit<48?-3:0);
+ let audienceBias=(c.positioning==='commercial'?3:c.positioning==='prestige'?-2:0)+(fitAvg<48?-4:fitAvg>82?2:0);
+ if(c.rating==='broad')audienceBias+=3;
+ if(c.rating==='mature'){audienceBias-=3;if(f.genre.includes('Horror')||f.genre.includes('Crime')||f.genre.includes('Drama'))audienceBias+=4}
+ if(c.emphasis==='spectacle'&&(f.genre.includes('Action')||f.genre.includes('Science')||f.genre.includes('Fantasy')))audienceBias+=2;
+ const music=soundtrackReleaseModifiers(f);
+ let critics=clamp(quality*.75+s.originality*.15+s.story*.10+criticBias+studioIdentityCriticLift(f)+music.critics+(r()-.5)*12,14,98);
+ let audience=clamp(m.performances*.17+m.pacing*.13+m.clarity*.12+s.access*.12+s.hook*.105+s.genreFulfillment*.105+s.emotion*.07+m.direction*.105+postEnding*.055+audienceBias+music.audience-runtimePenalty*.7+(r()-.5)*12,16,97);
+ const publicCampaign=ensureMarketingState(f),pulse=ensureFilmSocial(f);
+ const pulseAudience=(pulse.sentiment-50)*.07+(pulse.fandom-40)*.025-pulse.controversy*.035;
+ audience=clamp(audience+publicCampaign.sentiment+pulseAudience-campaignExpectationPenalty(f,audience),12,98);
+ const audienceContext=audienceReleaseContext(f,audience),franchiseContext=franchiseReleaseContext(f);audience=clamp(audience-franchiseContext.audiencePenalty,10,98);f.audienceSegments=audienceContext.segments;registerMarketRelease(f);
+ const rawStar=cast.reduce((a,b)=>a+b.star,0)/cast.length,momentum=cast.reduce((a,b)=>a+b.momentum,0)/cast.length;
+ const effectiveStar=rawStar*clamp(.67+fitAvg/210,.72,1.10);
+ const rec=marketingRecommended(f),mEff=Math.log1p(f.marketing)/Math.log1p(rec);
+ let awareness=1+effectiveStar*.064+momentum*.026+s.hook*.064+mEff*31+(c.positioning==='commercial'?3:c.positioning==='prestige'?-2:0)+(c.rating==='broad'?2:c.rating==='mature'?-1:0);
+ const campaignStrength=clamp(f.marketing/Math.max(1,rec),0,1.25);
+ if(f.campaign==='event')awareness+=5*Math.min(1,campaignStrength);
+ if(f.campaign==='mystery')awareness+=(1+(r()-.5)*5)*Math.min(1,campaignStrength+.15);
+ awareness+=publicCampaign.buzz+pulse.volume*.075+pulse.controversy*.025+audienceContext.openingLift+franchiseContext.awarenessLift+studioIdentityAwarenessLift(f)+distributionAwarenessLift(f)+music.awareness;
+ const competitorPressure=boxPressureForWeek(f.releaseWeek,f.genre)*distributionPressureMultiplier(f);
+ const ratio=f.budget/s.naturalBudget,scale=.72+Math.sqrt(Math.max(.48,ratio))*.27;
+ let opening=clamp((awareness*.34+s.hook*.08+effectiveStar*.028-9.6)*scale*(1-competitorPressure)*(1+releaseWindowOpeningModifier(f))*distributionOpeningMultiplier(f),.08,88);
+ const intlMult=f.genre.includes('Action')||f.genre.includes('Science')||f.genre.includes('Fantasy')?1.38:f.genre.includes('Horror')?1.0:f.genre.includes('Family')?1.13:.72;
+ const releaseProfile=releaseOutcomeProfile(f,audience,awareness,r);releaseProfile.legsBias+=distributionLegsBias(f)+music.legs+clamp((pulse.sentiment-50)*.0018+(pulse.fandom-40)*.0012-pulse.controversy*.0014,-.10,.10);const run=buildTheatricalRun(f,opening,audience,audienceContext,r,intlMult,releaseProfile);
+ f.releaseProfile=run.profile;
+ f.review=makeReview(f,Math.round(critics),Math.round(audience));
+ f.pressReviews=makeReviewRoundup(f,Math.round(critics),Math.round(audience));
+ f.weeklyPlan=run.plan;
+ f.weeklyResults=[];f.cinemaWeek=0;f.stage='cinema';addCinemaWeek(f);
+ notify(`release:${f.id}`,`${f.title} opens today`,`Reviews and audience reaction are public. The domestic chart and final weekend grosses settle Sunday night.`,f.id,false,'info');
+}
+function reviewStars(score){return clamp(Math.round((score/20)*2)/2,.5,5)}
+function scriptFocus(s){
+ const q=s.logline.toLowerCase();
+ if(q.includes('lighthouse'))return 'its isolated lighthouse, the impossible radio messages and the grief beneath the supernatural mystery';
+ if(q.includes('getaway driver'))return 'the uneasy driver-witness relationship and the pressure of the cross-country chase';
+ if(q.includes('estranged siblings'))return 'the sibling relationships and the emotional history embedded in the family home';
+ if(q.includes('memory architect'))return 'the stolen-memory premise and the moral cost of the supposedly perfect city';
+ if(q.includes('missing-child'))return 'the missing-child mystery and the town’s fractured memories';
+ if(q.includes('wedding planners'))return 'the rivalry between its wedding planners and the escalating destination chaos';
+ if(q.includes('abandoned railway'))return 'the forgotten railway and the sense of childhood discovery at the centre of the adventure';
+ if(q.includes('jury room'))return 'the secret trials hidden inside the courthouse and the paranoia created by that discovery';
+ if(q.includes('cartographer'))return 'the mapmaking conceit and the dangerous idea that drawing a place can create it';
+ if(q.includes('astronaut'))return 'the impossible connection between its isolated astronauts';
+ return `the central idea described by its screenplay — ${s.logline.replace(/\.$/,'').toLowerCase()}`;
+}
+function makeReview(f,critics,audience){
+ const s=scriptById(f.scriptId),m=f.metrics,c=f.creative||defaultCreative(),focus=scriptFocus(s),stars=reviewStars(critics);
+ let headline=critics>=86?'A striking success':critics>=74?'A confident, imperfect film':critics>=58?'Strong moments, mixed results':'An ambitious misfire';
+ let lead=critics>=86?`${s.title} turns ${focus} into something unusually assured.`:critics>=74?`${s.title} makes compelling use of ${focus}, even when its ambitions occasionally outrun it.`:critics>=58?`${s.title} finds worthwhile moments in ${focus}, but not every part of the film is equally convincing.`:`${s.title} has an intriguing foundation in ${focus}, yet the finished film struggles to make the idea cohere.`;
+ const paragraphs=[lead];
+ paragraphs.push(m.performances>82?`The performances give the premise emotional weight, particularly when the film stops explaining itself and lets the characters carry the tension.`:`The cast works hard, but several important scenes never develop the emotional force the screenplay seems to be reaching for.`);
+ if(m.pacing<60)paragraphs.push(`The main problem is rhythm. The film repeatedly interrupts its own momentum, making the ${s.genre.toLowerCase()} machinery feel heavier than it should.`);else paragraphs.push(`The edit mostly understands when to move and when to linger, which helps the film’s central conceit remain engaging rather than exhausting.`);
+ if(c.emphasis==='spectacle')paragraphs.push(m.technical>78?'The decision to emphasise spectacle is visible on screen, and the larger sequences justify much of the production spend.':'The film clearly wants spectacle, but the technical finish does not consistently support that ambition.');
+ else if(c.emphasis==='performance')paragraphs.push(`The performance-first approach is evident throughout; whether that works for viewers will depend on how invested they are in the characters rather than the scale.`);
+ else paragraphs.push(s.originality>85?'Most importantly, the film has enough personality to avoid feeling like an anonymous piece of studio product.':'The shape is familiar, but the better-crafted sequences give it enough personality to stay watchable.');
+ return {publication:'The Daily Screen',critics,audience,stars,headline,quote:lead,paragraphs,sourceContext:{title:s.title,genre:s.genre,logline:s.logline,creative:deep(c)}};
+}
+
+function makeReviewRoundup(f,critics,audience){
+ const s=scriptById(f.scriptId),m=f.metrics,r=makeRng(hash(state.seed+'|roundup|'+f.id));
+ const outlets=[
+  {name:'The Trade Ledger',bias:(f.creative?.positioning==='commercial'?2:0),focus:'industry'},
+  {name:'Frame & Sound',bias:(s.originality>78?3:-1),focus:'craft'},
+  {name:'Popcorn Weekly',bias:(audience>critics?3:-1),focus:'audience'}
+ ];
+ return outlets.map(o=>{
+  const score=Math.round(clamp(critics+o.bias+(r()-.5)*12,15,98));
+  let line='';
+  if(o.focus==='craft')line=m.direction>82?'“Formally confident and unusually well directed.”':m.performances>82?'“The performances carry the film through its rougher edges.”':'“Interesting material, unevenly realised.”';
+  else if(o.focus==='industry')line=f.marketingState?.buzz>=9?'“The campaign promised an event; the film mostly justifies the attention.”':score>=75?'“A strong piece of studio filmmaking with real commercial life.”':'“A release whose economics may be more interesting than its execution.”';
+  else line=audience>=80?'“The kind of movie audiences are likely to recommend immediately.”':audience<58?'“Hard to imagine broad word of mouth overcoming the film’s problems.”':'“A decent crowd-pleaser, though not an obvious obsession.”';
+  return {publication:o.name,score,stars:reviewStars(score),quote:line};
+ });
+}
+function addCinemaWeek(f){
+ const row=f.weeklyPlan[f.weeklyResults.length];if(!row)return;
+ const actual=deep(row);actual.worldWeek=state.week;f.weeklyResults.push(actual);f.cinemaWeek=f.weeklyResults.length;
+ const rev=theatricalStudioRevenue(f,row);f.studioRevenue+=rev;earn(rev);
+ if(row.drop!==null){
+  if(row.drop<0)addNews(state,`${f.title} grows ${Math.round(Math.abs(row.drop)*100)}% domestically in Week ${f.cinemaWeek}, a rare sign that demand is still expanding.`,'Box Office Alert');
+  else if(f.cinemaWeek===2&&row.drop<.24)addNews(state,`${f.title} posts an exceptional second-week hold, with word of mouth becoming the story of the release.`,'Trade Report');
+  else if(f.cinemaWeek===2&&row.drop>.68)addNews(state,`${f.title} collapses ${Math.round(row.drop*100)}% domestically in its second week as opening-week demand evaporates.`,'Trade Report');
+ }
+ if(f.cinemaWeek>=7||row.dom+row.intl<.25)f.pendingTheatricalFinish=true;
+}
+function finishFilm(f){
+ if(f.stage==='complete')return;
+ f.stage='complete';f.completeWeek=state.week;f.completeDay=typeof currentCalendarDay==='function'?currentCalendarDay():null;f.finalGross=f.weeklyResults.reduce((a,w)=>a+w.dom+w.intl,0);
+ const ancillary=f.finalGross*ancillarySettlementRate();f.ancillarySettlement=ancillary;f.studioRevenue+=ancillary;earn(ancillary);recordAncillarySettlement(ancillary);
+ ensurePackagingState(f);
+ const backendPct=contractBackendPct(f);
+ const backend=backendPct>0?f.studioRevenue*(backendPct/100):0;
+ if(backend>0){state.cash-=backend;f.studioRevenue-=backend;f.backendPaid=backend}
+ const rightsParticipation=(f.ipParticipationPct||0)>0?f.studioRevenue*((f.ipParticipationPct||0)/100):0;
+ if(rightsParticipation>0){state.cash-=rightsParticipation;f.studioRevenue-=rightsParticipation;f.rightsParticipationPaid=rightsParticipation}
+ const profit=f.studioRevenue-f.investment;
+ ensureIPAsset(f);ensureAfterlifeState(f);refreshAfterlifeValuation(f);registerAudienceOutcome(f,profit);registerStudioFilmImpact(f,profit);
+ const d=talentById(f.directorId),cast=packageActors(f),talentBefore={};[d,...cast].filter(Boolean).forEach(t=>talentBefore[t.id]=Math.round(t.momentum||60));
+ const impact=(f.review.critics+f.review.audience)/2;
+ if(d){const delta=talentFilmMomentumDelta(d,f,profit);applyMomentumChange(d,delta,talentFilmMomentumReason(d,f,delta,profit),'film')}
+ cast.forEach(a=>{const delta=talentFilmMomentumDelta(a,f,profit);applyMomentumChange(a,delta,talentFilmMomentumReason(a,f,delta,profit),'film')});
+ cast.forEach(a=>{a.star=Math.round(clamp(a.star+(f.finalGross>150?4:f.finalGross>70?2:profit<=-12?-2:profit<0?-1:0),10,97));});
+ recordTalentFilmOutcome(f,profit);applyFilmCareerConsequences(f,profit);registerReleaseRipple(f,profit);
+ [d,...cast].forEach(t=>{if(t){ensureTalentCareer(t);repriceTalent(t)}});
+ state.reputation.creative=clamp(state.reputation.creative+(f.review.critics-65)*.08,20,95);
+ state.reputation.commercial=clamp(state.reputation.commercial+(profit>0?2:-2)+(f.finalGross>120?2:0),20,95);
+ state.reputation.talent=clamp(state.reputation.talent+(impact>75?2:impact<55?-1:0),20,95);
+ updateRelationshipsAfterFilm(f,profit);buildFilmLegacy(f,talentBefore);queueFilmWrap(f);if(typeof checkStudioMilestones==='function')checkStudioMilestones();
+ state.completed.unshift(f.id);addNews(state,`${f.title} closes its theatrical run at ${money(f.finalGross)} worldwide, leaving ${state.studio.name} with ${profit>=0?'a recorded profit of':'a recorded loss of'} ${money(Math.abs(profit))}.`,'Your Studio');
+}
+function boxPressureForWeek(week,genre,excludeId=null){
+ const films=state.films.filter(x=>x.owner!=='player'&&x.id!==excludeId&&x.releaseWeek===week&&x.stage!=='complete');
+ let p=0;films.forEach(f=>{p+=f.genre===genre?.12:.035});return clamp(p,0,.3);
+}
+
+
+function postRuntimeTarget(f){
+ const c=f.creative||defaultCreative();
+ let base=f.genre.includes('Horror')?98:f.genre.includes('Comedy')?102:f.genre.includes('Family')?104:f.genre.includes('Action')?112:f.genre.includes('Science')||f.genre.includes('Fantasy')?118:108;
+ if(c.positioning==='prestige')base+=7;if(c.positioning==='commercial')base-=3;
+ return base;
+}
+function ensurePostState(f){
+ if(!f)return null;
+ const s=ensureScriptEcosystem(scriptById(f.scriptId)),r=makeRng(hash(state.seed+'|post-state|'+f.id));
+ if(!f.post){
+  const target=postRuntimeTarget(f);
+  f.post={
+   targetRuntime:target,
+   runtime:Math.round(target+(65-f.metrics.pacing)*.34+(65-f.metrics.clarity)*.10+(r()-.5)*16),
+   endingStrength:Math.round(clamp(s.emotion*.34+s.structure*.24+f.metrics.clarity*.24+f.metrics.direction*.18+(r()-.5)*15,28,96)),
+   actions:[],
+   maxActions:2,
+   testSegments:null,
+   testWeek:null,
+   discoveries:[],
+   testFinding:null,
+   cutVersion:1,
+   firstDecisionMade:false
+  };
+ }
+ f.post.actions=f.post.actions||[];f.post.maxActions=f.post.maxActions||2;f.post.discoveries=f.post.discoveries||[];f.post.cutVersion=f.post.cutVersion||1;
+ if(f.post.selectedAction===undefined)f.post.selectedAction=null;
+ f.post.lastActionResult=f.post.lastActionResult||null;if(f.post.firstDecisionMade===undefined)f.post.firstDecisionMade=(f.post.actions||[]).length>0;
+ return f.post;
+}
+function roughDimensions(f){
+ const p=ensurePostState(f),m=f.metrics;
+ return [
+  ['Performances',m.performances],
+  ['Direction',m.direction],
+  ['Technical finish',m.technical],
+  ['Pacing',m.pacing],
+  ['Story clarity',m.clarity],
+  ['Lead chemistry',m.chemistry],
+  ['Ending',p.endingStrength]
+ ].sort((a,b)=>b[1]-a[1]);
+}
+
+function postSeverity(score){return score<50?'critical':score<62?'major':score<72?'moderate':'minor'}
+function buildPostDiscoveries(f){
+ const p=ensurePostState(f),m=f.metrics,s=ensureScriptEcosystem(scriptById(f.scriptId)),c=f.creative||defaultCreative(),list=[];
+ const add=(id,title,score,text,action)=>list.push({id,title,score,severity:postSeverity(score),text,action});
+ if(m.pacing<76||p.runtime>p.targetRuntime+9)add('pace','The middle is losing momentum',Math.min(m.pacing,86-Math.max(0,p.runtime-p.targetRuntime)),`The assembly begins to drag once the central turn has landed. At ${p.runtime} minutes, scenes that worked individually are stacking into a slower second half.`,((m.pacing<68&&m.clarity<70)||p.runtime>p.targetRuntime+15)?'restructure':'trim');
+ if(m.clarity<75)add('clarity','The story is asking audiences to connect too much',m.clarity,'Several transitions make sense on the page but are reading as assumptions in the cut. Motivations are clearest to people already familiar with the screenplay.','clarity');
+ if(m.performances<74)add('performance','One of the emotional turns is not landing',m.performances,'The performances are broadly usable, but a key emotional beat is arriving without enough weight to sell the next story turn.','performance');
+ if(m.chemistry<67)add('chemistry','The leads are not fully carrying the relationship',m.chemistry,'The edit is struggling to find enough connective tissue between the principal performances. The relationship works scene-to-scene more than across the whole film.','performance');
+ if(m.technical<76)add('finish','The finishing work is exposing the seams',m.technical,`Temporary sound, visual effects and transitions are making the film feel less expensive than its ${money(f.budget)} production budget.`, 'vfx');
+ if(p.endingStrength<76)add('ending','The ending is not paying off the promise',p.endingStrength,'The final movement resolves the plot, but the emotional and dramatic payoff currently feels smaller than the film building toward it.','ending');
+ if(c.positioning==='commercial'&&s.access<62)add('access','The film remains harder to enter than the campaign brief wants',s.access,'The cut is coherent, but it asks for more patience and inference than a broad commercial positioning normally tolerates.','clarity');
+ if(!list.length)add('polish','The cut is unusually healthy',82,'There is no obvious structural emergency. The remaining work is about sharpening strengths rather than rescuing a weak department.','vfx');
+ p.discoveries=list.sort((a,b)=>a.score-b.score).slice(0,4);return p.discoveries;
+}
+function postDiscoveryHeadline(f){const d=buildPostDiscoveries(f)[0];return d?.title||'The cut is taking shape'}
+
+function makeRoughCut(f){
+ const p=ensurePostState(f),arr=roughDimensions(f),best=arr[0],weak=arr.at(-1),second=arr.at(-2),lines=[];
+ lines.push(best[1]>84?`${best[0]} is drawing exceptional internal praise.`:`${best[0]} is currently one of the stronger elements.`);
+ lines.push(weak[1]<50?`${weak[0]} is a serious problem in the present cut.`:weak[1]<64?`${weak[0]} is the clearest weakness at this stage.`:`${weak[0]} remains the least convincing element.`);
+ if(second[1]<60)lines.push(`${second[0]} is also creating concern, so one post-production fix may not solve everything.`);
+ if(p.runtime>p.targetRuntime+14)lines.push(`The rough cut runs ${p.runtime} minutes against an internal target around ${p.targetRuntime}; length is contributing to pacing pressure.`);
+ else if(p.runtime<p.targetRuntime-12)lines.push(`At ${p.runtime} minutes the film is lean, but some transitions may not have enough room to breathe.`);
+ else lines.push(`The ${p.runtime}-minute runtime is broadly within the expected range for the film.`);
+ const discoveries=buildPostDiscoveries(f);f.rough={best,weak,second,lines,discoveries};
+ return f.rough;
+}
+function postDirectorView(f){
+ const d=talentById(f.directorId),arr=roughDimensions(f),weak=arr.at(-1)[0],p=ensurePostState(f);
+ if(d.craft>=88&&(f.creative?.positioning==='prestige'||d.commercial<62)&&arr.at(-1)[1]>=62)return {action:'lock',text:`${d.name} believes the current imperfections are part of the film's character and would lock the cut.`};
+ if(weak==='Pacing'||p.runtime>p.targetRuntime+12)return {action:'trim',text:`${d.name} supports a tighter edit before picture lock.`};
+ if(weak==='Story clarity')return {action:'clarity',text:`${d.name} wants targeted pickups to make the story read more cleanly.`};
+ if(weak==='Technical finish')return {action:'vfx',text:`${d.name} wants another technical polish pass.`};
+ if(weak==='Performances'||weak==='Lead chemistry')return {action:'performance',text:`${d.name} believes a focused performance pickup could materially help.`};
+ if(weak==='Ending')return {action:'ending',text:`${d.name} is concerned the ending is not paying off the film strongly enough.`};
+ return {action:'lock',text:`${d.name} is broadly comfortable with the current cut.`};
+}
+function segmentTestScores(f){
+ const s=ensureScriptEcosystem(scriptById(f.scriptId)),m=f.metrics,p=ensurePostState(f),c=f.creative||defaultCreative(),cast=f.cast.map(talentById);
+ const star=cast.reduce((a,b)=>a+b.star,0)/cast.length,r=makeRng(hash(state.seed+'|segments|'+f.id+'|'+state.week));
+ const noise=()=> (r()-.5)*9;
+ const maturePenalty=c.rating==='mature'?-11:0,broadBoost=c.rating==='broad'?5:0;
+ return {
+  'Mainstream adults':clamp(m.performances*.18+m.pacing*.19+m.clarity*.19+s.access*.18+s.hook*.10+p.endingStrength*.16+noise(),25,96),
+  'Younger audiences':clamp(star*.14+s.hook*.19+m.pacing*.20+m.technical*.19+s.access*.12+p.endingStrength*.10+noise(),22,96),
+  'Families':clamp(s.access*.25+m.clarity*.22+m.pacing*.14+p.endingStrength*.13+s.emotion*.13+broadBoost+maturePenalty+noise(),15,96),
+  'Genre fans':clamp(s.genreFulfillment*.28+s.hook*.17+m.technical*.16+m.direction*.15+p.endingStrength*.12+(c.tone==='heightened'?4:0)+noise(),20,98),
+  'Prestige / arthouse':clamp(m.performances*.22+m.direction*.21+s.originality*.18+s.emotion*.16+p.endingStrength*.13+(c.positioning==='prestige'?5:0)+noise(),20,98)
+ };
+}
+function runTestScreen(f){
+ if(f.tested===true)return showToast('This film has already been test screened.');
+ if(!spend(.45))return;
+ f.investment+=.45;f.tested=true;ensurePostState(f);
+ f.post.testSegments=segmentTestScores(f);f.post.testWeek=state.week;
+ const vals=Object.values(f.post.testSegments);f.testScore=vals.reduce((a,b)=>a+b,0)/vals.length;
+ const ordered=Object.entries(f.post.testSegments).sort((a,b)=>b[1]-a[1]),best=ordered[0],weak=ordered.at(-1),spread=best[1]-weak[1];
+ f.post.testFinding={best,weak,spread,overall:f.testScore};
+ queueStudioMoment(f,'testScreening',{kicker:'AUDIENCE RESEARCH',title:`${f.title} meets its first audience`,tone:f.testScore>=76?'great':f.testScore<56?'bad':'neutral',result:f.testScore>=76?'strong':f.testScore<56?'soft':'mixed',summary:f.testScore>=76?'The screening found a genuinely enthusiastic audience.':f.testScore<56?'The room exposed problems the internal team can no longer dismiss.':'The screening produced useful evidence without a clean consensus.',stats:[['Overall',`${Math.round(f.testScore)}%`],['Strongest',`${best[0]} · ${Math.round(best[1])}%`],['Weakest',`${weak[0]} · ${Math.round(weak[1])}%`]],sections:[{title:'What the room told you',text:spread>=24?`Response is sharply segmented: ${best[0]} connected strongly while ${weak[0]} struggled. The film may have a clearer niche than the studio expected.`:`Responses are relatively consistent across audience groups, which makes the overall result more trustworthy.`},{title:'What changes now',text:'The numbers do not automatically change the film. They give you evidence for the remaining post-production decisions — or a reason to trust the cut as it is.'}]});
+ surfacePendingStudioMoment();save();render();
+}
+function skipTest(f){f.tested=false;save();render()}
+function availablePostActions(f){
+ const p=ensurePostState(f),m=f.metrics,arr=[];
+ const add=(x)=>{if(!arr.some(a=>a.id===x.id)&&!p.actions.some(a=>a.id===x.id))arr.push(x)};
+ if(m.pacing<72||p.runtime>p.targetRuntime+8)add({id:'trim',label:'Tighten the cut',cost:.25,time:1,desc:'Remove repetition and compress transitions. Cheap and effective for pace, but a hard trim can sacrifice performance texture.'});
+ if((m.pacing<68&&m.clarity<70)||p.runtime>p.targetRuntime+15)add({id:'restructure',label:'Restructure the middle',cost:.65,time:1,desc:'A deeper editorial rebuild: move scenes, collapse beats and reshape the second act without new photography.'});
+ if(m.clarity<74)add({id:'clarity',label:'Clarity pickups',cost:.8,time:1,desc:'Shoot connective material to clarify motivations and cause-and-effect.'});
+ if(m.performances<74||m.chemistry<63)add({id:'performance',label:'Performance pickups',cost:1.15,time:1,desc:'Bring principals back for a focused performance pass.'});
+ if(m.technical<76||f.creative?.emphasis==='spectacle')add({id:'vfx',label:'Technical polish',cost:1.3,time:1,desc:'Spend another week on VFX, sound and finishing work.'});
+ if(p.endingStrength<74)add({id:'ending',label:'Rework the ending',cost:2.2,time:1,desc:'The expensive option: reshape or partially reshoot the final movement. High upside, some creative risk.'});
+ if(arr.length<3)add({id:'trim',label:'Tighten the cut',cost:.25,time:1,desc:'A restrained editorial pass aimed at pace and efficiency.'});
+ if(arr.length<3)add({id:'vfx',label:'Technical polish',cost:1.3,time:1,desc:'Improve finishing detail even if it is not the film’s primary weakness.'});
+ const priority=buildPostDiscoveries(f).map(d=>d.action);arr.sort((a,b)=>{const ai=priority.indexOf(a.id),bi=priority.indexOf(b.id);return (ai<0?99:ai)-(bi<0?99:bi)});return arr.slice(0,typeof postOptionLimit==='function'?postOptionLimit():4);
+}
+function canSpendPostWeek(){
+ rebuildDecisions();
+ const blocking=state.decisions.filter(x=>x.type==='production');
+ if(blocking.length){showToast('Resolve the active production decision before committing a week to post-production.');return false}
+ return true;
+}
+function postActionTargets(f,type){
+ const hits=buildPostDiscoveries(f).filter(d=>d.action===type);
+ return hits.length?hits:[{id:'polish',title:'General finishing opportunity',severity:'minor',text:'This intervention is not responding to a crisis; it is an attempt to sharpen the film further.',action:type}];
+}
+function postActionTradeoff(type){
+ return {
+  trim:'Likely effect: faster pace and a shorter cut. Risk: some performance texture can be lost.',
+  restructure:'Likely effect: clearer, faster middle section. Risk: editorial changes can slightly disturb the director’s original shape.',
+  clarity:'Likely effect: clearer motivation and cause-and-effect. Risk: pickups add a little runtime and can soften pace.',
+  performance:'Likely effect: stronger emotional beats and lead chemistry. Cost is higher because principal cast return to set.',
+  vfx:'Likely effect: stronger finishing, sound and visual polish. It mainly helps technical execution rather than story.',
+  ending:'Likely effect: a stronger final payoff and clearer resolution. Highest cost and greatest creative risk.'
+ }[type]||'A focused post-production intervention with both upside and opportunity cost.';
+}
+function selectPostAction(f,type){
+ const p=ensurePostState(f),action=availablePostActions(f).find(x=>x.id===type);
+ if(!action)return;
+ p.selectedAction=type;save();render();
+}
+function cancelPostActionSelection(f){const p=ensurePostState(f);p.selectedAction=null;save();render()}
+function postMetricSnapshot(f){
+ const p=ensurePostState(f);return {pacing:f.metrics.pacing,clarity:f.metrics.clarity,performances:f.metrics.performances,chemistry:f.metrics.chemistry,technical:f.metrics.technical,direction:f.metrics.direction,runtime:p.runtime,ending:p.endingStrength};
+}
+function postResultSummary(before,after,type){
+ const labels={pacing:'Pacing',clarity:'Clarity',performances:'Performances',chemistry:'Chemistry',technical:'Technical finish',direction:'Direction',runtime:'Runtime',ending:'Ending'};
+ const changes=[];
+ Object.keys(labels).forEach(k=>{
+  const delta=(after[k]||0)-(before[k]||0);if(Math.abs(delta)<.5)return;
+  if(k==='runtime')changes.push(`${labels[k]} ${Math.abs(Math.round(delta))} min ${delta<0?'shorter':'longer'}`);
+  else changes.push(`${labels[k]} ${delta>0?'improved':'softened'}`);
+ });
+ return changes.slice(0,4);
+}
+function runPostAction(f,type){
+ const p=ensurePostState(f);
+ if(p.actions.length>=p.maxActions)return showToast('You have already made two major post-production interventions.');
+ const action=availablePostActions(f).find(x=>x.id===type);if(!action)return;const targets=postActionTargets(f,type).map(x=>x.title),before=postMetricSnapshot(f),directorView=postDirectorView(f);if(f.directorAuthority?.producerCredit&&!f.directorAuthority.postVetoUsed&&directorView.action!=='lock'&&type!==directorView.action){const vr=makeRng(hash(state.seed+'|post-veto|'+f.id+'|'+state.week));if(vr()<.45){f.directorAuthority.postVetoUsed=true;save();render();return showToast(`${talentById(f.directorId).name} has final authority on this intervention under the producer-credit agreement.`)}}
+ if(!canSpendPostWeek())return;
+ if(!spend(action.cost))return;
+ f.investment+=action.cost;
+ const d=talentById(f.directorId),view=postDirectorView(f),r=makeRng(hash(state.seed+'|post-action|'+f.id+'|'+type+'|'+p.actions.length));
+ if(type==='trim'){f.metrics.pacing+=5;f.metrics.clarity+=1;f.metrics.performances-=1;p.runtime-=Math.round(6+r()*5)}
+ if(type==='restructure'){f.metrics.pacing+=4;f.metrics.clarity+=4;f.metrics.direction+=(r()<.22?-1:1);p.runtime-=Math.round(2+r()*5)}
  if(type==='clarity'){f.metrics.clarity+=6;f.metrics.pacing-=1;p.runtime+=2}
  if(type==='performance'){f.metrics.performances+=5;f.metrics.chemistry+=2;p.runtime+=1}
  if(type==='vfx'){f.metrics.technical+=6}
