@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.10.0</title>
+<title>Project Slate — Premium Presentation v3.10.1</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -389,7 +389,7 @@ body{
 
 
 .desk-hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(240px,.6fr);gap:12px;margin-bottom:14px}.desk-stack{display:grid;gap:10px}.desk-item{position:relative;overflow:hidden}.desk-item.urgent{border-left:4px solid var(--bad)}.desk-item.action{border-left:4px solid var(--warn)}.desk-item.info{border-left:4px solid var(--blue)}.desk-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:7px}.desk-source{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.desk-headline{font-size:17px;font-weight:800;line-height:1.25}.desk-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:12px}.desk-outcome{margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:12px;background:#151820}.pulse-row{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:12px;align-items:center}.pulse-meter{height:7px;background:#111319;border-radius:99px;overflow:hidden}.pulse-meter span{display:block;height:100%;background:var(--accent)}.desk-count{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:99px;background:rgba(239,195,110,.15);color:var(--warn);font-weight:800;font-size:12px}.desk-section{margin-top:18px}.desk-empty{padding:24px;text-align:center}.desk-snapshot{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}.desk-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}.desk-dot.urgent{background:var(--bad)}
-.desk-read{opacity:.91}.desk-actions{margin-top:10px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.desk-collapsed-note{margin-top:6px}.desk-impact{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.desk-impact span{font-size:11px;border:1px solid var(--border);background:var(--card2);border-radius:999px;padding:4px 8px}.pulse-board{display:grid;gap:0}.pulse-film{padding:13px 0;border-bottom:1px solid var(--border)}.pulse-film:first-child{padding-top:0}.pulse-film:last-child{border-bottom:0;padding-bottom:0}.pulse-score{display:flex;align-items:baseline;gap:6px}.pulse-score strong{font-size:22px}.pulse-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:9px}.pulse-metrics span{font-size:11px;color:var(--muted);padding:7px;border-radius:9px;background:var(--card2);text-align:center}.pulse-metrics b{color:var(--text);display:block;font-size:14px}.pulse-topics{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.pulse-topics span{font-size:11px;color:var(--blue);border:1px solid color-mix(in srgb,var(--blue) 30%,var(--border));border-radius:999px;padding:4px 7px}
+.desk-read{opacity:.91}.desk-actions{position:relative;z-index:3;margin-top:10px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.desk-actions .btn{position:relative;z-index:4;pointer-events:auto;touch-action:manipulation}.desk-collapsed-note{margin-top:6px}.desk-impact{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.desk-impact span{font-size:11px;border:1px solid var(--border);background:var(--card2);border-radius:999px;padding:4px 8px}.pulse-board{display:grid;gap:0}.pulse-film{padding:13px 0;border-bottom:1px solid var(--border)}.pulse-film:first-child{padding-top:0}.pulse-film:last-child{border-bottom:0;padding-bottom:0}.pulse-score{display:flex;align-items:baseline;gap:6px}.pulse-score strong{font-size:22px}.pulse-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:9px}.pulse-metrics span{font-size:11px;color:var(--muted);padding:7px;border-radius:9px;background:var(--card2);text-align:center}.pulse-metrics b{color:var(--text);display:block;font-size:14px}.pulse-topics{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.pulse-topics span{font-size:11px;color:var(--blue);border:1px solid color-mix(in srgb,var(--blue) 30%,var(--border));border-radius:999px;padding:4px 7px}
 @media(max-width:680px){.desk-hero{grid-template-columns:1fr}.desk-choice-grid{grid-template-columns:1fr}.desk-snapshot{grid-template-columns:auto 1fr}.desk-snapshot .btn{grid-column:1/-1}.pulse-metrics{grid-template-columns:repeat(3,minmax(0,1fr));font-size:10px}}
 
 /* ===== v3.6.3 Foundation & Safety — Legacy consolidation ===== */
@@ -625,7 +625,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.10.0';
+const VERSION='3.10.1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3225,8 +3225,32 @@ function inferNotificationDestination(key,filmId,type,destination){
  if(filmId){if(key.startsWith('release:'))return {screen:'release',detail:{type:'review',id:filmId}};return {screen:'slate',detail:{type:'film',id:filmId}}}
  return {screen:'notifications',detail:null};
 }
+function normalizeDeskIds(st=state){
+ const d=st.desk||(st.desk={items:[],archive:[],nextId:1,lastGeneratedWeek:0,seenIntro:false});
+ d.items=Array.isArray(d.items)?d.items:[];d.archive=Array.isArray(d.archive)?d.archive:[];
+ const used=new Set(),all=[...d.items,...d.archive];let next=1;
+ all.forEach(item=>{
+  const n=Number(item?.id);
+  if(Number.isInteger(n)&&n>0&&!used.has(n)){item.id=n;used.add(n);next=Math.max(next,n+1);return}
+  while(used.has(next))next++;
+  item.id=next;used.add(next);next++;
+ });
+ let candidate=Number(d.nextId);
+ if(!Number.isInteger(candidate)||candidate<1)candidate=next;
+ candidate=Math.max(candidate,next);
+ while(used.has(candidate))candidate++;
+ d.nextId=candidate;
+ (st.notifications||[]).forEach(n=>{
+  const item=all.find(x=>(x.notificationId&&x.notificationId===n.id)||(x.notificationKey&&x.notificationKey===n.key));
+  if(item){n.deskId=item.id;if(n.destination?.deskId!==undefined)n.destination.deskId=item.id}
+ });
+ return d;
+}
+function deskItemById(id,d=ensureDeskStateLite()){
+ const key=String(id);return d.items.find(x=>String(x.id)===key)||null;
+}
 function ensureDeskStateLite(st=state){
- st.desk=st.desk||{items:[],archive:[],nextId:1,lastGeneratedWeek:0,seenIntro:false};st.desk.items=st.desk.items||[];st.desk.archive=st.desk.archive||[];st.desk.nextId=st.desk.nextId||1;return st.desk;
+ st.desk=st.desk||{items:[],archive:[],nextId:1,lastGeneratedWeek:0,seenIntro:false};return normalizeDeskIds(st);
 }
 function notificationDeskSource(type,key=''){
  if(type==='milestone')return 'Studio Legacy';
@@ -7929,7 +7953,7 @@ function studioLegacyOverviewBody(){
 // v3.5.1 — The Living Industry: richer Studio Desk, social Pulse, consequences and inbox ergonomics.
 function ensureDesk(){
  state.desk=state.desk||{items:[],archive:[],nextId:1,lastGeneratedWeek:0,seenIntro:false};
- state.desk.items=state.desk.items||[];state.desk.archive=state.desk.archive||[];state.desk.nextId=state.desk.nextId||1;
+ normalizeDeskIds(state);
  state.pulse=state.pulse||{history:[],lastWeek:0};state.pulse.history=state.pulse.history||[];
  if(typeof syncOperationalDeskItems==='function')syncOperationalDeskItems();
  return state.desk;
@@ -8289,20 +8313,20 @@ function deskChoiceEffects(item,key){
 }
 
 function resolveDeskChoice(id,key){
- const d=ensureDesk(),item=d.items.find(x=>x.id===id);if(!item||item.resolved)return;const before=deskImpactSnapshot(item);item.read=true;item.expanded=true;item.resolved=true;item.resolvedWeek=state.week;item.choice=key;item.outcome=deskChoiceEffects(item,key);
+ const d=ensureDesk(),item=deskItemById(id,d);if(!item||item.resolved)return;const before=deskImpactSnapshot(item);item.read=true;item.expanded=true;item.resolved=true;item.resolvedWeek=state.week;item.choice=key;item.outcome=deskChoiceEffects(item,key);
  if(['agency-package','talent-pitch'].includes(item.templateId)&&key==='meet'){
   const t=talentById(item.talentId),f=filmById(item.filmId);
   if(openAgencyWindow(t,f))item.outcome=`${talentAgency(t).name} has opened a priority conversation on ${f.title} through Week ${state.week+4}. ${t.name} is more receptive to an audition or role offer while the window lasts; availability and terms still apply.`;
  }
  const after=deskImpactSnapshot(item);item.impact=deskImpactSummary(before,after);addNews(state,`${state.studio.name} responded to ${item.headline.toLowerCase()}. ${item.outcome}`,'Studio Desk');save();render();
 }
-function markDeskRead(id){const item=ensureDesk().items.find(x=>x.id===id);if(item){item.read=true;item.expanded=false;const n=state.notifications?.find(n=>n.id===item.notificationId||n.deskId===item.id);if(n)n.read=true;save();render()}}
+function markDeskRead(id){const item=deskItemById(id,ensureDesk());if(item){item.read=true;item.expanded=false;const n=state.notifications?.find(n=>n.id===item.notificationId||String(n.deskId)===String(item.id));if(n)n.read=true;save();render()}}
 function markAllDeskRead(){const d=ensureDesk();d.items.forEach(x=>{x.read=true;x.expanded=false});(state.notifications||[]).forEach(n=>n.read=true);state.activeNotificationId=null;save();render()}
 function archiveReadDeskItems(){const d=ensureDesk(),keep=[],move=[];d.items.forEach(x=>{if(x.read&&x.resolved)move.push(x);else keep.push(x)});d.items=keep;move.forEach(x=>{x.archived=true;d.archive.unshift(x)});d.archive=d.archive.slice(0,120);save();render()}
-function toggleDeskItem(id){const item=ensureDesk().items.find(x=>x.id===id);if(item){item.read=true;item.expanded=!item.expanded;save();render()}}
-function archiveDeskItem(id){const d=ensureDesk(),i=d.items.findIndex(x=>x.id===id);if(i<0)return;const [item]=d.items.splice(i,1);item.archived=true;d.archive.unshift(item);save();render()}
+function toggleDeskItem(id){const item=deskItemById(id,ensureDesk());if(item){item.read=true;item.expanded=!item.expanded;save();render()}}
+function archiveDeskItem(id){const d=ensureDesk(),key=String(id),i=d.items.findIndex(x=>String(x.id)===key);if(i<0)return;const [item]=d.items.splice(i,1);item.archived=true;d.archive.unshift(item);save();render()}
 function openDeskItemTarget(id){
- const item=ensureDesk().items.find(x=>x.id===id);if(!item)return;item.read=true;item.expanded=false;
+ const item=deskItemById(id,ensureDesk());if(!item)return;item.read=true;item.expanded=false;
  const t=item.destination||inferNotificationDestination(item.notificationKey||'',item.filmId,item.type,null);
  state.screen=t?.screen||'studio';state.detail=t?.detail||null;if(t?.studioTab)state.uiStudioTab=t.studioTab;if(t?.legacyTab)state.uiLegacyTab=t.legacyTab;requestScrollTop();save();render();
 }
@@ -9232,15 +9256,15 @@ function bind(){
  document.querySelectorAll('[data-studio-tab]').forEach(b=>b.onclick=()=>{state.uiStudioTab=b.dataset.studioTab;save();render()});
  document.querySelectorAll('[data-legacy-tab]').forEach(b=>b.onclick=()=>{state.uiLegacyTab=b.dataset.legacyTab;save();render()});
  document.querySelectorAll('[data-open-legacy]').forEach(b=>b.onclick=()=>{state.uiStudioTab='legacy';state.uiLegacyTab=b.dataset.openLegacy||'overview';save();render()});
- document.querySelectorAll('[data-desk-choice]').forEach(b=>b.onclick=()=>resolveDeskChoice(+b.dataset.deskId,b.dataset.deskChoice));
- document.querySelectorAll('[data-desk-read]').forEach(b=>b.onclick=()=>markDeskRead(+b.dataset.deskRead));
- document.querySelectorAll('[data-desk-toggle]').forEach(b=>b.onclick=()=>toggleDeskItem(+b.dataset.deskToggle));
- document.querySelectorAll('[data-desk-archive]').forEach(b=>b.onclick=()=>archiveDeskItem(+b.dataset.deskArchive));
+ document.querySelectorAll('[data-desk-choice]').forEach(b=>b.onclick=()=>resolveDeskChoice(b.dataset.deskId,b.dataset.deskChoice));
+ document.querySelectorAll('[data-desk-read]').forEach(b=>b.onclick=()=>markDeskRead(b.dataset.deskRead));
+ document.querySelectorAll('[data-desk-toggle]').forEach(b=>b.onclick=()=>toggleDeskItem(b.dataset.deskToggle));
+ document.querySelectorAll('[data-desk-archive]').forEach(b=>b.onclick=()=>archiveDeskItem(b.dataset.deskArchive));
  const deskMarkAllRead=document.getElementById('deskMarkAllRead');if(deskMarkAllRead)deskMarkAllRead.onclick=markAllDeskRead;
  const deskMarkAllRead2=document.getElementById('deskMarkAllRead2');if(deskMarkAllRead2)deskMarkAllRead2.onclick=markAllDeskRead;
  const deskArchiveRead=document.getElementById('deskArchiveRead');if(deskArchiveRead)deskArchiveRead.onclick=archiveReadDeskItems;
  const deskArchiveRead2=document.getElementById('deskArchiveRead2');if(deskArchiveRead2)deskArchiveRead2.onclick=archiveReadDeskItems;
- document.querySelectorAll('[data-desk-open]').forEach(b=>b.onclick=()=>openDeskItemTarget(+b.dataset.deskOpen));
+ document.querySelectorAll('[data-desk-open]').forEach(b=>b.onclick=()=>openDeskItemTarget(b.dataset.deskOpen));
  document.querySelectorAll('[data-studio-upgrade]').forEach(b=>b.onclick=()=>buyStudioUpgrade(b.dataset.studioUpgrade));
  document.querySelectorAll('[data-slate-tab]').forEach(b=>b.onclick=()=>{state.uiSlateTab=b.dataset.slateTab;save();render()});
  document.querySelectorAll('[data-release-tab]').forEach(b=>b.onclick=()=>{state.uiReleaseTab=b.dataset.releaseTab;save();render()});
@@ -9483,6 +9507,11 @@ function projectSlateSmokeChecks(){
   if(unique<28)failures.push('title diversity regression');
   if(quantified>1)failures.push('repetitive quantifier titles');
  }catch(e){failures.push('title generator smoke failed')}
+ try{
+  const probe={desk:{items:[{id:1},{id:1},{id:null}],archive:[{id:'2'}],nextId:1},notifications:[]};normalizeDeskIds(probe);
+  const ids=[...probe.desk.items,...probe.desk.archive].map(x=>x.id);
+  if(new Set(ids).size!==ids.length||ids.some(x=>!Number.isInteger(x)||x<1)||probe.desk.nextId<=Math.max(...ids))failures.push('desk id repair regression');
+ }catch(e){failures.push('desk id smoke failed')}
  return {ok:failures.length===0,version:VERSION,failures};
 }
 function projectSlateBootFailure(check,error){
