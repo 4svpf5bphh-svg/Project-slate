@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.9.6.5</title>
+<title>Project Slate — Premium Presentation v3.9.6.6</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -624,7 +624,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.9.6.5';
+const VERSION='3.9.6.6';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3235,6 +3235,11 @@ function openNotificationTarget(n){
  }else{if(t.studioTab)state.uiStudioTab=t.studioTab;if(t.legacyTab)state.uiLegacyTab=t.legacyTab}
  if(t.deskId){const item=state.desk?.items?.find(x=>x.id===t.deskId);if(item)item.expanded=true}
  save();render();
+}
+function notificationOverlay(){
+ // Studio Desk is the persistent inbox. Signature moments and hard checkpoints
+ // render through their own routes; this hook remains for renderer compatibility.
+ return '';
 }
 function toggleProjectHold(f){
  if(!f||f.stage!=='development')return;
