@@ -46,25 +46,20 @@ one("function postOptionLimit(){return 4+studioUpgradeLevel('post')}",
 one("function soundtrackShortlistSize(){return 5+studioUpgradeLevel('post')}",
     "function soundtrackShortlistSize(){return [5,6,8][Math.min(2,studioUpgradeLevel('post'))]}\nfunction totalStudioUpgradeLevels(){const u=ensureStudioGrowth().upgrades;return Object.keys(STUDIO_UPGRADES).reduce((n,k)=>n+(u[k]||0),0)}","soundtrack and upgrade total")
 
-old_label="""function studioUpgradeBenefitLabel(k){
- if(k==='production')return ${playerProductionCapacity()} production slots`;
- if(k==='casting')return ${auditionSlotLimit()} audition slots`;
- if(k==='publicity')return ${Math.round(awardsCampaignDiscount()*100)}% awards saving`;
- if(k==='development')return ${screenplayMarketCapacity()} live market scripts`;
- if(k==='post')return ${postOptionLimit()} edit options · ${soundtrackShortlistSize()} songs`;
- return 'Department capability';
-}"""
-new_label="""function studioUpgradeBenefitLabel(k){
- if(k==='production')return ${playerProductionCapacity()} production slots`;
- if(k==='casting')return ${auditionSlotLimit()} audition slots · ${Math.round((1-scoutingPrecisionMultiplier())*100)}% clearer scouting`;
- if(k==='publicity')return ${Math.round(awardsCampaignDiscount()*100)}% awards saving · +${publicityExecutionBonus()} execution`;
- if(k==='development')return ${screenplayMarketCapacity()} live scripts · +${firstLookDepartmentWeeks()} First Look weeks`;
- if(k==='post')return ${postOptionLimit()} edit options · ${soundtrackShortlistSize()} songs`;
- return 'Department capability';
-}"""
-old_label=old_label.replace("${","${")
-new_label=new_label.replace("${","${")
-one(old_label,new_label,"upgrade benefit labels")
+label_start=s.index("function studioUpgradeBenefitLabel(k){")
+label_end=s.index("function studioUpgradeNewsBenefit",label_start)
+bt=chr(96)
+new_label=(
+ "function studioUpgradeBenefitLabel(k){\n"
+ " if(k==='production')return "+bt+"${playerProductionCapacity()} production slots"+bt+";\n"
+ " if(k==='casting')return "+bt+"${auditionSlotLimit()} audition slots · ${Math.round((1-scoutingPrecisionMultiplier())*100)}% clearer scouting"+bt+";\n"
+ " if(k==='publicity')return "+bt+"${Math.round(awardsCampaignDiscount()*100)}% awards saving · +${publicityExecutionBonus()} execution"+bt+";\n"
+ " if(k==='development')return "+bt+"${screenplayMarketCapacity()} live scripts · +${firstLookDepartmentWeeks()} First Look weeks"+bt+";\n"
+ " if(k==='post')return "+bt+"${postOptionLimit()} edit options · ${soundtrackShortlistSize()} songs"+bt+";\n"
+ " return 'Department capability';\n"
+ "}\n"
+)
+s=s[:label_start]+new_label+s[label_end:]
 
 # Recognition is fast early, but harder to convert into elite studio standing.
 marker="function registerStudioFilmImpact(f,profit)"
