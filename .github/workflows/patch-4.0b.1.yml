@@ -1,0 +1,48 @@
+name: one-shot v4.0b.1 career progression
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply v4.0b.1 progression patch
+        run: python .github/patches/patch_4_0b_1.py
+
+      - name: JavaScript syntax check
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("index.html").read_text(encoding="utf-8")
+          start=s.index("<script>")+len("<script>")
+          end=s.rindex("</script>")
+          Path("/tmp/project-slate.js").write_text(s[start:end],encoding="utf-8")
+          PY
+          node --check /tmp/project-slate.js
+
+      - name: Progression smoke checks
+        run: |
+          grep -q "const VERSION='4.0b.1';" index.html
+          grep -q "playerRecognitionGainMultiplier" index.html
+          grep -q "legendArchiveGate" index.html
+          grep -q "thirty_five_films" index.html
+          grep -q "all_upgrades" index.html
+          grep -q "return \[3,4,6\]" index.html
+          grep -q "return \[0,.25,.45\]" index.html
+          grep -q "return \[9,10,12\]" index.html
+          git diff --check
+
+      - name: Commit update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "v4.0b.1 rebalance career progression"
+          git push
