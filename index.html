@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0a.5</title>
+<title>Project Slate — Premium Presentation v4.0a.6</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0a.5';
+const VERSION='4.0a.6';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -2982,7 +2982,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0a.5-legacy-catalogue-turnaround',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0a.6-ai-finance-normalization',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -2997,7 +2997,7 @@ function simulationAuditBody(){
  const rivalRows=x.rivals.map(r=>`<div class="listrow"><span><strong>${r.name}</strong><br><small>${r.status} · ${r.completed} completed</small></span><strong>${money(r.cash)} cash · ${money(r.debt)} debt · ${r.pnl>=0?'+':''}${money(r.pnl)} P&L</strong></div>`).join('');
  const releaseTotal=Object.values(rel).reduce((n,v)=>n+v,0);
  return `<div class="card"><div class="row"><div><div class="badge">INTERNAL DIAGNOSTICS</div><h2 style="margin:7px 0 3px">Simulation Audit · v4.0a</h2><div class="small">The live career is observed without changing outcomes. The benchmark lab below uses a temporary isolated state and restores this career afterwards.</div></div><span class="pill">${a.weekly.length} weekly samples</span></div><div class="row" style="margin-top:12px;gap:8px"><button id="captureSimulationAudit" class="btn">Capture now</button><button id="exportSimulationAudit" class="btn primary">Export JSON</button></div></div>
- <div class="section-title"><h2>Benchmark lab</h2><span class="small">Real engine · 3 seeds × 5 years · AI industry only</span></div><div class="card"><div class="body">Runs the actual weekly AI finance, production, release and box-office engine in an isolated temporary career. Your current save is restored when the benchmark finishes.</div><button id="runSimulationBenchmark" class="btn primary block" style="margin-top:10px">Run 3 × 5-year benchmark</button>${bench?`<div class="hr"></div><div class="listrow"><span>Completed rival films</span><strong>${bench.films}</strong></div><div class="listrow"><span>Average film P&L</span><strong class="${bench.avgProfit>=0?'goodtext':'badtext'}">${bench.avgProfit>=0?'+':''}${money(bench.avgProfit||0)}</strong></div><div class="listrow"><span>Profitable films</span><strong>${Math.round((bench.profitableRate||0)*100)}%</strong></div><div class="listrow"><span>Standard outcomes</span><strong>${Math.round((bench.standardRate||0)*100)}%</strong></div><div class="listrow"><span>Average distressed rivals at Year 5</span><strong>${bench.avgDistressedAtEnd}</strong></div><div class="listrow"><span>Average 5-year rival catalogue receipts</span><strong>${money(bench.avgCatalogueRevenue||0)}</strong></div><div class="listrow"><span>Legacy catalogue share</span><strong>${money(bench.avgLegacyCatalogueRevenue||0)}</strong></div><div class="listrow"><span>Average 5-year rival overhead</span><strong>${money(bench.avgOverhead||0)}</strong></div><div class="listrow"><span>Turnaround / standard benchmark deals</span><strong>${bench.screenplays?.turnaround?.deals||0} / ${bench.screenplays?.standard?.deals||0}</strong></div>`:`<div class="small" style="margin-top:9px">No benchmark has been run on this build yet.</div>`}</div>
+ <div class="section-title"><h2>Benchmark lab</h2><span class="small">Real engine · 3 seeds × 5 years · AI industry only</span></div><div class="card"><div class="body">Runs the actual weekly AI finance, production, release and box-office engine in an isolated temporary career. Your current save is restored when the benchmark finishes.</div><button id="runSimulationBenchmark" class="btn primary block" style="margin-top:10px">Run 3 × 5-year benchmark</button>${bench?`<div class="hr"></div><div class="listrow"><span>Completed rival films</span><strong>${bench.films}</strong></div><div class="listrow"><span>Average film P&L</span><strong class="${bench.avgProfit>=0?'goodtext':'badtext'}">${bench.avgProfit>=0?'+':''}${money(bench.avgProfit||0)}</strong></div><div class="listrow"><span>Profitable films</span><strong>${Math.round((bench.profitableRate||0)*100)}%</strong></div><div class="listrow"><span>Standard outcomes</span><strong>${Math.round((bench.standardRate||0)*100)}%</strong></div><div class="listrow"><span>Average distressed rivals at Year 5</span><strong>${bench.avgDistressedAtEnd}</strong></div><div class="listrow"><span>Average 5-year rival catalogue receipts</span><strong>${money(bench.avgCatalogueRevenue||0)}</strong></div><div class="listrow"><span>Legacy catalogue share</span><strong>${money(bench.avgLegacyCatalogueRevenue||0)}</strong></div><div class="listrow"><span>Average 5-year rival overhead</span><strong>${money(bench.avgOverhead||0)}</strong></div><div class="listrow"><span>Average 5-year rival interest</span><strong>${money(bench.avgInterest||0)}</strong></div><div class="listrow"><span>Turnaround / standard benchmark deals</span><strong>${bench.screenplays?.turnaround?.deals||0} / ${bench.screenplays?.standard?.deals||0}</strong></div>`:`<div class="small" style="margin-top:9px">No benchmark has been run on this build yet.</div>`}</div>
  <div class="section-title"><h2>Player economy</h2><span class="small">Career health, not a score</span></div><div class="grid cols4"><div class="card"><div class="badge">Cash</div><div class="kpi">${money(p.cash)}</div></div><div class="card ${p.debt>=80?'dangerline':''}"><div class="badge">Bridge debt</div><div class="kpi">${money(p.debt)}</div></div><div class="card"><div class="badge">Film P&L</div><div class="kpi ${p.profit>=0?'goodtext':'badtext'}">${p.profit>=0?'+':''}${money(p.profit)}</div></div><div class="card"><div class="badge">Runway</div><div class="kpi" style="font-size:18px">${p.runwayWeeks===null?'Self-funding':p.runwayWeeks+' wks'}</div></div></div>
  <div class="card"><div class="listrow"><span>Completed / active films</span><strong>${p.completed} / ${p.active}</strong></div><div class="listrow"><span>Lifetime film gross</span><strong>${money(p.gross)}</strong></div><div class="listrow"><span>Average production budget</span><strong>${money(p.avgBudget)}</strong></div><div class="listrow"><span>Average marketing</span><strong>${money(p.avgMarketing)}</strong></div><div class="listrow"><span>Weekly overhead / catalogue</span><strong>${moneyFine(p.overhead)} / ${moneyFine(p.catalogue)}</strong></div><div class="listrow"><span>Profitable / loss-making films</span><strong>${p.profitable} / ${p.losses}</strong></div></div>
  <div class="section-title"><h2>Rival economy</h2><span class="small">${ai.completed} completed AI films · average ${ai.avgProfit>=0?'+':''}${money(ai.avgProfit||0)} P&L</span></div><div class="grid cols4"><div class="card"><div class="badge">AI profitable rate</div><div class="kpi">${Math.round((ai.profitableRate||0)*100)}%</div></div><div class="card"><div class="badge">Avg investment</div><div class="kpi" style="font-size:18px">${money(ai.avgInvestment||0)}</div></div><div class="card"><div class="badge">Avg gross</div><div class="kpi" style="font-size:18px">${money(ai.avgGross||0)}</div></div><div class="card"><div class="badge">Legacy finish films</div><div class="kpi">${ai.legacyFinishFilms||0}</div></div></div><div class="card">${rivalRows||'<div class="body">No rival data.</div>'}</div>
@@ -3407,7 +3407,7 @@ function aiFinanceProject(rv,total,confidence){
  if(short<=0 || short>borrowingRoom)return false;
 
  const draw=Math.ceil(short*2)/2;
- rv.cash+=draw;rv.debt=(rv.debt||0)+draw*1.14;
+ rv.cash+=draw;rv.debt=(rv.debt||0)+draw*1.05;
  addNews(state,`${rv.name} arranged ${money(draw)} of project financing for a package it views as unusually strong.`,'Trade Finance');
  rv.cash-=total;
  return true;
@@ -3440,7 +3440,7 @@ function aiWeeklyFinance(){
  state.rivals.forEach(rv=>{
   rv.profile=rv.profile||aiStudioProfile(rv.style);rv.debt=rv.debt||0;
   if(rv.debt>0){
-   const interest=rv.debt*.009;
+   const interest=rv.debt*.0025; // v4.0a.6: ordinary rival financing, ~13.9% effective annual rather than emergency-bridge economics
    rv.debt+=interest;rv.totalInterest=(rv.totalInterest||0)+interest;
   }
 
@@ -3456,15 +3456,15 @@ function aiWeeklyFinance(){
    const room=Math.max(0,(rv.profile.maxDebt||20)-(rv.debt||0));
    const draw=Math.min(room,Math.ceil(needed*2)/2);
    if(draw>0){
-    rv.cash+=draw;rv.debt+=draw*1.12;
+    rv.cash+=draw;rv.debt+=draw*1.06;
     if(draw>=2)addNews(state,`${rv.name} increased its working-capital facility while waiting for upcoming releases.`,'Trade Finance');
    }
   }
 
   // Repay debt automatically when a studio has a genuinely comfortable cushion.
   const t=aiTreasurySnapshot(rv);
-  if(rv.debt>0 && rv.cash>t.reserve+12){
-   const repay=Math.min(rv.debt,(rv.cash-(t.reserve+10))*.20);
+  if(rv.debt>0 && rv.cash>t.reserve+7){
+   const repay=Math.min(rv.debt,(rv.cash-(t.reserve+6))*.35);
    if(repay>.25){rv.cash-=repay;rv.debt-=repay}
   }
 
@@ -7644,7 +7644,7 @@ function aiFinanceTurnaround(rv,total,confidence){
  const floor=Math.max(2.5,t.reserve*.20);
  if(total/Math.max(1,rv.cash)<=.70 && rv.cash-total>=floor){rv.cash-=total;return true}
  const room=Math.max(0,(rv.profile.maxDebt||20)-(rv.debt||0)),short=Math.max(0,total+floor-rv.cash);
- if(total<=10&&short>0&&short<=Math.min(status==='Stable'?8:6,room)){rv.cash+=short;rv.debt+=short*1.10;rv.cash-=total;addNews(state,`${rv.name} used a small co-financing facility to restart its production pipeline.`,'Trade Finance');return true}
+ if(total<=10&&short>0&&short<=Math.min(status==='Stable'?8:6,room)){rv.cash+=short;rv.debt+=short*1.04;rv.cash-=total;addNews(state,`${rv.name} used a small co-financing facility to restart its production pipeline.`,'Trade Finance');return true}
  return aiFinanceProject(rv,total,confidence);
 }
 function aiStartProjects(){
@@ -7820,7 +7820,7 @@ function aiFundRelease(f,rv){
  }
  if(rv.cash<total){
   const room=Math.max(0,(p.maxDebt||20)-(rv.debt||0)),short=total-rv.cash+2;
-  if(confidence>=p.borrowQuality-4&&short<=room){rv.cash+=short;rv.debt+=short*1.12}
+  if(confidence>=p.borrowQuality-4&&short<=room){rv.cash+=short;rv.debt+=short*1.05}
  }
  if(rv.cash<total){
   marketing=.6;f.marketing=marketing;plan=distributionPlan(f,rv);ops=plan.opsCost;publicity=+Math.max(.25,aiPublicityCost(f)*.55).toFixed(2);total=marketing+ops+publicity;
@@ -7849,7 +7849,7 @@ function advanceAI(){
     const overrun=+Math.max(-f.budget*.025,Math.min(f.budget*.11,f.budget*raw)).toFixed(2);
     if(overrun>0){
      if(rv.cash>=overrun)rv.cash-=overrun;
-     else{const short=overrun-rv.cash;rv.cash=0;rv.debt+=short*1.14}
+     else{const short=overrun-rv.cash;rv.cash=0;rv.debt+=short*1.07}
      f.investment+=overrun;
      if(overrun>1.2)addNews(state,`${f.studio}'s ${f.title} wrapped after an estimated ${money(overrun)} production overrun.`,'Trade Report');
     }else if(overrun<0){
@@ -7858,7 +7858,7 @@ function advanceAI(){
     f.aiOverrunFinalized=true;
    }
    if(!f.aiFinishingFunded){
-    const finishCost=aiFinishingCost(f);if(rv.cash>=finishCost)rv.cash-=finishCost;else{const short=finishCost-rv.cash;rv.cash=0;rv.debt+=short*1.10}f.investment+=finishCost;f.aiFinishingCost=finishCost;f.aiFinishModel='parity-v4003';f.aiFinishingFunded=true;
+    const finishCost=aiFinishingCost(f);if(rv.cash>=finishCost)rv.cash-=finishCost;else{const short=finishCost-rv.cash;rv.cash=0;rv.debt+=short*1.05}f.investment+=finishCost;f.aiFinishingCost=finishCost;f.aiFinishModel='parity-v4003';f.aiFinishingFunded=true;
    }
    if(f.metrics){
     const swing=(r()-.5)*12;f.metrics.direction=clamp(f.metrics.direction+swing*.35,20,98);f.metrics.performances=clamp(f.metrics.performances+swing*.45,20,98);f.metrics.technical=clamp(f.metrics.technical+swing*.30,20,98);
@@ -7913,10 +7913,10 @@ function finishAIFilm(f){
   rv.commercialHistory.unshift({filmId:f.id,week:state.week,profit:f.estimatedProfit,gross:f.finalGross});
   if(rv.debt>0){
    const t=aiTreasurySnapshot(rv);
-   if(rv.cash>t.reserve+10){
-    const repay=Math.min(rv.debt,Math.max(0,(rv.cash-(t.reserve+8))*.18));
-    rv.cash-=repay;rv.debt-=repay;
-   }
+   if(rv.cash>t.reserve+6){
+     const repay=Math.min(rv.debt,Math.max(0,(rv.cash-(t.reserve+5))*.40));
+     rv.cash-=repay;rv.debt-=repay;
+    }
   }
  }
  ensureIPAsset(f);ensureAfterlifeState(f);registerAudienceOutcome(f,f.estimatedProfit);registerStudioFilmImpact(f,f.estimatedProfit);maybeGenerateAISequel(f,rv);
@@ -10954,6 +10954,8 @@ function projectSlateSmokeChecks(){
   if(!releaseAIFilm.toString().includes('releaseWindowOpeningModifier'))failures.push('AI release-window parity missing');
   if(!aiWeeklyFinance.toString().includes('aiCatalogueWeeklyRevenue'))failures.push('AI catalogue parity missing');
   if(!aiCatalogueWeeklyRevenue.toString().includes('aiLegacyCatalogueWeeklyRevenue'))failures.push('AI legacy catalogue seed missing');
+  if(!aiWeeklyFinance.toString().includes('rv.debt*.0025'))failures.push('AI finance-rate normalization missing');
+  if(typeof aiFinanceProject!=='function'||!aiFinanceProject.toString().includes('draw*1.05'))failures.push('AI project-finance premium normalization missing');
   if(!releaseOutcomeProfile.toString().includes('frontloadChance'))failures.push('release profile variance pass missing');
  }catch(e){failures.push('v4.0a simulation audit smoke failed'+(e?.message?': '+e.message:''))}
  try{
