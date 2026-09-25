@@ -1,0 +1,60 @@
+name: one-shot finance diagnostics
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Print AI finance functions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path("index.html").read_text(encoding="utf-8")
+
+          def extract(name):
+              token=f"function {name}("
+              i=s.find(token)
+              if i<0:
+                  print(f"=== {name}: NOT FOUND ===")
+                  return
+              brace=s.find("{",i)
+              depth=0
+              quote=None
+              esc=False
+              j=brace
+              while j<len(s):
+                  c=s[j]
+                  if quote:
+                      if esc: esc=False
+                      elif c=="\\": esc=True
+                      elif c==quote: quote=None
+                  else:
+                      if c in ("'", '"', "`"): quote=c
+                      elif c=="{": depth+=1
+                      elif c=="}":
+                          depth-=1
+                          if depth==0:
+                              j+=1
+                              break
+                  j+=1
+              print(f"\n=== {name} ===\n"+s[i:j]+"\n")
+
+          for name in [
+              "aiStudioOverhead","aiWeeklyFinance","aiFinancialHealth",
+              "aiFundRelease","aiStartProjects","advanceAI","releaseAIFilm"
+          ]:
+              extract(name)
+
+          print("\n=== debt/interest contexts ===")
+          for m in re.finditer(r"(rv\.debt|totalInterest|restructures)",s):
+              a=max(0,s.rfind("\n",0,max(0,m.start()-700)))
+              b=s.find("\n",min(len(s),m.start()+1000))
+              print("\n---\n"+s[a:b])
+          PY
