@@ -42,3 +42,5 @@ jobs:
           git add index.html
           git commit -m "v4.0a.5 boot hotfix"
           git push
+
+# trigger after workflow exists
