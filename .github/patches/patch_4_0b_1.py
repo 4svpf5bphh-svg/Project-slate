@@ -131,13 +131,11 @@ ms=s.index("const STUDIO_MILESTONES=[")
 me=s.index("\n];",ms)
 extra="""
  // v4.0b.1 — LONG CAREER & INFRASTRUCTURE
- {id:'thirty_five_films',category:'Studio',title:'Catalogue Company',desc:'Release thirty-five films.',points:25,target:35,value:()=>completedPlayerFilms().length,format:v=>Math.min(v,35)+'/35 releases'},
+ ,{id:'thirty_five_films',category:'Studio',title:'Catalogue Company',desc:'Release thirty-five films.',points:25,target:35,value:()=>completedPlayerFilms().length,format:v=>Math.min(v,35)+'/35 releases'},
  {id:'fifty_films',category:'Studio',title:'Studio Era',desc:'Release fifty films.',points:40,target:50,value:()=>completedPlayerFilms().length,format:v=>Math.min(v,50)+'/50 releases'},
  {id:'twenty_five_profitable',category:'Studio',title:'Repeatable Business',desc:'Produce twenty-five profitable releases.',points:30,target:25,value:()=>profitablePlayerFilms(),format:v=>Math.min(v,25)+'/25 profitable releases'},
  {id:'lifetime_5b',category:'Box Office',title:'Five-Billion Library',desc:'Reach $5bn in lifetime worldwide box office.',points:35,target:5000,value:()=>lifetimePlayerGross(),format:v=>money(Math.min(v,5000))+' / $5.0bn'},
  {id:'lifetime_10b',category:'Box Office',title:'Global Institution',desc:'Reach $10bn in lifetime worldwide box office.',points:50,target:10000,value:()=>lifetimePlayerGross(),format:v=>money(Math.min(v,10000))+' / $10.0bn'},
- {id:'year_five',category:'Legacy',title:'Five Years on the Lot',desc:'Reach the studio’s fifth operating year.',points:15,target:5,value:()=>Math.ceil(state.week/52),format:v=>Math.min(v,5)+'/5 years'},
- {id:'year_ten',category:'Legacy',title:'A Decade of Pictures',desc:'Reach the studio’s tenth operating year.',points:35,target:10,value:()=>Math.ceil(state.week/52),format:v=>Math.min(v,10)+'/10 years'},
  {id:'first_upgrade',category:'Studio',title:'Build the Company',desc:'Open the studio’s first permanent department upgrade.',points:5,target:1,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,1)+'/1 department level'},
  {id:'five_upgrades',category:'Studio',title:'Working Studio',desc:'Own five permanent department levels across the lot.',points:20,target:5,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,5)+'/5 department levels'},
  {id:'all_upgrades',category:'Studio',title:'Full-Service Studio',desc:'Fully build every permanent studio department.',points:40,target:10,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,10)+'/10 department levels'},
