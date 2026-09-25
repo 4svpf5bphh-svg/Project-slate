@@ -105,3 +105,5 @@ function aiCatalogueWeeklyRevenue(rv){
           git add index.html .github/workflows/patch-4.0a.5.yml
           git commit -m "v4.0a.5 legacy catalogue and turnaround rebalance"
           git push
+
+# trigger after workflow exists on main
