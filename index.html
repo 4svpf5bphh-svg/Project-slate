@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.12.0</title>
+<title>Project Slate — Premium Presentation v3.12.1</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -625,7 +625,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.12.0';
+const VERSION='3.12.1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -2802,7 +2802,7 @@ function queueStudioMoment(f,type,data={}){
   const after=ensureFilmSocial(f),socialStats=[];
   if(after.volume!==before.volume)socialStats.push(['Social conversation',`${after.volume} (${after.volume-before.volume>=0?'+':''}${after.volume-before.volume})`]);
   if(after.sentiment!==before.sentiment)socialStats.push(['Social sentiment',`${after.sentiment} (${after.sentiment-before.sentiment>=0?'+':''}${after.sentiment-before.sentiment})`]);
-  data={...data,stats:[...(data.stats||[]),...socialStats.slice(0,2)]};campaignMomentDeskEntry(f,type,{...data,day});
+  data={...data,stats:[...(data.stats||[]),...socialStats.slice(0,2)]};
  }
  q.push({id,filmId:f?.id||null,type,week:state.week,day,...data});
 }
@@ -3126,7 +3126,7 @@ function launchLateGameChallenger(){
 function maybeLaunchLateGameChallenger(){return launchLateGameChallenger()}
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=395;
+const SAVE_SCHEMA_VERSION=396;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -3310,6 +3310,17 @@ function applySaveSchemaMigrations(x,fromVersion){
   x.industryMood=x.industryMood||{history:[],lastQuarter:0};x.industryMood.history=x.industryMood.history||[];
   x.pressMemory=x.pressMemory||{};Object.values(x.pressMemory).forEach(m=>{if(m.rapport===undefined)m.rapport=0;if(m.interactions===undefined)m.interactions=0;if(m.lastInteractionWeek===undefined)m.lastInteractionWeek=0;m.choiceHistory=m.choiceHistory||[];m.kinds=m.kinds||{}});
   schema=395;
+ }
+
+
+ if(schema<396){
+  if(x.desk){
+   const redundant=i=>String(i?.templateId||'').startsWith('campaign-')||String(i?.notificationKey||'').startsWith('rights-offer:')||String(i?.notificationKey||'').startsWith('release:')||String(i?.notificationKey||'').startsWith('mkt:');
+   x.desk.items=(x.desk.items||[]).filter(i=>!redundant(i));
+   x.desk.archive=(x.desk.archive||[]).filter(i=>!redundant(i));
+  }
+  (x.films||[]).forEach(f=>{if(f.marketingState?.deskMomentKeys)f.marketingState.deskMomentKeys=[]});
+  schema=396;
  }
 
  x.saveSchema=schema;
@@ -3529,6 +3540,8 @@ function notificationDeskSource(type,key=''){
 }
 function mirrorNotificationToDesk(n){
  if(!state.studio||n.destination?.deskId)return null;
+ // Signature campaign/release moments already surface full-screen; do not mirror them as resolved Desk clutter.
+ if(/^(mkt:|release:)/.test(n.key||''))return null;
  const d=ensureDeskStateLite(),existing=d.items.find(i=>i.notificationKey===n.key);if(existing){n.deskId=existing.id;return existing}
  const hard=/^(prod:|post:|marketing:)/.test(n.key||'');
  const item={id:d.nextId++,week:n.week,day:n.day,read:false,expanded:hard,resolved:!hard,archived:false,urgency:n.type==='warning'?'urgent':'normal',type:'system',source:notificationDeskSource(n.type,n.key),choices:[],requiresAction:hard,headline:n.title,body:n.body,filmId:n.filmId||null,notificationKey:n.key,destination:n.destination||null,system:true};
@@ -3898,7 +3911,7 @@ function assignLeadRole(f,roleId,tid){
  const decline=talentDeclineForRole(f,tid,role.id);if(decline?.mode==='role')return showToast(`${t.name} has already passed on ${role.name}.`);
  const interest=talentProjectInterest(t,f,role,'select');
  if(!interest.accept){markTalentDecline(f,t,role.id,interest.reason,'role');save();render();return false}
- const previous=f.roleAssignments[role.id];if(previous&&previous!==tid)clearTalentContract(f,previous);
+ const previous=f.roleAssignments[role.id];if(previous&&previous!==tid&&f.invitationAttachedTalentId===previous)return showToast(`${talentById(previous)?.name||'The attached performer'} is part of the package and cannot be replaced through normal casting.`);if(previous&&previous!==tid)clearTalentContract(f,previous);
  f.roleAssignments[role.id]=tid;syncRoleAssignments(f);
  const nextLead=ensureFilmRoles(f).find(r=>r.type==='lead'&&r.id!==role.id&&!f.roleAssignments[r.id]);
  f.castingTargetRole=nextLead?.id||role.id;
@@ -4304,8 +4317,13 @@ function tickIPWorld(){
    const offer=currentRightsOffer(rootFilm),period=Math.floor(state.week/6);
    if(offer&&rootIp.lastRightsOfferPeriod!==period){
     rootIp.lastRightsOfferPeriod=period;
-    notify(`rights-offer:${root}:${period}`,`${offer.rv.name} has approached for ${rootIp.franchiseName}`,`${offer.rv.name} is offering about ${money(offer.offer)} for future screen rights.`,rootFilm.id,false,'info');
-    addNews(state,`${offer.rv.name} has made an approach for future screen rights to ${rootIp.franchiseName}, valuing the property at about ${money(offer.offer)}.`,'Rights');
+    pushDeskItem({
+     templateId:'rights-offer',family:'rights-offer',type:'finance',source:offer.rv.name,urgency:'action',
+     requiresAction:true,expiresWeek:state.week+4,filmId:rootFilm.id,buyerId:offer.rv.id,amount:offer.offer,
+     subject:rootIp.franchiseName,headline:`${offer.rv.name} offers ${money(offer.offer)} for ${rootIp.franchiseName}`,
+     body:`${offer.rv.name} is offering ${money(offer.offer)} for all future screen rights to the ${rootIp.franchiseName} property. You keep every film already made and all existing catalogue income. The buyer receives future sequel, revival, reboot and spin-off rights across the franchise.`,
+     choices:[['review','Review the offer'],['decline','Decline']]
+    });
    }
   }
   if(state.week%13===0&&status.gap>=104&&status.historicalStrength>=58&&r()<.11){
@@ -5760,7 +5778,13 @@ function createPlayerFilmFromOwnedScript(s){
   const d=talentById(s.invitationDirectorId);if(d&&!d.retired){f.directorId=d.id;f.history.push(`Week ${state.week}: ${d.name} entered development attached from the original industry invitation.`)}
  }
  if(s.invitationActorId&&state.week<=(s.invitationAttachUntil||0)){
-  const a=talentById(s.invitationActorId);if(a&&!a.retired&&typeof openAgencyWindow==='function')openAgencyWindow(a,f);
+  const a=talentById(s.invitationActorId);
+  if(a&&!a.retired){
+   ensureFilmRoles(f);f.roleAssignments.lead1=a.id;syncRoleAssignments(f);
+   f.invitationAttachedTalentId=a.id;f.invitationAttachmentSource='Industry package';
+   f.history.push(`Week ${state.week}: ${a.name} entered development attached to the package as a principal lead.`);
+   if(typeof openAgencyWindow==='function')openAgencyWindow(a,f);
+  }
  }
  addNews(state,`${state.studio.name} moved ${s.title} into film development.`,'Your Studio');
  state.screen='slate';state.detail={type:'film',id:f.id};state.history=[];save();render();
@@ -5776,6 +5800,7 @@ function attachDirector(f,tid){
 function toggleCast(f,tid){
  ensurePackagingState(f);ensureFilmRoles(f);const y=typeof window!=='undefined'?(window.scrollY||0):0,role=castingTargetRole(f);
  const current=f.roleAssignments?.[role.id]||null;
+ if(current===tid&&f.invitationAttachedTalentId===tid)return showToast(`${talentById(tid)?.name||'This performer'} is attached to the package and cannot be removed through normal casting.`);
  if(current===tid){delete f.roleAssignments[role.id];clearTalentContract(f,tid);syncRoleAssignments(f)}
  else assignLeadRole(f,role.id,tid);
  save();render();if(typeof window!=='undefined')setTimeout(()=>window.scrollTo(0,y),0);
@@ -7675,7 +7700,7 @@ function resolveIndustryInvitation(item,key){
  if(key==='commit'){
   const s=makeInvitationScript(spec,true);if(!s)return `The studio could not cover the ${money(spec?.commitment||0)} development commitment, so the opportunity moves on.`;
   if(t)adjustTalentRelationship(t,5,'Studio backed industry invitation');box.accepted=(box.accepted||0)+1;box.history.unshift({week:state.week,kind:spec.kind,talentId:t?.id,title:s.title,status:'accepted',scriptId:s.id});
-  return `${state.studio.name} has taken ${s.title} directly into its owned development slate for ${money(spec.commitment)}.${spec.kind==='passion'?` ${t?.name||'The filmmaker'} remains the intended director for ten weeks.`:` ${t?.name||'The performer'}'s agency will give the project a priority casting conversation once you move it into film development.`}`;
+  return `${state.studio.name} has taken ${s.title} directly into its owned development slate for ${money(spec.commitment)}.${spec.kind==='passion'?` ${t?.name||'The filmmaker'} remains the intended director for ten weeks.`:` ${t?.name||'The performer'} is attached to the package and will enter film development in a principal lead role if the project moves forward within the attachment window. Contract terms still have to be agreed before greenlight.`}`;
  }
  return null;
 }
@@ -7710,6 +7735,20 @@ function resolveEmergingTalentChoice(item,key){
 function resolveOpportunityDeskChoice(item,key){
  if(item?.templateId==='industry-invitation')return resolveIndustryInvitation(item,key);
  if(item?.templateId==='emerging-talent')return resolveEmergingTalentChoice(item,key);
+ if(item?.templateId==='rights-offer'){
+  const f=filmById(item.filmId),buyer=rivalById(item.buyerId);
+  if(!f||!buyer)return 'The rights approach is no longer active.';
+  if(key==='decline'){
+   addNews(state,`${state.studio.name} declined ${buyer.name}'s approach for future screen rights to ${ensureIPAsset(f).franchiseName}. The property remains under studio control.`,'Rights');
+   return `The offer is declined. Existing films and all future screen rights remain with ${state.studio.name}.`;
+  }
+  if(key==='review'){
+   if(ensureIPAsset(f).sold||franchiseActiveProject(f)||buyer.cash<(item.amount||0)+3)return 'The offer can no longer be completed on the original terms.';
+   state.pendingRightsSale={filmId:f.id,buyerId:buyer.id,amount:item.amount};
+   state.screen='slate';state.detail={type:'film',id:f.id};state.history=[];requestScrollTop();
+   return `The formal terms are open on ${ensureIPAsset(f).franchiseName}. No sale has occurred yet.`;
+  }
+ }
  return null;
 }
 // v3.9.1 — Hollywood History
@@ -8174,7 +8213,7 @@ function franchiseRightsPanel(f){
  <div class="listrow"><span>Franchise fatigue</span><strong>${Math.round(market.fatigue)}</strong></div>
  <div class="listrow"><span>Current rights market</span><strong>${sold?money(ip.saleValue||0):active?`${active.title} in development`:offer?`${offer.rv.name} · ${money(offer.offer)}`:'No active buyer'}</strong></div>
  <div class="body" style="margin-top:8px">${market.text} ${opp.text}</div>
- ${pending?`<div class="card attention" style="margin-top:12px"><strong>Confirm property sale?</strong><div class="body" style="margin-top:6px">${rivalById(pending.buyerId)?.name||'Buyer'} will pay ${money(pending.amount)} for future screen rights to the property. Existing films stay in your library, but future sequels, revivals, reboots and spin-offs belong to the buyer.</div><div class="grid cols2" style="margin-top:10px"><button class="btn" id="cancelRightsSale">Keep rights</button><button class="btn primary" id="confirmRightsSale">Confirm sale · ${money(pending.amount)}</button></div></div>`:''}
+ ${pending?`<div class="card attention" style="margin-top:12px"><strong>Confirm franchise rights sale?</strong><div class="body" style="margin-top:6px">${rivalById(pending.buyerId)?.name||'Buyer'} will pay ${money(pending.amount)} for <strong>all future screen rights</strong> to ${ip.franchiseName}. You retain every film already produced and their catalogue income. The buyer receives the right to make all future sequels, revivals, reboots and spin-offs — including follow-ups to sequels you have already made.</div><div class="grid cols2" style="margin-top:10px"><button class="btn" id="cancelRightsSale">Keep franchise rights</button><button class="btn primary" id="confirmRightsSale">Sell future rights · ${money(pending.amount)}</button></div></div>`:''}
  ${options.length?`<div class="grid cols2" style="margin-top:12px">${options.join('')}</div>`:''}
  ${!sold&&!pending?`<button class="btn block" style="margin-top:10px" id="sellFutureRights" ${active||!offer?'disabled':''}>${active?'Rights tied up by active development':offer?`Review ${offer.rv.name} offer · ${money(offer.offer)}`:'No rights offer'}</button>`:''}
  ${!status.ok&&!sold?`<div class="small" style="margin-top:8px">${status.reason}</div>`:''}
@@ -8672,7 +8711,7 @@ function resolveDeskChoice(id,key){
  }
  if(typeof recordPressInteraction==='function')recordPressInteraction(item,key);
  if(typeof updateCareerThreads==='function')updateCareerThreads();
- const after=deskImpactSnapshot(item);item.impact=deskImpactSummary(before,after);addNews(state,`${state.studio.name} responded to ${item.headline.toLowerCase()}. ${item.outcome}`,'Studio Desk');save();render();
+ const after=deskImpactSnapshot(item);item.impact=deskImpactSummary(before,after);if(item.templateId!=='rights-offer')addNews(state,`${state.studio.name} responded to ${item.headline.toLowerCase()}. ${item.outcome}`,'Studio Desk');save();render();
 }
 function markDeskRead(id){const item=deskItemById(id,ensureDesk());if(item){item.read=true;item.expanded=false;const n=state.notifications?.find(n=>n.id===item.notificationId||String(n.deskId)===String(item.id));if(n)n.read=true;save();render()}}
 function markAllDeskRead(){const d=ensureDesk();d.items.forEach(x=>{x.read=true;x.expanded=false});(state.notifications||[]).forEach(n=>n.read=true);state.activeNotificationId=null;save();render()}
@@ -9402,6 +9441,7 @@ function talentProfile(id){
  ${t.careerMilestones?.length?`<div class="section-title"><h2>Career timeline</h2></div><div class="card">${t.careerMilestones.slice(0,8).map(m=>`<div class="listrow"><span>${m.label}</span><span class="small">W${m.week}</span></div>`).join('')}</div>`:''}
  ${t.isRealPerson?`<div class="section-title"><h2>Selected credits</h2></div><div class="card">${(t.realCredits||[]).map(c=>`<div class="listrow"><span>${c}</span></div>`).join('')}<div class="small" style="margin-top:8px">Private roster reference. Portrait is loaded from Wikipedia/Wikimedia when available. All game ratings and simulated outcomes are fictional.</div></div>`:''}
  <div class="section-title"><h2>Project Slate career</h2><span class="small">${recent.length} credit${recent.length===1?'':'s'} in the last 78 weeks</span></div><div class="card">${t.credits.length?t.credits.slice(0,10).map(c=>`<div class="listrow"><div><strong>${typeof c==='string'?c:c.title||'Generated credit'}</strong>${typeof c==='object'?`<div class="small">${c.role||''}${c.character?` as ${c.character}`:''} · ${money(c.gross||0)} WW · ${c.critics||0}% critics</div>`:''}</div><span class="small">${typeof c==='object'&&c.week?'W'+c.week:''}</span></div>`).join(''):`<div class="body">No credits have been generated yet in this Project Slate career.</div>`}</div>
+ <button class="btn ghost block" id="talentBackToTop" style="margin-top:14px">↑ Back to top</button>
  </main>${nav()}`;
 }
 function peopleDirectory(){
@@ -9726,6 +9766,7 @@ function bind(){
  const peopleSearch=document.getElementById('peopleSearch');if(peopleSearch)peopleSearch.oninput=()=>{state.uiPeopleSearch=peopleSearch.value;save();render()};
  const peopleFilter=document.getElementById('peopleFilter');if(peopleFilter)peopleFilter.onchange=()=>{state.uiPeopleFilter=peopleFilter.value;save();render()};
  const toggleTalentWatch=document.getElementById('toggleTalentWatch');if(toggleTalentWatch&&state.detail?.type==='talent'){const t=talentById(state.detail.id);toggleTalentWatch.onclick=()=>setTalentWatch(t.id,!watchedTalent(t))};
+ const talentBackToTop=document.getElementById('talentBackToTop');if(talentBackToTop)talentBackToTop.onclick=()=>{if(typeof window!=='undefined')window.scrollTo({top:0,behavior:'smooth'})};
  const dismissNotification=document.getElementById('dismissNotification');if(dismissNotification)dismissNotification.onclick=()=>{markNotification(state.activeNotificationId);save();render()};
  const openNotificationTargetBtn=document.getElementById('openNotificationTarget');if(openNotificationTargetBtn)openNotificationTargetBtn.onclick=()=>openNotificationTarget(state.notifications.find(x=>x.id===state.activeNotificationId));
  document.querySelectorAll('[data-notification]').forEach(b=>b.onclick=()=>openNotificationTarget(state.notifications.find(x=>x.id===b.dataset.notification)));
@@ -9866,6 +9907,7 @@ function projectSlateSmokeChecks(){
  try{if(pickerControls('Actor').includes('Project fit'))failures.push('actor fit sort leaked');if(soundtrackShortlistSize()<5)failures.push('music shortlist too small');const qs=(state.talent||[]).filter(t=>t.type==='Actor').map(t=>{ensureTalentMarketEconomy(t);return t.fee});if(qs.length&&Math.max(...qs)<7)failures.push('actor salary range compressed');if(qs.length&&Math.min(...qs)>3.2)failures.push('low-cost actor market missing')}catch(e){failures.push('casting economy smoke failed')}
  try{if(AGENCIES.length<4)failures.push('agency roster missing');const t=(state.talent||[]).find(x=>!x.retired);if(t){const x=agencyMarketLeverage(t);if(!Number.isFinite(x.pressure)||!x.label||!x.relationship)failures.push('agency leverage invalid')}}catch(e){failures.push('agency depth smoke failed')}
  try{const e=executivePersonaSnapshot(),m=industryMoodSnapshot();if(!e.primary?.label||e.signals.length<6)failures.push('executive persona invalid');if(!m.label||!m.financing||!m.talent)failures.push('industry mood invalid');if(Object.keys(PRESS_PERSONALITIES).length<5)failures.push('press personality roster incomplete')}catch(e){failures.push('v3.12 systems smoke failed')}
+ try{if(queueStudioMoment.toString().includes('campaignMomentDeskEntry(f,type'))failures.push('campaign moments still duplicated to Desk');if(!talentProfile.toString().includes('talentBackToTop'))failures.push('talent top control missing');if(!resolveOpportunityDeskChoice.toString().includes("templateId==='rights-offer'"))failures.push('actionable rights flow missing')}catch(e){failures.push('v3.12.1 polish smoke failed')}
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
   const unique=new Set(probe.scripts.map(x=>x.title.toLowerCase())).size,quantified=probe.scripts.filter(x=>/^(No One|Nobody|Someone|Everyone)\b/i.test(x.title)).length;
