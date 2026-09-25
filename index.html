@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.13.0</title>
+<title>Project Slate — Premium Presentation v3.14.0</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.13.0';
+const VERSION='3.14.0';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -1923,7 +1923,8 @@ function boxOfficeStory(st,text,f,ctx){
   `${studio}’s ${f.genre.toLowerCase()} release has reached ${money(cum)} worldwide${rank?` and currently sits at No. ${rank} domestically`:''}.`,
   [
    `${f.title} earned ${money(row.dom)} domestically and ${money(row.intl)} internationally in its latest frame. The film ${movement}${rank?`, leaving it at No. ${rank}`:''}.`,
-   `${f.review?`Critics are at ${f.review.critics}% and audiences at ${f.review.audience}%. `:''}${leader?`${leader.title} leads the domestic chart with ${money(leader.gross)} this week.`:`The film currently leads the domestic chart.`}`
+   `${f.review?`Critics are at ${f.review.critics}% and audiences at ${f.review.audience}%. `:''}${leader?`${leader.title} leads the domestic chart with ${money(leader.gross)} this week.`:`The film currently leads the domestic chart.`}`,
+   filmPressAngle(f,'boxoffice')
   ]
  );
 }
@@ -1957,7 +1958,8 @@ function productionStory(st,text,f,talent){
   `${st.studio.name}’s ${f.genre.toLowerCase()} project is in Production Week ${f.productionWeek||1}${director?` under director ${director.name}`:''}.`,
   [
    cleanSentence(text),
-   `The film is budgeted at roughly ${money(f.budget||0)} and is scheduled to wrap around Week ${f.productionEnd||'—'}. ${f.pendingEvent?'Production is waiting on a studio decision before moving forward.':'Filming remains active.'}`
+   `The film is budgeted at roughly ${money(f.budget||0)} and is scheduled to wrap around Week ${f.productionEnd||'—'}. ${f.pendingEvent?'Production is waiting on a studio decision before moving forward.':'Filming remains active.'}`,
+   filmPressAngle(f,'production')
   ]
  );
 }
@@ -2020,7 +2022,8 @@ function releaseStory(st,text,f){
   `${f.genre} title ${f.title}${releaseWeek?` is scheduled for Week ${releaseWeek}`:' has entered its public release phase'}${director?` with ${director.name} directing`:''}.`,
   [
    /first look|unveils/i.test(text)?`${studio} has released the first public look at ${f.title}${lead?`, starring ${lead.name}`:''}.${releaseWeek?` The film is currently set to open in Week ${releaseWeek}.`:''}`:`${studio} has moved ${f.title} into its public release campaign${releaseWeek?`, with the film dated for Week ${releaseWeek}`:''}.`,
-   `${director?`${director.name} directs`:''}${director&&lead?' and ':''}${lead?`${lead.name} leads the cast`:''}${director||lead?'. ':''}${f.marketing?`The current campaign budget is about ${money(f.marketing)}.`:'No further campaign details have been disclosed.'}`
+   `${director?`${director.name} directs`:''}${director&&lead?' and ':''}${lead?`${lead.name} leads the cast`:''}${director||lead?'. ':''}${f.marketing?`The current campaign budget is about ${money(f.marketing)}.`:'No further campaign details have been disclosed.'}`,
+   filmPressAngle(f,'release')
   ]
  );
 }
@@ -2042,7 +2045,8 @@ function theatricalCloseStory(st,f){
   `${studio} ends the cinema run with an estimated ${pnl>=0?'profit':'loss'} of about ${money(Math.abs(pnl))} before longer-tail catalogue activity.`,
   [
    `${f.title} has completed its theatrical run at ${money(f.finalGross||pressFilmCumulative(f))} worldwide. The release generated roughly ${money(f.studioRevenue||0)} in studio theatrical receipts against ${money(f.investment||0)} invested.`,
-   `${f.review?`The film finished with ${f.review.critics}% from critics and ${f.review.audience}% from audiences. `:''}${f.releaseProfile?.type==='bomb'?'The run never recovered from its weak opening.':f.releaseProfile?.type==='breakout'?'The result finished well above its initial tracking.':'The title now moves into catalogue and licensing exploitation.'}`
+   `${f.review?`The film finished with ${f.review.critics}% from critics and ${f.review.audience}% from audiences. `:''}${f.releaseProfile?.type==='bomb'?'The run never recovered from its weak opening.':f.releaseProfile?.type==='breakout'?'The result finished well above its initial tracking.':'The title now moves into catalogue and licensing exploitation.'}`,
+   filmPressAngle(f,'close')
   ]
  );
 }
@@ -2086,11 +2090,11 @@ function realisticPressStory(st,text,kind,r){
 }
 function buildNewsItem(st,text,kind='Industry'){
  st.ids=st.ids||{};st.ids.news=(st.ids.news||0)+1;
- const id='NEWS'+st.ids.news,r=makeRng(hash((st.seed||1)+'|news-v364|'+id+'|'+text)),story=realisticPressStory(st,text,kind,r),initialPublication=pressPublication(kind,r),byline=pressByline(kind,r),journalistId=journalistIdFromByline(byline),publication=journalistProfileById(journalistId)?.publication||initialPublication;
- return {id,pressVersion:364,week:st.week,day:Number.isFinite(st.calendarDay)?st.calendarDay:null,text,headline:story.headline,kind,publication,byline,journalistId,deck:story.deck,body:story.body};
+ const id='NEWS'+st.ids.news,r=makeRng(hash((st.seed||1)+'|news-v3140|'+id+'|'+text)),story=realisticPressStory(st,text,kind,r),initialPublication=pressPublication(kind,r),byline=pressByline(kind,r),journalistId=journalistIdFromByline(byline),publication=journalistProfileById(journalistId)?.publication||initialPublication;
+ return {id,pressVersion:3140,week:st.week,day:Number.isFinite(st.calendarDay)?st.calendarDay:null,text,headline:story.headline,kind,publication,byline,journalistId,deck:story.deck,body:story.body};
 }
 function normalizeNewsItem(st,n){
- if((n?.pressVersion===291||n?.pressVersion===364)&&n?.id&&n?.publication&&n?.body){if(!n.journalistId)n.journalistId=journalistIdFromByline(n.byline||'');return n;}
+ if((n?.pressVersion===291||n?.pressVersion===364||n?.pressVersion===3140)&&n?.id&&n?.publication&&n?.body){if(!n.journalistId)n.journalistId=journalistIdFromByline(n.byline||'');return n;}
  const x=buildNewsItem(st,n?.text||String(n||''),n?.kind||'Industry');if(n?.week!==undefined)x.week=n.week;return x;
 }
 
@@ -3195,7 +3199,7 @@ function launchLateGameChallenger(){
 function maybeLaunchLateGameChallenger(){return launchLateGameChallenger()}
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=397;
+const SAVE_SCHEMA_VERSION=398;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -3398,6 +3402,12 @@ function applySaveSchemaMigrations(x,fromVersion){
    rv.competitiveHistory=rv.competitiveHistory||[];rv.playerScriptWinsAgainstRival=rv.playerScriptWinsAgainstRival||0;rv.rivalrySinceWeek=rv.rivalrySinceWeek||null;rv.lastRivalryEventWeek=rv.lastRivalryEventWeek||0;rv.lastRivalryLabel=rv.lastRivalryLabel||'Normal competition';
   });
   schema=397;
+ }
+
+
+ if(schema<398){
+  (x.films||[]).forEach(f=>{if(!f.filmIdentity)f.filmIdentity=null});
+  schema=398;
  }
 
  x.saveSchema=schema;
@@ -4698,12 +4708,28 @@ function soundtrackTrackFit(f,t){
  if(t.tones.includes(c.tone))v+=9;
  if(c.emphasis==='spectacle'&&/kinetic|propulsive|relentless|explosive|soaring/i.test(t.mood))v+=6;
  if(c.positioning==='prestige'&&/intimate|cerebral|reflective|atmospheric|minimal/i.test(t.mood))v+=5;
- const r=makeRng(hash((state.seed||1)+'|music-fit|'+f.id+'|'+t.id));v+=(r()-.5)*8;
+ const id=ensureFilmIdentity(f),mood=String(t.mood||'');
+ if(id.archetype.includes('Performance')||id.archetype.includes('Relationship')){if(/intimate|human|romantic|reflective|warm|yearning/i.test(mood))v+=7}
+ if(id.archetype.includes('Kinetic')||id.engine==='momentum'){if(/kinetic|propulsive|charging|relentless|rebellious|explosive/i.test(mood))v+=7}
+ if(id.archetype.includes('Unsettling')||id.archetype.includes('Paranoid')){if(/haunting|unsettling|dark|foreboding|bleak|uncanny|cold/i.test(mood))v+=7}
+ if(id.archetype.includes('World-Building')||id.archetype.includes('Mythic')){if(/mythic|soaring|timeless|cinematic|euphoric/i.test(mood))v+=6}
+ if(id.archetype.includes('Comedy')||id.archetype.includes('Crowd-Pleaser')){if(/playful|bright|offbeat|camp|warm|chaotic/i.test(mood))v+=6}
+ const r=makeRng(hash((state.seed||1)+'|music-fit-v314|'+f.id+'|'+t.id));v+=(r()-.5)*10;
  return Math.round(clamp(v,28,96));
 }
+
 function soundtrackOffers(f){
- return SOUNDTRACK_TRACKS.map(t=>({track:t,fit:soundtrackTrackFit(f,t)})).sort((a,b)=>b.fit-a.fit||b.track.familiarity-a.track.familiarity).slice(0,typeof soundtrackShortlistSize==='function'?soundtrackShortlistSize():3);
+ const recent=playerFilms().filter(x=>x.id!==f.id&&x.soundtrack?.committed).sort((a,b)=>(b.soundtrack?.committedWeek||0)-(a.soundtrack?.committedWeek||0)).slice(0,5);
+ const usedTracks=new Set(recent.map(x=>x.soundtrack?.trackId).filter(Boolean)),usedArtists=new Set(recent.map(x=>x.soundtrack?.trackArtist).filter(Boolean));
+ const ranked=SOUNDTRACK_TRACKS.map(t=>{
+  let fit=soundtrackTrackFit(f,t);if(usedTracks.has(t.id))fit-=18;else if(usedArtists.has(t.artist))fit-=7;
+  return {track:t,fit:Math.round(clamp(fit,20,98)),fresh:!usedTracks.has(t.id)};
+ }).sort((a,b)=>b.fit-a.fit||b.track.familiarity-a.track.familiarity);
+ const limit=typeof soundtrackShortlistSize==='function'?soundtrackShortlistSize():5,out=[],artists=new Set();
+ for(const x of ranked){if(out.length>=limit)break;if(artists.has(x.track.artist)&&ranked.some(y=>!artists.has(y.track.artist)&&!out.includes(y)))continue;out.push(x);artists.add(x.track.artist)}
+ return out.length>=limit?out:ranked.slice(0,limit);
 }
+
 function soundtrackStrategyInfo(f,strategy,trackId=null){
  const track=soundtrackTrack(trackId),originalFit=soundtrackOriginalFit(f);let fit=originalFit,cost=.12,label='Minimal / source music',desc='Keep music restrained and scene-bound. Cheap, specific and best when the film does not need music to sell scale.';
  if(strategy==='original'){cost=+(.55+Math.min(1.15,f.budget*.024)).toFixed(2);label='Original score';desc='Commission a bespoke score shaped around the finished cut. Strongest for cohesion and critical craft; little pre-existing awareness.'}
@@ -4742,7 +4768,7 @@ function soundtrackPostUI(f){
  ensureSoundtrackState(f);if(f.soundtrack?.committed){const s=f.soundtrack,mods=soundtrackReleaseModifiers(f);return `<div class="section-title"><h2>Music & soundtrack</h2><span class="pill good">Locked</span></div><div class="card goodline"><div class="row"><div><strong>${soundtrackSummary(f)}</strong><div class="small">Creative fit ${Math.round(s.fit)} · ${money(s.cost)} committed</div></div><span class="pill good">Music locked</span></div><div class="small" style="margin-top:8px">The music plan now feeds into finished-film reception and, where relevant, pre-release awareness. It does not consume a major post intervention.</div></div>`}
  const p=ensurePostState(f),draft=p.musicDraft||{strategy:'original',trackId:null},offers=soundtrackOffers(f),strategies=['original','needle','hybrid','minimal'];
  const cards=strategies.map(id=>{const info=soundtrackStrategyInfo(f,id,draft.trackId);return `<button class="card music-strategy selection-card ${draft.strategy===id?'selected-choice':''}" data-music-strategy="${id}" aria-pressed="${draft.strategy===id?'true':'false'}">${draft.strategy===id?'<div class="selected-choice-badge">✓ Selected music strategy</div>':''}<div class="row"><strong>${info.label}</strong><span class="pill ${info.cls}">${info.label==='Original score'?Math.round(info.fit)+' fit':info.label==='Minimal / source music'?Math.round(info.fit)+' fit':info.track?Math.round(info.fit)+' fit':'Choose song'}</span></div><div class="small" style="margin-top:7px">${info.desc}</div><div class="small" style="margin-top:7px"><strong>${money(info.cost)}</strong>${['needle','hybrid'].includes(id)&&!draft.trackId?' + song selection':''}</div></button>`}).join('');
- const songs=['needle','hybrid'].includes(draft.strategy)?`<div class="section-title"><h2>Signature song shortlist</h2><span class="small">${offers.length} deterministic music-supervisor options for this film</span></div><div class="grid">${offers.map(({track,fit})=>`<button class="card selection-card ${draft.trackId===track.id?'selected-choice':''}" data-music-track="${track.id}" aria-pressed="${draft.trackId===track.id?'true':'false'}">${draft.trackId===track.id?'<div class="selected-choice-badge">✓ Selected song</div>':''}<div class="row"><div><strong>${track.artist}</strong><div class="small">“${track.title}” · ${track.mood}</div></div><span class="pill ${fit>=82?'good':fit>=70?'blue':fit>=58?'warn':'bad'}">Fit ${fit}</span></div><div class="small" style="margin-top:7px">Licence ${money(track.license)} · familiarity ${track.familiarity}/100</div></button>`).join('')}</div>`:'';
+ const songs=['needle','hybrid'].includes(draft.strategy)?`<div class="section-title"><h2>Signature song shortlist</h2><span class="small">${offers.length} deterministic music-supervisor options for this film</span></div><div class="grid">${offers.map(({track,fit})=>`<button class="card selection-card ${draft.trackId===track.id?'selected-choice':''}" data-music-track="${track.id}" aria-pressed="${draft.trackId===track.id?'true':'false'}">${draft.trackId===track.id?'<div class="selected-choice-badge">✓ Selected song</div>':''}<div class="row"><div><strong>${track.artist}</strong><div class="small">“${track.title}” · ${track.mood}</div></div><span class="pill ${fit>=82?'good':fit>=70?'blue':fit>=58?'warn':'bad'}">Fit ${fit}</span></div><div class="small" style="margin-top:7px">Licence ${money(track.license)} · familiarity ${track.familiarity}/100 · ${ensureFilmIdentity(f).texture} film fit</div></button>`).join('')}</div>`:'';
  const preview=soundtrackStrategyInfo(f,draft.strategy,draft.trackId);
  return `<div class="section-title"><h2>Music & soundtrack</h2><span class="small">Required before picture lock · does not use an intervention</span></div><div class="grid cols2">${cards}</div>${songs}<div class="card music-commit-card ${preview.fit>=82?'goodline':''}" style="margin-top:12px"><div class="row"><div><strong>${preview.label}</strong><div class="small">Creative fit ${Math.round(preview.fit)} · ${money(preview.cost)}</div></div><span class="pill ${preview.cls}">${preview.label==='Licensed signature song'||preview.label.startsWith('Hybrid')?(preview.track?`${preview.track.artist} · ${preview.track.title}`:'Song required'):preview.label}</span></div><div class="body" style="margin-top:8px">Music can improve or undermine the finished film depending on fit. Recognisable songs can also add release awareness — but familiarity is not a substitute for creative fit.</div><button id="commitSoundtrack" class="btn primary block" style="margin-top:10px" ${['needle','hybrid'].includes(draft.strategy)&&!draft.trackId?'disabled':''}>Commit music plan · ${money(preview.cost)}</button></div>`;
 }
@@ -4914,22 +4940,50 @@ function filmWrapPreferredJournalist(defaultId){
  rows.sort((a,b)=>b.score-a.score||b.last-a.last);
  return rows[0].score>=7?rows[0].id:defaultId;
 }
+
 function filmWrapTradeVerdict(f,l=ensureLegacyState(f)){
- const critics=f.review?.critics||0,audience=f.review?.audience||0,identity=typeof studioIdentityPrimary==='function'?studioIdentityPrimary():null;
- let id='mara-vance',quote='';
+ const critics=f.review?.critics||0,audience=f.review?.audience||0,studioIdentity=typeof studioIdentityPrimary==='function'?studioIdentityPrimary():null,filmId=ensureFilmIdentity(f);
+ let id='mara-vance';
  if(l.outcomeClass==='bad'||f.releaseProfile?.type==='breakout'||l.profit>=18||f.finalGross>=150)id='daniel-mercer';
  else if(critics>=84&&critics>=audience)id='ruth-bell';
  else if((l.talentImpacts||[]).some(x=>Math.abs(x.delta)>=4))id='imani-kerr';
  id=filmWrapPreferredJournalist(id);
  const j=typeof journalistProfileById==='function'?journalistProfileById(id):null;
- if(id==='daniel-mercer'&&l.outcomeClass==='bad')quote=`The painful number is not ${money(f.finalGross)} worldwide. It is the ${money(Math.abs(l.profit))} loss sitting behind it — because the next expensive greenlight will be judged against this one.`;
- else if(id==='daniel-mercer')quote=l.bestHold!==null&&l.bestHold<.25?`${f.title} opened with a number. The hold gave it a story. That is the difference between a weekend and a piece of studio leverage.`:`${f.title} has given ${state.studio.name} the number every next deal will quietly begin with: ${money(f.finalGross)} worldwide.`;
- else if(id==='ruth-bell')quote=l.profit<0?`The balance sheet will call this a disappointment. The more interesting question is whether ${state.studio.name} now has the confidence to make another film this specific.`:`A strong review score is useful. A film people can still argue about after the campaign ends is more useful.`;
- else if(id==='imani-kerr')quote=`The lasting story may be the people who leave ${f.title} with more leverage than they had when it started. Studios remember grosses; agents remember changed careers.`;
- else quote=identity&&identity.label&&identity.label!=='Independent Studio'?`${f.title} makes the ${identity.label.toLowerCase()} label harder to dismiss as a coincidence. The next film will either turn that into an identity or complicate it.`:`One result does not define a studio. But this is now part of the evidence every rival, agent and filmmaker will use when deciding what ${state.studio.name} is becoming.`;
- const pm=typeof ensurePressMemory==='function'?ensurePressMemory()[id]:null;if(pm?.playerMentions>=3)quote=`I've covered ${state.studio.name} often enough to know this result will not be read in isolation. ${quote}`;
+ const specific=f.creativeDirection?`The choice to “${f.creativeDirection.label}” survived into the finished film.`:`The finished film's clearest signature is ${filmId.strength}.`;
+ let pool=[];
+ if(id==='daniel-mercer'&&l.outcomeClass==='bad')pool=[
+  `The number that follows this studio is the ${money(Math.abs(l.profit))} loss, but the useful lesson is more specific: ${f.title} was a ${filmId.texture} film whose ${filmId.risk} never travelled as well as the package needed.`,
+  `${f.title} did not fail because audiences suddenly stopped buying ${f.genre.toLowerCase()} films. It failed as this particular ${filmId.texture} version of one, at this investment level.`,
+  `The loss matters. So does the fact that the film had an identity. The next greenlight has to preserve the specificity and fix the ${filmId.risk}.`
+ ];
+ else if(id==='daniel-mercer')pool=[
+  `${f.title} has given ${state.studio.name} a new commercial reference point: ${money(f.finalGross)} worldwide for a ${filmId.texture} ${filmId.archetype.toLowerCase()}, not a generic piece of product.`,
+  l.bestHold!==null&&l.bestHold<.25?`The opening gave ${f.title} a number; the hold proved people were responding to the film rather than only the campaign. ${specific}`:`The useful part of ${money(f.finalGross)} worldwide is knowing what audiences were actually buying: ${filmId.strength}, delivered through a ${filmId.texture} package.`,
+  `This result becomes leverage because the film is describable. Buyers now know what ${state.studio.name} made, not just how much it grossed.`
+ ];
+ else if(id==='ruth-bell')pool=[
+  `The interesting thing about ${f.title} is not the score. It is that ${filmId.strength} and the film's ${filmId.texture} identity survived the machinery of production and release.`,
+  `${specific} That gives ${f.title} a stronger afterlife than a review percentage alone can measure.`,
+  l.profit<0?`The balance sheet will call this a disappointment. I would ask whether ${state.studio.name} now has the courage to make another film this specific without repeating its ${filmId.risk}.`:`A good review is temporary. A film with a recognisable internal logic is the thing people return to.`
+ ];
+ else if(id==='imani-kerr')pool=[
+  `The career story is not only who got hotter after ${f.title}; it is which performers now look inseparable from the film's ${filmId.texture} identity.`,
+  `${f.title} gave its people something more useful than exposure: a specific piece of work agents can point to when explaining what they do differently from everyone else.`,
+  `${specific} The talent involved now carry that creative decision into their next negotiations as part of the credit.`
+ ];
+ else pool=[
+  studioIdentity&&studioIdentity.label&&studioIdentity.label!=='Independent Studio'?`${f.title} makes the ${studioIdentity.label.toLowerCase()} label harder to dismiss because the film itself has a distinct ${filmId.texture} identity.`:`One result does not define a studio, but a film this specific becomes evidence. ${specific}`,
+  `The Lot remembers films through shorthand. For ${f.title}, that shorthand may be “${filmId.texture}, ${filmId.engine}-driven, strongest on ${filmId.strength}.” That is more useful than simply calling it a hit or a miss.`,
+  `${specific} The next film will be judged partly by whether ${state.studio.name} repeats that instinct, rejects it or finds an entirely different one.`
+ ];
+ let quote=variationPick(f,'wrap-trade-'+id,pool);
+ const pm=typeof ensurePressMemory==='function'?ensurePressMemory()[id]:null;
+ if(pm?.playerMentions>=3&&Math.abs(hash(f.id+'|press-memory|'+id))%3===0){
+  quote=variationPick(f,'wrap-memory-prefix-'+id,[`I've covered ${state.studio.name} often enough to know this will not be read in isolation. `,`This studio now has enough history that every result arrives with context. `,`There is a pattern behind this release, and the trade will remember it. `])+quote;
+ }
  return {journalist:j||{name:'Mara Vance',publication:'Screen Trade',beat:'Studios & strategy',tone:'Trade analyst'},quote};
 }
+
 function filmWrapLegacySignals(f,l=ensureLegacyState(f)){
  const a=ensureAfterlifeState(f),fr=franchiseStatus(f),identity=typeof studioIdentityPrimary==='function'?studioIdentityPrimary():null;
  let awards='Not yet on the board';
@@ -5947,6 +6001,155 @@ function greenlight(f){
  state.screen='slate';state.detail={type:'film',id:f.id};requestScrollTop();
  save();render();return true;
 }
+
+function variationPick(f,key,items){
+ if(!items?.length)return '';const r=makeRng(hash((state.seed||1)+'|variation-v314|'+(f?.id||'none')+'|'+key));
+ return items[Math.floor(r()*items.length)]||items[0];
+}
+function ensureFilmIdentity(f){
+ if(!f)return null;
+ if(!f.filmIdentity||f.filmIdentity.version!==314){
+  const sc=scriptById(f.scriptId),c=f.creative||defaultCreative(),g=f.genre||sc?.genre||'Drama',m=f.metrics||{},r=makeRng(hash((state.seed||1)+'|film-identity-v314|'+f.id));
+  let archetype='Story-First Studio Film';
+  if((m.chemistry||0)>=82)archetype='Relationship-Driven Film';
+  else if(c.emphasis==='performance'||g==='Prestige Drama')archetype='Performance-Led Drama';
+  else if((g.includes('Science')||g==='Fantasy')&&c.emphasis==='spectacle')archetype='World-Building Spectacle';
+  else if(g.includes('Action'))archetype='Kinetic Thriller';
+  else if(g==='Psychological Horror')archetype='Unsettling Mood Piece';
+  else if(g==='Crime Thriller')archetype=c.tone==='grounded'?'Precision Crime Film':'Paranoid Thriller';
+  else if(g==='Comedy')archetype=c.tone==='heightened'?'Stylised Comedy':'Character Comedy';
+  else if(g==='Family Adventure')archetype='Adventure Crowd-Pleaser';
+  else if(g==='Science Fiction')archetype='Cerebral Science Fiction';
+  else if(g==='Fantasy')archetype='Mythic Fantasy';
+  const texturePools={
+   'Action Thriller':['muscular','lean','hard-edged','propulsive','street-level'],
+   'Psychological Horror':['claustrophobic','dreamlike','bleak','slow-burn','uncanny'],
+   'Prestige Drama':['intimate','observational','austere','emotionally direct','actor-forward'],
+   'Science Fiction':['tactile','cerebral','neon-lit','mythic','coldly futuristic'],
+   'Comedy':['dry','chaotic','warm','deadpan','fast-talking'],
+   'Family Adventure':['storybook','bright','earnest','adventure-forward','playful'],
+   'Crime Thriller':['nocturnal','procedural','grimy','paranoid','precision-cut'],
+   'Fantasy':['mythic','romantic','dark-fairytale','adventure-forward','otherworldly']
+  };
+  const texture=pick(r,texturePools[g]||['specific','characterful','cinematic']);
+  const engines=[
+   c.emphasis==='performance'?'performance':null,c.emphasis==='spectacle'?'spectacle':null,
+   (m.pacing||0)>=80?'momentum':null,(m.clarity||0)>=82?'clarity':null,(m.technical||0)>=82?'craft':null,
+   (m.chemistry||0)>=80?'chemistry':null,sc?.originality>=82?'originality':null
+  ].filter(Boolean);
+  const engine=engines.length?pick(r,engines):'story';
+  f.filmIdentity={version:314,archetype,texture,engine,createdWeek:state.week};
+ }
+ const id=f.filmIdentity,m=f.metrics||{};
+ const dims=[
+  ['performances',m.performances],['direction',m.direction],['technical craft',m.technical],['pacing',m.pacing],['story clarity',m.clarity],['lead chemistry',m.chemistry]
+ ].filter(x=>Number.isFinite(x[1])).sort((a,b)=>b[1]-a[1]);
+ id.strength=dims[0]?.[0]||id.engine;id.risk=dims.at(-1)?.[0]||'execution';
+ return id;
+}
+function filmIdentityLine(f){
+ const id=ensureFilmIdentity(f),sc=scriptById(f.scriptId);if(!id)return '';
+ const focus=sc&&typeof scriptFocus==='function'?scriptFocus(sc):'its central premise';
+ return `A ${id.texture} ${id.archetype.toLowerCase()} built around ${focus}.`;
+}
+function filmPressAngle(f,phase='release'){
+ if(!f)return '';const id=ensureFilmIdentity(f),d=f.directorId?talentById(f.directorId):null,x=f.creativeDirection;
+ const pools={
+  production:[
+   `${d?.name||'The director'} is shaping the project as a ${id.texture} ${id.archetype.toLowerCase()}, with ${id.strength} emerging as the strongest internal signal.`,
+   `Dailies are increasingly defining ${f.title} through ${id.strength}; the production is reading less like a generic ${f.genre.toLowerCase()} and more like a ${id.texture} ${id.archetype.toLowerCase()}.`,
+   `${x?`The choice to “${x.label}” is now visible in the footage. `:''}The clearest identity on set is ${id.texture}, ${id.engine}-driven and centred on ${id.strength}.`
+  ],
+  release:[
+   `The campaign is selling a ${id.texture} ${id.archetype.toLowerCase()} rather than the genre label alone${x?`, with the production choice to “${x.label}” now part of the finished film`:''}.`,
+   `${f.title}'s finished identity is being described internally as ${id.texture} and ${id.engine}-driven, with ${id.strength} expected to be the element reviewers notice first.`,
+   `${x?`Production ultimately chose to “${x.label}.” `:''}That decision leaves the release with a more specific ${id.texture} identity than the original package suggested.`
+  ],
+  boxoffice:[
+   `The release is now testing whether audiences respond to the film's ${id.texture}, ${id.engine}-driven identity beyond the opening campaign.`,
+   `Word of mouth is increasingly being shaped by ${id.strength}, the element that most clearly separates ${f.title} from a generic ${f.genre.toLowerCase()} release.`,
+   `${f.review?`Reviews have focused on ${id.strength}. `:''}The box-office run is showing how far that specific creative identity travels with a wider audience.`
+  ],
+  close:[
+   `${f.title} leaves the theatrical window with a distinct ${id.texture} identity; ${id.strength} is likely to be the part of the film that survives longest in its catalogue reputation.`,
+   `Whatever the commercial result, the finished film is not anonymous: its ${id.texture}, ${id.engine}-driven approach is now part of the studio's creative record.`,
+   `${x?`The production choice to “${x.label}” survived all the way to release. `:''}${id.strength[0].toUpperCase()+id.strength.slice(1)} became the clearest signature of the finished film.`
+  ]
+ };
+ return variationPick(f,'press-angle-'+phase,pools[phase]||pools.release);
+}
+function productionEventFlavor(f,e){
+ const id=ensureFilmIdentity(f),key=`production-event-${e.type}`,variants={
+  location:[
+   ['A key location disappears from the schedule',`The production team has lost access to a location carrying several scenes, forcing the unit to choose between waiting, redesigning or compressing the material.`,`The ${id.texture} visual plan depends more heavily on this location than the shooting schedule can comfortably absorb.`],
+   ['A permit change threatens a major sequence',`Local access has been shortened with almost no warning. The scene can still be made, but not exactly as it was boarded.`,`The problem is logistical rather than creative, but the film's ${id.engine}-driven plan gives the unit little slack.`],
+   ['The practical location no longer matches the plan',`Changes at the location mean the camera moves and staging prepared in advance will not work as designed.`,`A supposedly routine location day has become a choice about how much of the film's visual identity to protect.`]
+  ],
+  weather:[
+   ['Weather breaks the continuity plan',`Changing conditions have made the exterior material visibly inconsistent with what was already shot.`,`The unit can protect continuity, protect schedule, or accept a rougher visual transition.`],
+   ['An exterior day turns into a coverage problem',`Conditions are not dangerous, but they are wrong enough that the planned wide work is becoming unusable.`,`The ${id.texture} look is colliding with a schedule that cannot simply wait forever.`],
+   ['Wind and light shut down the planned setup',`The exterior rig can no longer deliver the shots the director intended today.`,`A small weather problem becomes meaningful because this film is leaning on ${id.engine} rather than generic coverage.`]
+  ],
+  stunt:[
+   ['Second unit calls for a safer stunt design',`The stunt team can deliver the dramatic beat, but not with the exact movement and timing currently on the boards.`,`The film's kinetic ambition is pressing against real safety and schedule limits.`],
+   ['A set piece has outrun the safety margin',`Rehearsal shows that the planned version asks too much of performers and reset time.`,`The question is whether to spend, redesign or sacrifice part of the spectacle rather than simply “push through.”`],
+   ['The action sequence needs to lose a beat',`The stunt coordinator believes one planned beat is making the whole sequence harder and riskier than the finished film needs.`,`The sequence can stay ambitious, but only if the production decides what part of the action actually matters.`]
+  ],
+  vfx:[
+   ['Previs exposes the weak point in the effects plan',`An effects-heavy sequence works conceptually but not at the planned shot length and scale.`,`The film's ${id.texture} identity makes unfinished-looking imagery especially dangerous.`],
+   ['The digital extension is not surviving scrutiny',`Early technical work shows the sequence will look noticeably thinner than the surrounding photography unless the approach changes.`,`A film selling ${id.engine} cannot hide a weak technical centrepiece.`],
+   ['The biggest image is becoming the hardest one to finish',`The production can see the shot it wants, but the current allocation will not get it there cleanly.`,`The choice is whether to spend into the problem or redesign the image around what the film can execute well.`]
+  ],
+  rehearsal:[
+   ['A crucial emotional beat is not landing',`The scene is technically usable, but the performance turn that motivates what follows is inconsistent across takes.`,`Because ${id.strength==='performances'?'performance is already the film’s strongest signal':'the scene carries structural weight'}, the weakness is becoming difficult to ignore.`],
+   ['The lead performance is arriving in two different registers',`Dailies show two plausible versions of the character, but the cut will struggle if production keeps alternating between them.`,`This is less about talent than alignment: the actor, director and film need to agree what kind of performance belongs in this ${id.texture} version.`],
+   ['The scene works on paper but not between the actors',`The blocking and dialogue are intact, yet the emotional exchange keeps flattening when the cameras roll.`,`The schedule offers very little rehearsal time to solve something the edit cannot manufacture later.`]
+  ],
+  star:[
+   ['The lead wants the character logic changed',`A principal actor believes the scene asks the character to make a choice the performance has not earned.`,`Star leverage has turned a normal creative note into a studio-level decision.`],
+   ['A star request reaches the production office',`One of the leads wants an upcoming scene reshaped to protect the character's point of view.`,`The request could improve the film, or simply pull emphasis toward the most powerful person in the package.`],
+   ['The lead pushes for a different version of the scene',`The actor wants the material tilted away from exposition and toward character before shooting begins.`,`The production has to separate a useful creative instinct from ordinary star leverage.`]
+  ],
+  director:[
+   ['The director wants to abandon the planned coverage',`The strongest dailies are coming from a looser approach, and the director wants to stop shooting the sequence the way it was originally designed.`,`The director's instincts are pulling the film further toward its emerging ${id.texture} identity.`],
+   ['The director is pushing beyond the greenlight brief',`An upcoming sequence is being reconceived in a way that is bolder but less aligned with the studio's original positioning.`,`This is a genuine authorship question: protect the package you approved or allow the film to become more specific.`],
+   ['The director asks for permission to break the plan',`The production has discovered a stronger visual and performance rhythm than the shot list anticipated.`,`The new version may be better, but it also reduces the studio's certainty about pace and accessibility.`]
+  ],
+  chemistry:[
+   ['The leads are creating a different relationship than scripted',`Their scenes have more charge and humour than expected, and the director wants to reshape later material around it.`,`The opportunity is real, but expanding chemistry can change pacing and emphasis elsewhere.`],
+   ['The camera has found unexpected chemistry',`Two principal performers are producing stronger connective material than the screenplay gave them.`,`The film can follow what the actors discovered or preserve the original balance.`],
+   ['A relationship starts stealing the film',`Scenes between the leads are becoming the dailies everyone talks about, even when they are not the plot-heavy material.`,`The production has discovered an asset that did not exist as clearly on the page.`]
+  ],
+  opportunity:[
+   ['A disciplined shoot buys one creative day',`The unit is ahead enough to spend some of the gain rather than merely banking it.`,`Stability has created a rare production problem with no bad answer: where should the extra capacity go?`],
+   ['The schedule has quietly created breathing room',`Several efficient days have left the production with a small pocket of time and contingency.`,`The film can turn operational discipline into extra coverage, savings or a more ambitious creative swing.`],
+   ['Production gets an unexpected gift',`The unit is ahead of its internal plan and can choose to preserve the saving or spend it improving the movie.`,`Strong execution has created optionality rather than crisis.`]
+  ],
+  overrun:[
+   ['The line producer says the cushion is gone',`Small overruns have accumulated until the remaining contingency no longer protects the full shooting plan.`,`The film's ambition is now running ahead of the financial room left to execute it.`],
+   ['The production is spending tomorrow’s contingency today',`No single disaster caused the problem; repeated expensive days have simply eaten through the buffer.`,`The studio now has to decide which part of the plan matters enough to protect.`],
+   ['The budget has stopped forgiving mistakes',`The line producer can still finish the scheduled work, but another difficult week would put the plan under real pressure.`,`The choice is whether to add money, simplify before a crisis, or trust the remaining schedule.`]
+  ],
+  breakout:[
+   ['A supporting performance starts stealing the dailies',`A smaller role is producing some of the film's most alive footage and the director wants to give the performer more room.`,`The opportunity could deepen the movie, but every added beat has to come from somewhere.`],
+   ['The supporting player has become impossible to ignore',`What was designed as functional support is turning into one of the film's strongest character threads.`,`Production has discovered a performance asset that development did not price into the package.`],
+   ['A minor role suddenly has major energy',`The dailies keep returning to the same supporting performance, and the director wants to reshape upcoming scenes to use it.`,`The question is whether the finished film benefits from following that surprise.`]
+  ],
+  story:[
+   ['A transition is confusing everyone except the writers',`The scene logic still makes sense when explained, but the assembled footage is not communicating the turn cleanly.`,`The production can solve the problem now or leave editorial to manufacture clarity later.`],
+   ['The story has developed a hole on camera',`A motivation that read clearly on the page is disappearing between the filmed scenes.`,`This is the kind of structural problem that can become expensive once the sets and actors are gone.`],
+   ['A clean script beat has become a muddy screen beat',`The production has discovered that the audience will need more connective tissue than the screenplay originally supplied.`,`The choice is whether to spend shooting time on clarity or preserve momentum and trust post-production.`]
+  ],
+  injury:[
+   ['A minor injury forces the unit to re-plan',`A principal performer is temporarily unavailable for the physical material scheduled today.`,`The injury is not serious, but the production has to decide whether to spend around it, rest the unit or change the shooting order.`],
+   ['Physical work takes one performer out of today’s plan',`The production can continue, but not with the scenes and setups it intended to capture.`,`The schedule response matters more than the injury itself.`],
+   ['The action schedule loses a performer for the day',`A minor injury has removed one principal actor from the planned physical work.`,`The unit now has to trade money, time or efficiency to keep moving.`]
+  ]
+ };
+ const list=variants[e.type];if(!list?.length)return e;
+ const v=variationPick(f,key,list),out=deep(e);out.title=v[0];out.text=v[1];out.why=v[2];out.variantId=hash(f.id+'|'+key+'|'+v[0]);return out;
+}
+
 function productionRisk(f){
  const s=ensureScriptEcosystem(scriptById(f.scriptId)),d=talentById(f.directorId),cast=f.cast.map(talentById);
  const underfund=Math.max(0,1-f.budget/s.naturalBudget)*35;
@@ -5999,23 +6202,46 @@ function buildProductionEvents(f,r){
  const used=new Set(),events=[];
  for(let i=0;i<count&&i<weeks.length&&pool.length;i++){
   let e=weightedProductionPick(pool.filter(x=>!used.has(x.type)),r);if(!e)break;
-  used.add(e.type);events.push({id:uid('event',state),week:weeks[i],...deep(e),resolved:false,choice:null})
+  used.add(e.type);e=productionEventFlavor(f,e);events.push({id:uid('event',state),week:weeks[i],...deep(e),resolved:false,choice:null})
  }
  events.forEach(e=>{if(f.directorAuthority?.producerCredit&&e.type==='director'){const vr=makeRng(hash(state.seed+'|producer-veto|'+f.id+'|'+e.id));if(vr()<.58){e.lockedChoices=['enforcebrief'];e.authorityNote=`${d.name}'s producer credit gives the director final authority on this creative call.`}}});return events.sort((a,b)=>a.week-b.week);
 }
 // v3.10 — The Film Story: one authored creative-direction fork per production.
 // This is deliberately not a crisis or spend decision. The dailies discover a version
 // of the film, and the studio chooses which version to pursue.
+
 function productionCreativeForkSpec(f){
- const d=talentById(f.directorId),lead=talentById(f.cast?.[0]),m=f.metrics||{},genre=f.genre||'',name=d?.name||'The director',star=lead?.name||'The lead';
- const characterLed=(m.chemistry||0)>=76||(m.performances||0)>=82||genre==='Comedy'||genre==='Prestige Drama';
+ const d=talentById(f.directorId),lead=talentById(f.cast?.[0]),m=f.metrics||{},genre=f.genre||'',name=d?.name||'The director',star=lead?.name||'The lead',id=ensureFilmIdentity(f);
+ const characterLed=(m.chemistry||0)>=76||(m.performances||0)>=82||id.engine==='performance'||id.engine==='chemistry';
  const imageLed=(genre.includes('Action')||genre.includes('Science')||genre==='Fantasy')&&((m.technical||0)>=70||f.creative?.emphasis==='spectacle');
  const uneasy=genre==='Psychological Horror'||genre==='Crime Thriller';
+ if(genre==='Comedy'){
+  return {
+   title:variationPick(f,'fork-comedy-title',['The film is funnier when it stops chasing the plot','The dailies have found a different comic rhythm','The actors are making the pauses as important as the jokes']),
+   text:`${name} thinks the strongest comedy is coming from behaviour and timing rather than the scripted punch lines. ${star} is especially good when scenes are allowed to run a little messier.`,
+   why:'Production has found two viable comedies: a tighter joke-and-plot machine, or a looser character version with more room for discovery.',
+   choices:{
+    loosecomedy:{label:'Follow the comic behaviour',outcome:'The film becomes looser, stranger and more character-driven, accepting a little less plot velocity in exchange for personality.',impact:{performances:3,chemistry:3,direction:2,pacing:-2},segmentBias:{'Younger audiences':3,'Prestige / arthouse':2,'Mainstream adults':-1}},
+    tightcomedy:{label:'Protect the comic engine',outcome:'The production keeps scenes shorter and jokes closer to the story spine, preserving pace and broad accessibility.',impact:{pacing:4,clarity:3,performances:-1},segmentBias:{'Mainstream adults':4,'Families':2,'Prestige / arthouse':-2}}
+   }
+  };
+ }
+ if(genre==='Family Adventure'){
+  return {
+   title:variationPick(f,'fork-family-title',['The adventure is becoming more sincere than expected','The childlike wonder is working','The film has found its heart in the quieter material']),
+   text:`The dailies suggest ${f.title} works best when the adventure feels genuinely wondrous rather than relentlessly busy. ${name} wants to decide whether to lean into that sincerity or keep the film moving as a clean crowd-pleaser.`,
+   why:'Either direction can reach families, but one prioritises emotional memory while the other protects pace and spectacle.',
+   choices:{
+    wonder:{label:'Lean into the wonder',outcome:'The film gives its emotional and discovery beats more space, becoming warmer and more earnest.',impact:{performances:2,direction:3,chemistry:2,pacing:-1},segmentBias:{'Families':5,'Mainstream adults':2,'Younger audiences':1}},
+    adventure:{label:'Keep the adventure moving',outcome:'The remaining shoot protects momentum, jokes and forward motion over additional reflective beats.',impact:{pacing:4,technical:2,clarity:2},segmentBias:{'Younger audiences':4,'Families':3,'Prestige / arthouse':-2}}
+   }
+  };
+ }
  if(characterLed){
   return {
-   title:'The performances are changing the centre of the film',
-   text:`The dailies have produced a more human, more observational version of the material than the screenplay suggested. ${star} is carrying quieter beats particularly well, and ${name} thinks the film may be better if it follows them.`,
-   why:'Nothing has gone wrong. The question is whether to follow what production has discovered or protect the shape you originally greenlit.',
+   title:variationPick(f,'fork-character-title',['The performances are changing the centre of the film','The actors have found a more intimate movie','The dailies keep pulling attention back to the people']),
+   text:`The footage has produced a more human, observational version of the material than the screenplay suggested. ${star} is carrying quieter beats particularly well, and ${name} thinks the film may be better if it follows them.`,
+   why:`Nothing has gone wrong. The question is whether to follow the ${id.texture} performance film production has discovered or protect the shape originally greenlit.`,
    choices:{
     followperformances:{label:'Follow what the actors found',outcome:'The film becomes more intimate and performance-led, giving emotional beats more room even if the pace loosens.',impact:{performances:4,chemistry:3,direction:2,pacing:-2},segmentBias:{'Prestige / arthouse':5,'Mainstream adults':-1,'Genre fans':-1}},
     protectengine:{label:'Protect the original engine',outcome:'The film stays tighter and more plot-forward, preserving momentum rather than rebuilding around the performances.',impact:{pacing:4,clarity:2,performances:-1},segmentBias:{'Mainstream adults':3,'Genre fans':3,'Prestige / arthouse':-2}}
@@ -6024,9 +6250,9 @@ function productionCreativeForkSpec(f){
  }
  if(imageLed){
   return {
-   title:'The visual language is becoming the film',
-   text:`${name} has found a bolder visual approach in the dailies. The strongest material is larger, stranger and more image-driven than the original brief, but leaning into it will make the film less literal and less restrained.`,
-   why:'The footage has created a creative opportunity: push the cinematic identity, or keep the story doing the heavy lifting.',
+   title:variationPick(f,'fork-image-title',['The visual language is becoming the film','The images are getting ahead of the screenplay','Production has found a bigger cinematic vocabulary']),
+   text:`${name} has found a bolder ${id.texture} visual approach in the dailies. The strongest material is larger and more image-driven than the original brief, but leaning into it will make the film less literal and less restrained.`,
+   why:'The footage has created a genuine creative opportunity: push the cinematic identity, or keep the story doing the heavy lifting.',
    choices:{
     pushimagery:{label:'Push the visual language',outcome:'The film commits to scale, imagery and cinematic texture, accepting a little less narrative directness.',impact:{technical:4,direction:3,clarity:-2},segmentBias:{'Younger audiences':4,'Genre fans':5,'Mainstream adults':-1}},
     storyfirst:{label:'Keep the story in front',outcome:'The production pulls the imagery back toward the original brief and prioritises clean storytelling over visual escalation.',impact:{clarity:4,pacing:2,technical:-1},segmentBias:{'Mainstream adults':4,'Families':2,'Genre fans':-2}}
@@ -6035,8 +6261,8 @@ function productionCreativeForkSpec(f){
  }
  if(uneasy){
   return {
-   title:'The film is playing stranger than expected',
-   text:`The assembled footage is more unsettling and ambiguous than the script read on the page. ${name} believes the uncertainty is working; the alternative is to make motives and cause-and-effect more explicit while the unit can still shape them.`,
+   title:variationPick(f,'fork-uneasy-title',['The film is playing stranger than expected','The ambiguity is becoming the point','The footage is refusing to explain itself']),
+   text:`The assembled footage is more ${id.texture} and ambiguous than the script read on the page. ${name} believes the uncertainty is working; the alternative is to make motives and cause-and-effect more explicit while the unit can still shape them.`,
    why:'This is a tone decision, not a repair. Either version can work, but they are different films.',
    choices:{
     embraceambiguity:{label:'Embrace the ambiguity',outcome:'The film becomes stranger and less explanatory, sharpening atmosphere while asking more from the audience.',impact:{direction:4,performances:2,clarity:-3},segmentBias:{'Genre fans':5,'Prestige / arthouse':4,'Mainstream adults':-3,'Families':-4}},
@@ -6044,9 +6270,20 @@ function productionCreativeForkSpec(f){
    }
   };
  }
+ if(id.engine==='momentum'||genre==='Action Thriller'){
+  return {
+   title:variationPick(f,'fork-momentum-title',['The movie wants to move faster than the script','The action is becoming cleaner and meaner','The dailies have found a ruthless pace']),
+   text:`The best footage is direct, physical and unusually lean. ${name} thinks the remaining shoot can either commit to that velocity or restore some of the character and explanation the original screenplay carried.`,
+   why:'The question is how much texture to trade for momentum now that production knows speed is one of the film’s strengths.',
+   choices:{
+    accelerate:{label:'Make it leaner and faster',outcome:'The film strips connective material back and commits to momentum, action and clean dramatic movement.',impact:{pacing:5,technical:2,clarity:-1,performances:-1},segmentBias:{'Younger audiences':4,'Genre fans':4,'Mainstream adults':2}},
+    restoretexture:{label:'Keep the character texture',outcome:'The film preserves more explanation and human detail, accepting a slightly slower engine in return.',impact:{performances:3,clarity:3,pacing:-2},segmentBias:{'Mainstream adults':3,'Prestige / arthouse':2,'Genre fans':-1}}
+   }
+  };
+ }
  return {
-  title:'The dailies have found a different rhythm',
-  text:`${name} thinks the film can now go one of two ways: let scenes breathe and trust the material that is emerging, or tighten the remaining shoot around the cleaner, more propulsive version originally planned.`,
+  title:variationPick(f,'fork-default-title',['The dailies have found a different rhythm','Production has discovered a more specific version of the movie','The footage is asking for a choice the screenplay could not make']),
+  text:`${name} thinks the film can now go one of two ways: let its ${id.texture} qualities breathe and trust the material that is emerging, or tighten the remaining shoot around the cleaner, more propulsive version originally planned.`,
   why:'This is the moment production stops merely executing the screenplay and decides what kind of finished film the footage is becoming.',
   choices:{
    breathe:{label:'Let the film breathe',outcome:'The shoot gives performances and atmosphere more space, creating a richer but slightly slower version of the film.',impact:{direction:3,performances:3,chemistry:1,pacing:-2},segmentBias:{'Prestige / arthouse':4,'Mainstream adults':-1}},
@@ -6054,6 +6291,7 @@ function productionCreativeForkSpec(f){
   }
  };
 }
+
 function ensureProductionCreativeFork(f){
  if(!f||f.owner!=='player'||f.stage!=='production'||!Array.isArray(f.events))return null;
  const existing=f.events.find(e=>e.type==='creativefork');if(existing)return existing;
@@ -6199,35 +6437,179 @@ function scriptFocus(s){
  if(q.includes('astronaut'))return 'the impossible connection between its isolated astronauts';
  return `the central idea described by its screenplay — ${s.logline.replace(/\.$/,'').toLowerCase()}`;
 }
+
 function makeReview(f,critics,audience){
- const s=scriptById(f.scriptId),m=f.metrics,c=f.creative||defaultCreative(),focus=scriptFocus(s),stars=reviewStars(critics);
- let headline=critics>=86?'A striking success':critics>=74?'A confident, imperfect film':critics>=58?'Strong moments, mixed results':'An ambitious misfire';
- let lead=critics>=86?`${s.title} turns ${focus} into something unusually assured.`:critics>=74?`${s.title} makes compelling use of ${focus}, even when its ambitions occasionally outrun it.`:critics>=58?`${s.title} finds worthwhile moments in ${focus}, but not every part of the film is equally convincing.`:`${s.title} has an intriguing foundation in ${focus}, yet the finished film struggles to make the idea cohere.`;
- const paragraphs=[lead];
- paragraphs.push(m.performances>82?`The performances give the premise emotional weight, particularly when the film stops explaining itself and lets the characters carry the tension.`:`The cast works hard, but several important scenes never develop the emotional force the screenplay seems to be reaching for.`);
- if(m.pacing<60)paragraphs.push(`The main problem is rhythm. The film repeatedly interrupts its own momentum, making the ${s.genre.toLowerCase()} machinery feel heavier than it should.`);else paragraphs.push(`The edit mostly understands when to move and when to linger, which helps the film’s central conceit remain engaging rather than exhausting.`);
- if(c.emphasis==='spectacle')paragraphs.push(m.technical>78?'The decision to emphasise spectacle is visible on screen, and the larger sequences justify much of the production spend.':'The film clearly wants spectacle, but the technical finish does not consistently support that ambition.');
- else if(c.emphasis==='performance')paragraphs.push(`The performance-first approach is evident throughout; whether that works for viewers will depend on how invested they are in the characters rather than the scale.`);
- else paragraphs.push(s.originality>85?'Most importantly, the film has enough personality to avoid feeling like an anonymous piece of studio product.':'The shape is familiar, but the better-crafted sequences give it enough personality to stay watchable.');
- return {publication:'The Daily Screen',critics,audience,stars,headline,quote:lead,paragraphs,sourceContext:{title:s.title,genre:s.genre,logline:s.logline,creative:deep(c)}};
+ const sc=scriptById(f.scriptId),m=f.metrics,c=f.creative||defaultCreative(),id=ensureFilmIdentity(f),focus=scriptFocus(sc),stars=reviewStars(critics);
+ const tier=critics>=88?'great':critics>=75?'good':critics>=60?'mixed':'poor';
+ const leads={
+  great:[
+   `${sc.title} takes ${focus} and turns it into a ${id.texture} film with a point of view rather than merely a premise.`,
+   `The surprise of ${sc.title} is not that ${focus} works; it is how confidently the film decides what kind of experience it wants to be.`,
+   `${sc.title} arrives with the rare advantage of specificity: a ${id.texture} ${id.archetype.toLowerCase()} that knows where to place its emphasis.`,
+   `There is real authorship in the way ${sc.title} builds ${focus} into a film whose strongest choices feel connected rather than accumulated.`
+  ],
+  good:[
+   `${sc.title} is most persuasive when its ${id.texture} identity and ${id.strength} are pulling in the same direction.`,
+   `The film makes a convincing case for ${focus}, even if not every choice around it lands with equal force.`,
+   `${sc.title} has enough personality to feel made rather than assembled, particularly when it trusts its ${id.strength}.`,
+   `This is a confident ${id.archetype.toLowerCase()} with several genuinely strong decisions and a few places where the machinery shows.`
+  ],
+  mixed:[
+   `${sc.title} contains a more interesting film whenever its ${id.strength} takes over, but the surrounding material does not always support it.`,
+   `There are stretches where the ${id.texture} approach gives ${focus} real life, and others where the film retreats into more ordinary studio rhythms.`,
+   `${sc.title} is neither anonymous nor fully coherent: its best qualities are specific, but they do not consistently control the whole film.`,
+   `The central idea remains appealing, yet the finished film keeps shifting between its strongest identity and safer instincts.`
+  ],
+  poor:[
+   `${sc.title} never quite solves how to turn ${focus} into a coherent finished film, despite flashes of a more specific ${id.texture} version.`,
+   `The frustrating thing about ${sc.title} is that its best idea is visible; the film simply cannot hold onto it for long enough.`,
+   `${sc.title} has a clear intended identity, but the execution repeatedly pulls attention toward its weakest departments.`,
+   `The film reaches for a ${id.texture} ${id.archetype.toLowerCase()} and too often lands as a collection of competing intentions.`
+  ]
+ };
+ const lead=variationPick(f,'review-lead-'+tier,leads[tier]),paragraphs=[lead];
+ const strengthLines={
+  performances:[
+   `The performances are the film's anchor. The actors keep finding behaviour between the plot beats, giving scenes weight even when the screenplay is moving quickly.`,
+   `Its strongest asset is the acting: reactions and silences do as much work as dialogue, and the film is better whenever it trusts that.`,
+   `The cast gives the movie an emotional temperature the premise alone could not provide, particularly in the quieter exchanges.`
+  ],
+  direction:[
+   `The direction supplies coherence. Even when individual elements are uneven, the film keeps returning to the same visual and dramatic logic.`,
+   `What holds the movie together is directorial control: framing, performance and rhythm feel as though they belong to the same film.`,
+   `The filmmaking has a clear hand on the wheel, turning potentially disparate material into a consistent piece of cinema.`
+  ],
+  'technical craft':[
+   `The technical work is unusually persuasive, with image, sound and finishing choices making the production feel more deliberate than its budget alone would suggest.`,
+   `Craft is doing significant work here. The film's environments and set pieces have texture rather than the temporary sheen of expensive coverage.`,
+   `The finish matters: camera, design and effects give the film a physical confidence that keeps its larger ideas believable.`
+  ],
+  pacing:[
+   `The film understands velocity. Scenes arrive, make their point and leave before the engine loses pressure.`,
+   `Its strongest formal choice is rhythm: the cut keeps information and momentum moving without making the story feel merely hurried.`,
+   `There is pleasure in how efficiently the movie moves; it trusts forward motion without turning every scene into connective tissue.`
+  ],
+  'story clarity':[
+   `The storytelling is impressively clean. Complicated information is usually embedded in action and character rather than dumped on the audience.`,
+   `Clarity is the film's quiet strength: motives, geography and cause-and-effect remain legible even when the material becomes busy.`,
+   `The screenplay and edit keep a firm grip on what the audience needs to understand, which gives the more ambitious choices room to breathe.`
+  ],
+  'lead chemistry':[
+   `The central relationship is the film's most renewable source of energy. Even functional scenes become more interesting when the leads share the frame.`,
+   `Chemistry gives the film its pulse; the relationship feels discovered rather than mechanically plotted.`,
+   `The leads create enough tension, warmth or friction between them that the movie can survive several otherwise ordinary stretches.`
+  ]
+ };
+ paragraphs.push(variationPick(f,'review-strength-'+id.strength,strengthLines[id.strength]||strengthLines.direction));
+ const riskLines={
+  performances:[
+   `The weakness is performance consistency. Several dramatic turns arrive because the screenplay says they should, not because the acting has fully carried us there.`,
+   `Not every performance is operating in the same register, and the mismatch becomes most visible when the story asks for emotional escalation.`
+  ],
+  direction:[
+   `The film is less certain when the direction has to connect its strongest individual scenes; transitions can feel like changes of approach rather than development.`,
+   `Some sequences work vividly in isolation, but the directorial through-line loosens whenever the film changes scale or tone.`
+  ],
+  'technical craft':[
+   `The seams show when the film reaches for scale. A few technical compromises pull attention away from the dramatic beat they are meant to support.`,
+   `Its weakest craft passages feel provisional beside the stronger material, making the production value fluctuate more than it should.`
+  ],
+  pacing:[
+   `Rhythm is the recurring problem. The film repeatedly spends too long recovering from scenes that should be propelling it forward.`,
+   `Several passages linger past the point where atmosphere becomes inertia, particularly once the central turn has already landed.`
+  ],
+  'story clarity':[
+   `The film occasionally mistakes withholding for complexity. Important motives arrive a beat too late to make the surrounding scenes feel inevitable.`,
+   `Clarity is the price of some of the film's more ambitious choices; viewers may understand the intention before they understand the mechanics.`
+  ],
+  'lead chemistry':[
+   `The central relationship never quite generates the connective energy the story needs, leaving important shared scenes to function rather than spark.`,
+   `The leads are individually convincing but do not always seem to be acting in the same emotional conversation.`
+  ]
+ };
+ if(id.risk&&id.risk!==id.strength)paragraphs.push(variationPick(f,'review-risk-'+id.risk,riskLines[id.risk]||riskLines.pacing));
+ if(f.creativeDirection){
+  paragraphs.push(variationPick(f,'review-direction-choice',[
+   `You can feel the production choice to “${f.creativeDirection.label}” in the finished film. It is not a hidden modifier; it changes what the movie spends time looking at and what it is willing to leave unresolved.`,
+   `Midway through production the film chose to “${f.creativeDirection.label},” and the finished cut commits to that decision rather than sanding it back into the original brief.`,
+   `The most revealing creative decision came during shooting: “${f.creativeDirection.label}.” The movie is more specific because it follows that choice through to the end.`
+  ]));
+ }else if(f.soundtrack?.committed){
+  const music=soundtrackSummary(f);
+  paragraphs.push(variationPick(f,'review-music',[
+   `${music} gives the finished film a recognisable musical identity without feeling pasted over the cut.`,
+   `The music plan — ${music} — is one of the clearer examples of post-production reinforcing what the film already wanted to be.`,
+   `${music} becomes part of the movie's texture rather than simply another campaign asset.`
+  ]));
+ }
+ const headline=variationPick(f,'review-headline-'+tier,{
+  great:['Specific, confident and difficult to mistake for anything else','A film with an actual point of view','The package becomes a movie'],
+  good:['A confident film with a few visible seams','Personality carries the rough edges','A clear identity, imperfectly realised'],
+  mixed:['Strong pieces looking for one complete film','Specific enough to frustrate when it turns generic','The better movie keeps appearing inside it'],
+  poor:['A distinct intention without a coherent result','Too many versions of the same film','The premise survives the execution']
+ }[tier]);
+ return {publication:'The Daily Screen',critics,audience,stars,headline,quote:lead,paragraphs:paragraphs.slice(0,4),filmIdentity:deep(id),sourceContext:{title:sc.title,genre:sc.genre,logline:sc.logline,creative:deep(c)}};
 }
 
+
 function makeReviewRoundup(f,critics,audience){
- const s=scriptById(f.scriptId),m=f.metrics,r=makeRng(hash(state.seed+'|roundup|'+f.id));
+ const sc=scriptById(f.scriptId),m=f.metrics,id=ensureFilmIdentity(f),r=makeRng(hash(state.seed+'|roundup-v314|'+f.id));
  const outlets=[
   {name:'The Trade Ledger',bias:(f.creative?.positioning==='commercial'?2:0),focus:'industry'},
-  {name:'Frame & Sound',bias:(s.originality>78?3:-1),focus:'craft'},
-  {name:'Popcorn Weekly',bias:(audience>critics?3:-1),focus:'audience'}
+  {name:'Frame & Sound',bias:(sc.originality>78?3:-1),focus:'craft'},
+  {name:'Popcorn Weekly',bias:(audience>critics?3:-1),focus:'audience'},
+  {name:'Auteur Quarterly',bias:(f.creative?.positioning==='prestige'?3:0)+(m.direction>82?2:0),focus:'auteur'}
  ];
- return outlets.map(o=>{
-  const score=Math.round(clamp(critics+o.bias+(r()-.5)*12,15,98));
-  let line='';
-  if(o.focus==='craft')line=m.direction>82?'“Formally confident and unusually well directed.”':m.performances>82?'“The performances carry the film through its rougher edges.”':'“Interesting material, unevenly realised.”';
-  else if(o.focus==='industry')line=f.marketingState?.buzz>=9?'“The campaign promised an event; the film mostly justifies the attention.”':score>=75?'“A strong piece of studio filmmaking with real commercial life.”':'“A release whose economics may be more interesting than its execution.”';
-  else line=audience>=80?'“The kind of movie audiences are likely to recommend immediately.”':audience<58?'“Hard to imagine broad word of mouth overcoming the film’s problems.”':'“A decent crowd-pleaser, though not an obvious obsession.”';
-  return {publication:o.name,score,stars:reviewStars(score),quote:line};
+ return outlets.map((o,idx)=>{
+  const score=Math.round(clamp(critics+o.bias+(r()-.5)*12,15,98)),high=score>=78,low=score<58;let lines=[];
+  if(o.focus==='craft')lines=high?[
+   `“The ${id.texture} craft is not decoration; it is the movie’s organising idea.”`,
+   `“${id.strength[0].toUpperCase()+id.strength.slice(1)} gives the film a formal confidence its weaker passages cannot erase.”`,
+   `“A technically considered film that knows which images and performances deserve emphasis.”`
+  ]:low?[
+   `“The film has a visual idea, but the execution keeps exposing where the plan ran out of precision.”`,
+   `“Interesting material, unevenly realised, with craft that fluctuates from sequence to sequence.”`
+  ]:[
+   `“The film is strongest when ${id.strength} and its ${id.texture} visual approach line up.”`,
+   `“There is enough formal personality here to make the inconsistencies more frustrating.”`
+  ];
+  else if(o.focus==='industry')lines=high?[
+   `“A piece of studio filmmaking with a specific identity and real commercial life.”`,
+   `“The campaign has an easier job because the finished film can be described as something more precise than its genre.”`,
+   `“A package that actually became a movie rather than remaining a collection of marketable parts.”`
+  ]:low?[
+   `“The economics may prove more interesting than the finished execution.”`,
+   `“A marketable package that never finds a creative centre strong enough to justify the spend.”`
+  ]:[
+   `“The film has enough identity to travel, though its commercial ceiling may depend on word of mouth.”`,
+   `“A credible release whose strongest selling point is more specific than its campaign suggests.”`
+  ];
+  else if(o.focus==='auteur')lines=high?[
+   `“The best thing about ${f.title} is that its choices feel connected to a point of view.”`,
+   `“A ${id.texture} film willing to follow its own instincts past the safer version.”`,
+   `“The production discovered a movie and, unusually, did not edit all the discovery out of it.”`
+  ]:low?[
+   `“Individual choices suggest authorship; the whole never settles into one argument.”`,
+   `“The film keeps announcing a point of view it cannot consistently sustain.”`
+  ]:[
+   `“There is an actual film-maker’s argument here, even when the execution wobbles.”`,
+   `“Specific enough to be interesting, inconsistent enough to remain unresolved.”`
+  ];
+  else lines=audience>=82?[
+   `“The kind of movie audiences leave wanting to talk about rather than merely rate.”`,
+   `“Its ${id.strength} gives the crowd something immediate to latch onto.”`,
+   `“A surprisingly easy film to recommend because its personality is obvious within minutes.”`
+  ]:audience<58?[
+   `“Hard to imagine broad word of mouth overcoming the film’s colder or less coherent stretches.”`,
+   `“The movie asks for patience without always giving the audience enough in return.”`
+  ]:[
+   `“A solid night out with a more specific personality than the average ${f.genre.toLowerCase()}.”`,
+   `“Some viewers will love the ${id.texture} approach; others will wish the film simply moved on.”`
+  ];
+  return {publication:o.name,score,stars:reviewStars(score),quote:variationPick(f,`roundup-${o.focus}-${idx}`,lines)};
  });
 }
+
 function addCinemaWeek(f){
  const row=f.weeklyPlan[f.weeklyResults.length];if(!row)return;
  const actual=deep(row);actual.worldWeek=state.week;f.weeklyResults.push(actual);f.cinemaWeek=f.weeklyResults.length;
@@ -9439,7 +9821,7 @@ function reviewScreen(f){
  ${roundup.length?`<div class="section-title"><h2>Review roundup</h2></div><div class="grid">${roundup.map(r=>`<div class="card"><div class="row">${pressLogoHTML(r.publication,'xs',true)}<span class="pill">${r.stars.toFixed(1)} / 5 ★</span></div><div class="quote" style="font-size:15px;margin-top:8px">${r.quote}</div><div class="small" style="margin-top:6px">${r.score}%</div></div>`).join('')}</div>`:''}
  ${f.audienceSegments?`<div class="section-title"><h2>Audience segments</h2><span class="small">Post-release response</span></div><div class="grid">${Object.entries(f.audienceSegments).sort((a,b)=>b[1]-a[1]).map(([name,score])=>`<div class="card ${score>=80?'goodline':score<50?'dangerline':''}"><div class="row"><strong>${name}</strong><strong>${Math.round(score)}%</strong></div><div class="small" style="margin-top:5px">${score>=82?'Enthusiastic':score>=70?'Strong':score>=58?'Mixed-positive':score>=48?'Mixed':'Weak'}</div></div>`).join('')}</div>`:''}
  <div class="section-title"><h2>Campaign vs reality</h2></div><div class="card"><div class="listrow"><span>Trailer promise</span><strong>${m.trailer||'concept'}-first</strong></div><div class="listrow"><span>Pre-release heat</span><strong>${marketingPublicStatus(f).heat}</strong></div><div class="listrow"><span>Expectation pressure</span><strong>${marketingPublicStatus(f).pressure}</strong></div>${f.soundtrack?.committed?`<div class="listrow"><span>Music</span><strong>${soundtrackSummary(f)}</strong></div>`:''}${m.advancePress?`<div class="listrow"><span>Advance notices</span><strong>${m.advancePress}</strong></div>`:''}</div>
- <div class="section-title"><h2>What the review was responding to</h2></div><div class="card body"><strong>${f.review.sourceContext.title}</strong> · ${f.review.sourceContext.genre}<br><span class="small">${f.review.sourceContext.logline}</span></div>
+ <div class="section-title"><h2>What the review was responding to</h2></div><div class="card body"><strong>${f.review.sourceContext.title}</strong> · ${f.review.sourceContext.genre}<br><span class="small">${f.review.sourceContext.logline}</span><div class="hr"></div><span class="small"><strong>Finished-film identity:</strong> ${filmIdentityLine(f)}</span></div>
  <div class="grid cols2" style="margin-top:12px"><div class="card"><div class="badge">Critics</div><div class="kpi">${f.review.critics}%</div></div><div class="card"><div class="badge">Audience</div><div class="kpi">${f.review.audience}%</div></div></div>
  </main>${nav()}`;
 }
@@ -9459,7 +9841,7 @@ function filmWrapMomentScreen(){
  }else if(step===1){
   chapter=`<section class="wrap-chapter wrap-enter"><div class="wrap-chapter-kicker">THE FINAL VERDICT</div><h1>${filmWrapVerdictHeadline(f,l)}</h1><div class="wrap-scoreboard"><div class="wrap-score-main"><span>WORLDWIDE</span><strong>${money(f.finalGross)}</strong><small>${money(l.domestic)} domestic · ${money(l.international)} international</small></div><div class="wrap-score-main ${l.profit>=0?'positive':'negative'}"><span>STUDIO RESULT</span><strong>${l.profit>=0?'+':''}${money(l.profit)}</strong><small>${Math.round(l.roi*100)}% film ROI · ${money(f.investment)} invested</small></div></div><p class="wrap-verdict-copy">${filmWrapVerdictCopy(f,l)}</p><div class="wrap-reception-strip"><div><span>Critics</span><strong>${f.review?.critics||0}%</strong></div><div><span>Audience</span><strong>${f.review?.audience||0}%</strong></div><div><span>Peak chart</span><strong>${l.peakRank?'#'+l.peakRank:'—'}</strong></div><div><span>Weeks #1</span><strong>${l.weeksAtOne}</strong></div></div>${l.tags.length?`<div class="wrap-tags cinematic">${l.tags.slice(0,5).map(t=>`<span>${t}</span>`).join('')}</div>`:''}</section>${navButtons('Tell me the story →')}`;
  }else if(step===2){
-  chapter=`<section class="wrap-chapter wrap-enter"><div class="wrap-chapter-kicker">THE STORY OF THE FILM</div><h1>Three moments that made ${f.title} what it became.</h1><div class="wrap-timeline">${story.map((m,i)=>`<div class="wrap-timeline-item ${m.tone||'neutral'}"><div class="wrap-timeline-num">0${i+1}</div><div class="wrap-timeline-copy"><div class="wrap-timeline-meta"><span>${m.phase}</span><small>${m.label}</small></div><p>${m.text}</p></div></div>`).join('')||'<div class="wrap-empty-story">The film reached the screen without one dominant production or campaign moment. The run itself became the story.</div>'}</div>${l.callback?`<div class="wrap-memory-strip"><span>THE STUDIO REMEMBERS</span><p>${l.callback.text}</p></div>`:''}</section>${navButtons('Who leaves changed? →')}`;
+  chapter=`<section class="wrap-chapter wrap-enter"><div class="wrap-chapter-kicker">THE STORY OF THE FILM</div><h1>Three moments that made ${f.title} what it became.</h1><p class="wrap-verdict-copy">${filmIdentityLine(f)}</p><div class="wrap-timeline">${story.map((m,i)=>`<div class="wrap-timeline-item ${m.tone||'neutral'}"><div class="wrap-timeline-num">0${i+1}</div><div class="wrap-timeline-copy"><div class="wrap-timeline-meta"><span>${m.phase}</span><small>${m.label}</small></div><p>${m.text}</p></div></div>`).join('')||'<div class="wrap-empty-story">The film reached the screen without one dominant production or campaign moment. The run itself became the story.</div>'}</div>${l.callback?`<div class="wrap-memory-strip"><span>THE STUDIO REMEMBERS</span><p>${l.callback.text}</p></div>`:''}</section>${navButtons('Who leaves changed? →')}`;
  }else if(step===3){
   chapter=`<section class="wrap-chapter wrap-enter"><div class="wrap-chapter-kicker">THE PEOPLE WHO CAME OUT DIFFERENT</div><h1>A film ends. Careers keep moving.</h1><div class="wrap-people-grid">${people.map(x=>`<div class="wrap-person"><div class="wrap-person-head">${portraitHTML(x.t,'md')}<div><span>${x.role}</span><strong>${x.name}</strong><small>${relationshipLabel(x.t.relationship||0)} with ${state.studio.name}</small></div></div><p>${x.text}</p><div class="wrap-momentum"><span>Momentum</span><strong>${x.before} <b>→</b> ${x.after}</strong><em class="${x.delta>0?'up':x.delta<0?'down':''}">${x.delta>0?'+':''}${x.delta}</em></div></div>`).join('')||'<div class="wrap-empty-story">No single career moved dramatically. This one belongs more to the studio than to an individual performer.</div>'}</div></section>${navButtons('Hear from The Lot →')}`;
  }else{
@@ -10014,7 +10396,7 @@ if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&
 function projectSlateSmokeChecks(){
  const failures=[],required=[
   ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],
-  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
+  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['ensureFilmIdentity',typeof ensureFilmIdentity],['productionEventFlavor',typeof productionEventFlavor],['filmPressAngle',typeof filmPressAngle],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
  if(!app)failures.push('#app missing');
@@ -10024,6 +10406,7 @@ function projectSlateSmokeChecks(){
  try{const e=executivePersonaSnapshot(),m=industryMoodSnapshot();if(!e.primary?.label||e.signals.length<6)failures.push('executive persona invalid');if(!m.label||!m.financing||!m.talent)failures.push('industry mood invalid');if(Object.keys(PRESS_PERSONALITIES).length<5)failures.push('press personality roster incomplete')}catch(e){failures.push('v3.12 systems smoke failed')}
  try{if(queueStudioMoment.toString().includes('campaignMomentDeskEntry(f,type'))failures.push('campaign moments still duplicated to Desk');if(!resolveOpportunityDeskChoice.toString().includes("templateId==='rights-offer'"))failures.push('actionable rights flow missing')}catch(e){failures.push('v3.12.1 polish smoke failed')}
  try{const rv=(state.rivals||[])[0];if(rv){const x=rivalrySnapshot(rv);if(!x.label||!Array.isArray(x.events))failures.push('rivalry snapshot invalid')}if(!nav.toString().includes('globalBackToTop'))failures.push('global back-to-top missing')}catch(e){failures.push('v3.13 systems smoke failed')}
+ try{const f=(state.films||[]).find(x=>x.owner==='player');if(f){const id=ensureFilmIdentity(f);if(!id?.archetype||!id?.texture)failures.push('film identity invalid')}if(makeReview.toString().includes('Strong moments, mixed results'))failures.push('legacy repetitive review generator active');if(soundtrackOffers.toString().indexOf('usedTracks')<0)failures.push('music freshness missing')}catch(e){failures.push('v3.14 variation smoke failed')}
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
   const unique=new Set(probe.scripts.map(x=>x.title.toLowerCase())).size,quantified=probe.scripts.filter(x=>/^(No One|Nobody|Someone|Everyone)\b/i.test(x.title)).length;
