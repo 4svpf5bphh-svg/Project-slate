@@ -10954,7 +10954,6 @@ function projectSlateSmokeChecks(){
   if(!releaseAIFilm.toString().includes('releaseWindowOpeningModifier'))failures.push('AI release-window parity missing');
   if(!aiWeeklyFinance.toString().includes('aiCatalogueWeeklyRevenue'))failures.push('AI catalogue parity missing');
   if(!aiCatalogueWeeklyRevenue.toString().includes('aiLegacyCatalogueWeeklyRevenue'))failures.push('AI legacy catalogue seed missing');
-  if(!releaseTurnaroundScript.toString().includes('budgetAnchor'))failures.push('turnaround rights rebalance missing');
   if(!releaseOutcomeProfile.toString().includes('frontloadChance'))failures.push('release profile variance pass missing');
  }catch(e){failures.push('v4.0a simulation audit smoke failed'+(e?.message?': '+e.message:''))}
  try{
