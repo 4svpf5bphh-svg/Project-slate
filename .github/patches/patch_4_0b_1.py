@@ -112,18 +112,18 @@ gate="""function legendArchiveGate(entry){
  const base={accessible:{films:3,recognition:28},challenging:{films:6,recognition:45},storied:{films:10,recognition:60},mythic:{films:15,recognition:72}}[tier]||{films:6,recognition:45};
  const films=completedPlayerFilms().length,recognition=ensureStudioGrowth().recognition,requiredFilms=Math.max(base.films,3+unlocked*2);
  const done=films>=requiredFilms&&recognition>=base.recognition,pct=Math.min(100,Math.min(films/requiredFilms,recognition/base.recognition)*100);
- return {done,pct,text:${Math.min(films,requiredFilms)}/${requiredFilms} career releases · recognition ${Math.round(recognition)}/${base.recognition}`};
+ return {done,pct,text:Math.min(films,requiredFilms)+'/'+requiredFilms+' career releases · recognition '+Math.round(recognition)+'/'+base.recognition};
 }
 
-""".replace("${","${")
+"""
 s=s[:li]+gate+s[li:]
 
 old_return=" return {done,pct:clamp(pct,0,100),text};\n}"
 new_return=""" const achievementDone=done,achievementPct=pct,achievementText=text,gate=legendArchiveGate(entry);
  done=achievementDone&&gate.done;pct=Math.min(achievementPct,gate.pct);
- if(!gate.done)text=${achievementText} · Archive standing: ${gate.text}`;
+ if(!gate.done)text=achievementText+' · Archive standing: '+gate.text;
  return {done,pct:clamp(pct,0,100),text};
-}""".replace("${","${")
+}"""
 one(old_return,new_return,"legend gate integration")
 
 # Extend the milestone runway and explicitly reward building the studio itself.
@@ -131,17 +131,17 @@ ms=s.index("const STUDIO_MILESTONES=[")
 me=s.index("\n];",ms)
 extra="""
  // v4.0b.1 — LONG CAREER & INFRASTRUCTURE
- {id:'thirty_five_films',category:'Studio',title:'Catalogue Company',desc:'Release thirty-five films.',points:25,target:35,value:()=>completedPlayerFilms().length,format:v=>${Math.min(v,35)}/35 releases`},
- {id:'fifty_films',category:'Studio',title:'Studio Era',desc:'Release fifty films.',points:40,target:50,value:()=>completedPlayerFilms().length,format:v=>${Math.min(v,50)}/50 releases`},
- {id:'twenty_five_profitable',category:'Studio',title:'Repeatable Business',desc:'Produce twenty-five profitable releases.',points:30,target:25,value:()=>profitablePlayerFilms(),format:v=>${Math.min(v,25)}/25 profitable releases`},
- {id:'lifetime_5b',category:'Box Office',title:'Five-Billion Library',desc:'Reach $5bn in lifetime worldwide box office.',points:35,target:5000,value:()=>lifetimePlayerGross(),format:v=>${money(Math.min(v,5000))} / $5.0bn`},
- {id:'lifetime_10b',category:'Box Office',title:'Global Institution',desc:'Reach $10bn in lifetime worldwide box office.',points:50,target:10000,value:()=>lifetimePlayerGross(),format:v=>${money(Math.min(v,10000))} / $10.0bn`},
- {id:'year_five',category:'Legacy',title:'Five Years on the Lot',desc:'Reach the studio’s fifth operating year.',points:15,target:5,value:()=>Math.ceil(state.week/52),format:v=>${Math.min(v,5)}/5 years`},
- {id:'year_ten',category:'Legacy',title:'A Decade of Pictures',desc:'Reach the studio’s tenth operating year.',points:35,target:10,value:()=>Math.ceil(state.week/52),format:v=>${Math.min(v,10)}/10 years`},
- {id:'first_upgrade',category:'Studio',title:'Build the Company',desc:'Open the studio’s first permanent department upgrade.',points:5,target:1,value:()=>totalStudioUpgradeLevels(),format:v=>${Math.min(v,1)}/1 department level`},
- {id:'five_upgrades',category:'Studio',title:'Working Studio',desc:'Own five permanent department levels across the lot.',points:20,target:5,value:()=>totalStudioUpgradeLevels(),format:v=>${Math.min(v,5)}/5 department levels`},
- {id:'all_upgrades',category:'Studio',title:'Full-Service Studio',desc:'Fully build every permanent studio department.',points:40,target:10,value:()=>totalStudioUpgradeLevels(),format:v=>${Math.min(v,10)}/10 department levels`},
-""".replace("${","${")
+ {id:'thirty_five_films',category:'Studio',title:'Catalogue Company',desc:'Release thirty-five films.',points:25,target:35,value:()=>completedPlayerFilms().length,format:v=>Math.min(v,35)+'/35 releases'},
+ {id:'fifty_films',category:'Studio',title:'Studio Era',desc:'Release fifty films.',points:40,target:50,value:()=>completedPlayerFilms().length,format:v=>Math.min(v,50)+'/50 releases'},
+ {id:'twenty_five_profitable',category:'Studio',title:'Repeatable Business',desc:'Produce twenty-five profitable releases.',points:30,target:25,value:()=>profitablePlayerFilms(),format:v=>Math.min(v,25)+'/25 profitable releases'},
+ {id:'lifetime_5b',category:'Box Office',title:'Five-Billion Library',desc:'Reach $5bn in lifetime worldwide box office.',points:35,target:5000,value:()=>lifetimePlayerGross(),format:v=>money(Math.min(v,5000))+' / $5.0bn'},
+ {id:'lifetime_10b',category:'Box Office',title:'Global Institution',desc:'Reach $10bn in lifetime worldwide box office.',points:50,target:10000,value:()=>lifetimePlayerGross(),format:v=>money(Math.min(v,10000))+' / $10.0bn'},
+ {id:'year_five',category:'Legacy',title:'Five Years on the Lot',desc:'Reach the studio’s fifth operating year.',points:15,target:5,value:()=>Math.ceil(state.week/52),format:v=>Math.min(v,5)+'/5 years'},
+ {id:'year_ten',category:'Legacy',title:'A Decade of Pictures',desc:'Reach the studio’s tenth operating year.',points:35,target:10,value:()=>Math.ceil(state.week/52),format:v=>Math.min(v,10)+'/10 years'},
+ {id:'first_upgrade',category:'Studio',title:'Build the Company',desc:'Open the studio’s first permanent department upgrade.',points:5,target:1,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,1)+'/1 department level'},
+ {id:'five_upgrades',category:'Studio',title:'Working Studio',desc:'Own five permanent department levels across the lot.',points:20,target:5,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,5)+'/5 department levels'},
+ {id:'all_upgrades',category:'Studio',title:'Full-Service Studio',desc:'Fully build every permanent studio department.',points:40,target:10,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,10)+'/10 department levels'},
+"""
 s=s[:me]+extra+s[me:]
 
 p.write_text(s,encoding="utf-8")
