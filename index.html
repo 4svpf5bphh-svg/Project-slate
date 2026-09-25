@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.14.1</title>
+<title>Project Slate — Premium Presentation v3.14.2</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.14.1';
+const VERSION='3.14.2';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3298,7 +3298,7 @@ function launchLateGameChallenger(){
 function maybeLaunchLateGameChallenger(){return launchLateGameChallenger()}
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=399;
+const SAVE_SCHEMA_VERSION=400;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -3518,6 +3518,11 @@ function applySaveSchemaMigrations(x,fromVersion){
    sc.logline=concept.logline;sc.shape=concept.shape;sc.premiseDNA=concept.premiseDNA;
   });
   schema=399;
+ }
+
+
+ if(schema<400){
+  schema=400;
  }
 
  x.saveSchema=schema;
@@ -6548,156 +6553,221 @@ function scriptFocus(s){
  return `the central idea described by its screenplay — ${s.logline.replace(/\.$/,'').toLowerCase()}`;
 }
 
-function makeReview(f,critics,audience){
- const sc=scriptById(f.scriptId),m=f.metrics,c=f.creative||defaultCreative(),id=ensureFilmIdentity(f),focus=scriptFocus(sc),stars=reviewStars(critics);
- const tier=critics>=88?'great':critics>=75?'good':critics>=60?'mixed':'poor';
- const leads={
-  great:[
-   `${sc.title} takes ${focus} and turns it into a ${id.texture} film with a point of view rather than merely a premise.`,
-   `The surprise of ${sc.title} is not that ${focus} works; it is how confidently the film decides what kind of experience it wants to be.`,
-   `${sc.title} arrives with the rare advantage of specificity: a ${id.texture} ${id.archetype.toLowerCase()} that knows where to place its emphasis.`,
-   `There is real authorship in the way ${sc.title} builds ${focus} into a film whose strongest choices feel connected rather than accumulated.`
-  ],
-  good:[
-   `${sc.title} is most persuasive when its ${id.texture} identity and ${id.strength} are pulling in the same direction.`,
-   `The film makes a convincing case for ${focus}, even if not every choice around it lands with equal force.`,
-   `${sc.title} has enough personality to feel made rather than assembled, particularly when it trusts its ${id.strength}.`,
-   `This is a confident ${id.archetype.toLowerCase()} with several genuinely strong decisions and a few places where the machinery shows.`
-  ],
-  mixed:[
-   `${sc.title} contains a more interesting film whenever its ${id.strength} takes over, but the surrounding material does not always support it.`,
-   `There are stretches where the ${id.texture} approach gives ${focus} real life, and others where the film retreats into more ordinary studio rhythms.`,
-   `${sc.title} is neither anonymous nor fully coherent: its best qualities are specific, but they do not consistently control the whole film.`,
-   `The central idea remains appealing, yet the finished film keeps shifting between its strongest identity and safer instincts.`
-  ],
-  poor:[
-   `${sc.title} never quite solves how to turn ${focus} into a coherent finished film, despite flashes of a more specific ${id.texture} version.`,
-   `The frustrating thing about ${sc.title} is that its best idea is visible; the film simply cannot hold onto it for long enough.`,
-   `${sc.title} has a clear intended identity, but the execution repeatedly pulls attention toward its weakest departments.`,
-   `The film reaches for a ${id.texture} ${id.archetype.toLowerCase()} and too often lands as a collection of competing intentions.`
-  ]
- };
- const lead=variationPick(f,'review-lead-'+tier,leads[tier]),paragraphs=[lead,premiseReviewParagraph(f,tier)];
- const strengthLines={
-  performances:[
-   `The performances are the film's anchor. The actors keep finding behaviour between the plot beats, giving scenes weight even when the screenplay is moving quickly.`,
-   `Its strongest asset is the acting: reactions and silences do as much work as dialogue, and the film is better whenever it trusts that.`,
-   `The cast gives the movie an emotional temperature the premise alone could not provide, particularly in the quieter exchanges.`
-  ],
-  direction:[
-   `The direction supplies coherence. Even when individual elements are uneven, the film keeps returning to the same visual and dramatic logic.`,
-   `What holds the movie together is directorial control: framing, performance and rhythm feel as though they belong to the same film.`,
-   `The filmmaking has a clear hand on the wheel, turning potentially disparate material into a consistent piece of cinema.`
-  ],
-  'technical craft':[
-   `The technical work is unusually persuasive, with image, sound and finishing choices making the production feel more deliberate than its budget alone would suggest.`,
-   `Craft is doing significant work here. The film's environments and set pieces have texture rather than the temporary sheen of expensive coverage.`,
-   `The finish matters: camera, design and effects give the film a physical confidence that keeps its larger ideas believable.`
-  ],
-  pacing:[
-   `The film understands velocity. Scenes arrive, make their point and leave before the engine loses pressure.`,
-   `Its strongest formal choice is rhythm: the cut keeps information and momentum moving without making the story feel merely hurried.`,
-   `There is pleasure in how efficiently the movie moves; it trusts forward motion without turning every scene into connective tissue.`
-  ],
-  'story clarity':[
-   `The storytelling is impressively clean. Complicated information is usually embedded in action and character rather than dumped on the audience.`,
-   `Clarity is the film's quiet strength: motives, geography and cause-and-effect remain legible even when the material becomes busy.`,
-   `The screenplay and edit keep a firm grip on what the audience needs to understand, which gives the more ambitious choices room to breathe.`
-  ],
-  'lead chemistry':[
-   `The central relationship is the film's most renewable source of energy. Even functional scenes become more interesting when the leads share the frame.`,
-   `Chemistry gives the film its pulse; the relationship feels discovered rather than mechanically plotted.`,
-   `The leads create enough tension, warmth or friction between them that the movie can survive several otherwise ordinary stretches.`
-  ]
- };
- paragraphs.push(variationPick(f,'review-strength-'+id.strength,strengthLines[id.strength]||strengthLines.direction));
- const riskLines={
-  performances:[
-   `The weakness is performance consistency. Several dramatic turns arrive because the screenplay says they should, not because the acting has fully carried us there.`,
-   `Not every performance is operating in the same register, and the mismatch becomes most visible when the story asks for emotional escalation.`
-  ],
-  direction:[
-   `The film is less certain when the direction has to connect its strongest individual scenes; transitions can feel like changes of approach rather than development.`,
-   `Some sequences work vividly in isolation, but the directorial through-line loosens whenever the film changes scale or tone.`
-  ],
-  'technical craft':[
-   `The seams show when the film reaches for scale. A few technical compromises pull attention away from the dramatic beat they are meant to support.`,
-   `Its weakest craft passages feel provisional beside the stronger material, making the production value fluctuate more than it should.`
-  ],
-  pacing:[
-   `Rhythm is the recurring problem. The film repeatedly spends too long recovering from scenes that should be propelling it forward.`,
-   `Several passages linger past the point where atmosphere becomes inertia, particularly once the central turn has already landed.`
-  ],
-  'story clarity':[
-   `The film occasionally mistakes withholding for complexity. Important motives arrive a beat too late to make the surrounding scenes feel inevitable.`,
-   `Clarity is the price of some of the film's more ambitious choices; viewers may understand the intention before they understand the mechanics.`
-  ],
-  'lead chemistry':[
-   `The central relationship never quite generates the connective energy the story needs, leaving important shared scenes to function rather than spark.`,
-   `The leads are individually convincing but do not always seem to be acting in the same emotional conversation.`
-  ]
- };
- if(id.risk&&id.risk!==id.strength)paragraphs.push(variationPick(f,'review-risk-'+id.risk,riskLines[id.risk]||riskLines.pacing));
- if(f.creativeDirection&&paragraphs.length<4){
-  paragraphs.push(variationPick(f,'review-direction-choice',[
-   `You can feel the production choice to “${f.creativeDirection.label}” in the finished film. It is not a hidden modifier; it changes what the movie spends time looking at and what it is willing to leave unresolved.`,
-   `Midway through production the film chose to “${f.creativeDirection.label},” and the finished cut commits to that decision rather than sanding it back into the original brief.`,
-   `The most revealing creative decision came during shooting: “${f.creativeDirection.label}.” The movie is more specific because it follows that choice through to the end.`
-  ]));
- }else if(f.soundtrack?.committed&&paragraphs.length<4){
-  const music=soundtrackSummary(f);
-  paragraphs.push(variationPick(f,'review-music',[
-   `${music} gives the finished film a recognisable musical identity without feeling pasted over the cut.`,
-   `The music plan — ${music} — is one of the clearer examples of post-production reinforcing what the film already wanted to be.`,
-   `${music} becomes part of the movie's texture rather than simply another campaign asset.`
-  ]));
- }
- const headline=variationPick(f,'review-headline-'+tier,{
-  great:['Specific, confident and difficult to mistake for anything else','A film with an actual point of view','The package becomes a movie'],
-  good:['A confident film with a few visible seams','Personality carries the rough edges','A clear identity, imperfectly realised'],
-  mixed:['Strong pieces looking for one complete film','Specific enough to frustrate when it turns generic','The better movie keeps appearing inside it'],
-  poor:['A distinct intention without a coherent result','Too many versions of the same film','The premise survives the execution']
- }[tier]);
- return {publication:'The Daily Screen',critics,audience,stars,headline,quote:lead,paragraphs:paragraphs.slice(0,4),filmIdentity:deep(id),sourceContext:{title:sc.title,genre:sc.genre,logline:sc.logline,creative:deep(c)}};
+
+const DAILY_SCREEN_CRITICS=[
+ {id:'beatrice-shaw',name:'Beatrice Shaw',title:'Chief Film Critic',voice:'acid',tag:'Dry, exacting and suspicious of expensive nonsense.'},
+ {id:'nia-mercer',name:'Nia Mercer',title:'Genre Editor',voice:'genre',tag:'Loves committed genre filmmaking and has no patience for timid versions of it.'},
+ {id:'julian-cross',name:'Julian Cross',title:'Senior Critic',voice:'cinephile',tag:'Earnest about cinema, occasionally to an almost comic degree.'},
+ {id:'tom-bell',name:'Tom Bell',title:'Weekend Critic',voice:'crowd',tag:'Measures movies partly by whether anybody would willingly watch them twice.'}
+];
+function reviewTier(score){return score>=92?'rave':score>=82?'great':score>=70?'good':score>=55?'mixed':score>=40?'poor':'disaster'}
+function dailyScreenCritic(f){
+ const genre=f.genre||scriptById(f.scriptId)?.genre||'';
+ let pool=DAILY_SCREEN_CRITICS;
+ if(/Horror|Science Fiction|Fantasy|Action/.test(genre))pool=[DAILY_SCREEN_CRITICS[1],DAILY_SCREEN_CRITICS[0],DAILY_SCREEN_CRITICS[3]];
+ else if(/Prestige|Crime/.test(genre))pool=[DAILY_SCREEN_CRITICS[2],DAILY_SCREEN_CRITICS[0],DAILY_SCREEN_CRITICS[1]];
+ else if(/Comedy|Family/.test(genre))pool=[DAILY_SCREEN_CRITICS[3],DAILY_SCREEN_CRITICS[0],DAILY_SCREEN_CRITICS[1]];
+ const r=makeRng(hash((state.seed||1)+'|daily-screen-critic-v3142|'+f.id));return pool[Math.floor(r()*pool.length)]||pool[0];
 }
-
-
-
+function criticOpeningParagraph(f,tier,critic){
+ const sc=scriptById(f.scriptId),id=ensureFilmIdentity(f),p=premiseReviewContext(sc),subject=p?.name||sc.title,genre=(f.genre||sc.genre||'film').toLowerCase();
+ const pools={
+  acid:{
+   rave:[`${sc.title} is the irritating sort of film that makes a difficult job look easy. It takes a premise with every opportunity to become expensive nonsense and instead turns ${subject} into the centre of a genuinely ${id.texture} movie.`,`There are films that announce their intelligence every six minutes. ${sc.title} has the better idea: it simply behaves as though the audience has some.`],
+   great:[`${sc.title} has money, machinery and several opportunities to embarrass itself. Happily, most of them are declined. What remains is a ${id.texture} ${genre} with an actual pulse.`,`The nicest surprise in ${sc.title} is that someone appears to have asked what the movie is about before asking how large the trailer moment should be.`],
+   good:[`${sc.title} is too lively to dismiss and too uneven to canonise. That may not fit comfortably on a poster, but it is considerably more interesting than competence.`,`For long stretches, ${sc.title} remembers that a hook is not the same thing as a movie. When it forgets, you can almost hear the marketing department clearing its throat.`],
+   mixed:[`${sc.title} keeps threatening to become the sharper film hiding inside it, then gets distracted by something louder, safer or more expensive.`,`There is a good film in ${sc.title}. Unfortunately, it appears to be sharing a dressing room with two less interesting ones.`],
+   poor:[`${sc.title} has a premise, a budget and what appears to be a deep personal objection to putting either to sensible use.`,`The frustrating part of ${sc.title} is that the better film is visible throughout, waving from behind the one that actually reached cinemas.`],
+   disaster:[`${sc.title} is less a finished film than a very expensive sequence of decisions nobody managed to stop.`,`At some point during ${sc.title}, the question stops being “will this improve?” and becomes “who had the authority to say no?”`]
+  },
+  genre:{
+   rave:[`${sc.title} understands the first rule of genre filmmaking: if you are going to be ridiculous, frightening, enormous or all three, commit. It commits.`,`This is genre cinema with the good manners to know exactly what kind of movie it is and the bad manners to enjoy itself enormously.`],
+   great:[`${sc.title} takes its genre seriously without treating fun as an embarrassing side effect. The result is a ${id.texture} movie with teeth.`,`The film knows when to explain the rules, when to break them and, crucially, when to stop talking and let the movie happen.`],
+   good:[`${sc.title} gets more right than wrong, particularly whenever it trusts the pleasures of its own genre instead of apologising for them.`,`There is proper movie energy here: not always elegant, occasionally overcooked, but rarely embarrassed to be a ${genre}.`],
+   mixed:[`${sc.title} has all the ingredients for a better genre movie and spends much of its running time arranging them instead of cooking with them.`,`Every time ${sc.title} starts having fun, somebody seems to arrive with a note about restraint.`],
+   poor:[`${sc.title} treats genre like a checklist: threat, chase, reveal, noise. What it forgets is the bit where any of those things become exciting.`,`A ${genre} should not feel this embarrassed by its own pulse.`],
+   disaster:[`${sc.title} manages the rare trick of making chaos feel administratively organised.`,`The monsters, conspiracies, explosions or nightmares are not the scariest thing here. The edit is.`]
+  },
+  cinephile:{
+   rave:[`${sc.title} is a reminder that studio filmmaking and authorship are not natural enemies. Its ${id.texture} surfaces, performances and rhythms all appear to belong to the same thought.`,`There is a point in ${sc.title} where the premise stops feeling engineered and starts feeling inevitable. Very few studio films get there.`],
+   great:[`${sc.title} is not flawless, which is fortunate because perfection would be considerably less interesting. It is, however, specific — visually, emotionally and rhythmically.`,`What distinguishes ${sc.title} is not polish but intention. Even its excesses feel chosen.`],
+   good:[`${sc.title} is the work of people making choices rather than merely executing material. Not every choice survives, but the film is alive because they are there.`,`There is more cinema in the best twenty minutes of ${sc.title} than in several technically cleaner films put together.`],
+   mixed:[`${sc.title} contains moments of genuine authorship stranded inside a film that keeps retreating toward consensus.`,`The movie's problem is not lack of ideas. It is that too many of them appear to have final cut.`],
+   poor:[`${sc.title} gestures toward a point of view without ever accepting the inconvenience of having one.`,`The film keeps reaching for significance, often with both hands, and somehow comes back holding production design.`],
+   disaster:[`${sc.title} is what happens when intention becomes indistinguishable from indecision.`,`One hesitates to call ${sc.title} empty; it is crowded with evidence of things that might once have meant something.`]
+  },
+  crowd:{
+   rave:[`${sc.title} is two hours of somebody remembering why people go to the cinema. That sounds obvious. Judging by the competition, it apparently is not.`,`You can analyse ${sc.title} all you like; the simpler truth is that it is a terrific night out and knows it.`],
+   great:[`${sc.title} is big, confident and — a word some prestige departments may need explained — entertaining.`,`The film gives you characters to like, scenes to remember and remarkably little time to check your phone.`],
+   good:[`${sc.title} has rough edges, but it also has the decency to keep moving and the charm to make most of them forgivable.`,`Not everything works. Enough does, and more importantly, enough is fun.`],
+   mixed:[`${sc.title} is the cinematic equivalent of a meal where the starter is excellent, the main course arrives forty minutes late and dessert explodes.`,`There is a decent night out somewhere in ${sc.title}; you just have to sit through the committee meeting in the middle.`],
+   poor:[`${sc.title} is long enough to make you wonder whether the villains have a point about ending things early.`,`The film contains several good reasons to buy popcorn and fewer good reasons to stop looking at it.`],
+   disaster:[`${sc.title} earns one star for arriving at the cinema and another half-star for eventually leaving it.`,`${sc.title} is the sort of film that makes the exit sign feel like supporting cast.`]
+  }
+ };
+ return variationPick(f,'critic-open-'+critic.id+'-'+tier,pools[critic.voice][tier]);
+}
+function criticPremiseParagraph(f,tier,critic){
+ const sc=scriptById(f.scriptId),p=premiseReviewContext(sc);
+ if(!p)return premiseReviewParagraph(f,tier);
+ const positive=['rave','great','good'].includes(tier),name=p.name,role=p.role,goal=p.goal,pressure=p.pressure,comp=p.complication,setting=p.setting;
+ const pools=positive?[
+  `${name}, the ${role} at the centre of all this, has a pleasingly concrete problem: ${goal}. That would be enough plot for most films. ${sc.title} improves matters by letting ${pressure}, while the fact that ${comp} keeps the machinery personal rather than merely busy.`,
+  `The premise has been built with more care than the trailer hook suggests. Put ${name}, a ${role}, in ${setting}; make them ${goal}; then let ${pressure}. The useful ingredient is ${comp}, because it means the problem cannot be solved by competence alone.`,
+  `${setting} gives the story a strong pressure chamber, but ${name} is what keeps it from becoming tourism with jeopardy. As a ${role}, they must ${goal}; ${pressure}; and ${comp}. The film understands that the last part is the one an audience remembers.`
+ ]:[
+  `On paper, ${name} is an excellent engine for a movie: a ${role} who must ${goal} in ${setting} while ${pressure}. The film's mistake is treating ${comp} like backstory when it should be the knife.`,
+  `There is nothing wrong with the setup. ${name} needs to ${goal}; ${pressure}; and ${comp}. The problem is that ${sc.title} keeps converting specific dramatic pressure into generic movie activity.`,
+  `${setting} ought to trap ${name} inside a very particular problem. Instead, the film too often lets ${pressure} become noise, while ${comp} is periodically wheeled back on screen to remind us why we were supposed to care.`
+ ];
+ let line=variationPick(f,'critic-premise-'+critic.id+'-'+tier,pools);
+ if(critic.voice==='acid'&&tier==='disaster')line+=` It is difficult to lose a premise this specific, but ${sc.title} approaches the challenge with admirable determination.`;
+ if(critic.voice==='crowd'&&positive)line+=` Better still, you can explain all of that to someone in a pub without needing a whiteboard.`;
+ if(critic.voice==='cinephile'&&positive)line+=` Plot, for once, becomes character under pressure rather than simply incident.`;
+ return line;
+}
+function criticCraftParagraph(f,tier,critic){
+ const id=ensureFilmIdentity(f),m=f.metrics||{},lead=packageActors(f)[0],director=talentById(f.directorId),strong=id.strength,risk=id.risk,good=['rave','great','good'].includes(tier);
+ const names={performances:lead?.name||'the cast',direction:director?.name||'the director','technical craft':'the craft team',pacing:'the edit','story clarity':'the screenplay','lead chemistry':lead?.name||'the leads'};
+ const hero=names[strong]||strong,weak=names[risk]||risk;
+ const strongPools={
+  performances:[`${hero} does the invaluable work of making plot sound like something a human being might actually say.`,`The acting is where the film breathes. ${hero} can sell a look the screenplay spends half a page explaining.`],
+  direction:[`${hero} keeps the film on one tonal planet, which is more difficult than the production makes it look.`,`The direction has confidence without constantly pointing at itself in the mirror.`],
+  'technical craft':[`The craft is doing more than showing off the budget. Image, sound and design actually tell the same story.`,`Most of the money appears to have made it onto the screen, a sentence shareholders may wish to frame.`],
+  pacing:[`The edit has the rare courage to leave a scene after it has worked.`,`The film moves like it has somewhere to be, which immediately puts it ahead of half the release calendar.`],
+  'story clarity':[`The screenplay can explain a complicated idea without making the audience feel as though they have accidentally joined a briefing.`,`Clarity is not glamourous, but ${f.title} makes a persuasive case for knowing what is happening.`],
+  'lead chemistry':[`The leads have the kind of chemistry that makes functional dialogue look suspiciously like writing.`,`Whenever the central pair share the frame, the movie gains about twenty percent more electricity.`]
+ };
+ const riskPools={
+  performances:[`${weak} is less convincing when the film asks for emotional weight; several scenes arrive wearing importance rather than earning it.`,`The performances do not always appear to have agreed which film they are in.`],
+  direction:[`The direction occasionally loses control of the joins. Individual scenes work, then meet each other like strangers at a bus stop.`,`The film has a visual grammar until, without warning, it starts conjugating in somebody else's tense.`],
+  'technical craft':[`The seams show whenever the film reaches for scale. One sequence in particular has the unmistakable sheen of “we'll fix it in post” reaching release day intact.`,`Some effects shots appear to have survived quality control by avoiding eye contact.`],
+  pacing:[`The middle act does not so much slow down as apply for permanent residency.`,`There is a stretch where urgency takes a lunch break and neglects to tell the film.`],
+  'story clarity':[`The plot occasionally mistakes confusion for mystery, which is rather like mistaking a locked door for architecture.`,`Several revelations land with the emotional force of finding the page you accidentally skipped twenty minutes earlier.`],
+  'lead chemistry':[`The leads are individually capable and collectively reminiscent of two very good interviews conducted in adjacent rooms.`,`The central relationship generates less heat than several pieces of production equipment.`
+  ]
+ };
+ let line=variationPick(f,'critic-strength-'+critic.id+'-'+strong,strongPools[strong]||strongPools.direction);
+ if(!good&&risk&&risk!==strong)line+=` ${variationPick(f,'critic-risk-'+critic.id+'-'+risk,riskPools[risk]||riskPools.pacing)}`;
+ else if(good&&risk&&risk!==strong&&tier!=='rave')line+=` The weak spot is ${risk}: ${variationPick(f,'critic-risk-soft-'+critic.id+'-'+risk,riskPools[risk]||riskPools.pacing).replace(/^The /,'the ')}`;
+ return line;
+}
+function criticClosingParagraph(f,tier,critic,critics,audience){
+ const sc=scriptById(f.scriptId),id=ensureFilmIdentity(f),dir=f.creativeDirection?.label||null,music=f.soundtrack?.committed?soundtrackSummary(f):null;
+ const gap=audience-critics;
+ const pools={
+  rave:[`${sc.title} is not merely good at what it does; it knows what it is doing. That distinction sounds small until you see how many films never make it.`,`If ${sc.title} has a flaw, it is the deeply inconvenient one of making several safer films look cowardly by comparison.`,`A ${id.texture} film, a clear point of view and no detectable interest in apologising for either. More, please.`],
+  great:[`${sc.title} misses perfection and gains personality in the process. A fair trade.`,`There are cleaner films this year. There may not be many with more reason to exist.`,`The film leaves a few bruises on itself, but at least they come from swinging.`],
+  good:[`${sc.title} is easy to recommend with qualifications, which is still considerably better than being difficult to remember without them.`,`Not a masterpiece. Not remotely a waste of an evening. Hollywood could build a healthy economy in the space between those two things.`,`It has flaws, but they belong to this movie rather than to a template.`],
+  mixed:[`${sc.title} is half a very good movie and half the meeting that prevented it.`,`Three stars feels less like a verdict than a ceasefire between the film's best instincts and its safest ones.`,`The frustration is proportional to the potential. Nobody gets this annoyed at a movie with nothing going for it.`],
+  poor:[`${sc.title} is not boring enough to hate and not good enough to defend. A cruel place for any film to live.`,`Somewhere inside this production is the movie everyone thought they were making. It has not yet been located.`,`The credits contain a great many talented people. The film presents this information as a mystery.`],
+  disaster:[`One star would be cruel. Two would be dishonest. Fortunately, half-stars exist.`,`There will be worse films made accidentally. ${sc.title} has the unnerving confidence of one that kept making choices.`,`The most suspenseful question is whether the studio will mention this one in next year's retrospective.`]
+ };
+ let line=variationPick(f,'critic-close-'+critic.id+'-'+tier,pools[tier]);
+ if(dir&&['rave','great','good'].includes(tier))line+=` The production decision to “${dir}” is exactly the sort of choice that gives a film fingerprints.`;
+ else if(dir&&['poor','disaster'].includes(tier))line+=` The decision to “${dir}” is certainly visible; whether it should have been is another matter.`;
+ else if(music&&critic.voice==='crowd')line+=` ${music} at least knows when to turn up and improve the room.`;
+ if(Math.abs(gap)>=18)line+=gap>0?` Audiences are likely to be kinder than critics, and for once they may have the more enjoyable argument.`:` Critics may admire this more than ordinary viewers enjoy it — a distinction the box office is under no obligation to respect.`;
+ return line;
+}
+function criticHeadline(f,tier,critic){
+ const sc=scriptById(f.scriptId),p=premiseReviewContext(sc),subject=p?.name||f.title;
+ const pools={
+  acid:{
+   rave:['Annoyingly excellent','Someone remembered to make the movie','Expensive, specific and worth it'],
+   great:['A blockbuster with a functioning brain','The machinery finally serves the movie','Much better than its budget requires'],
+   good:['Good enough to forgive the notes','Personality survives the process','A solid film with visible fingerprints'],
+   mixed:['The better movie keeps escaping','Three stars and several unanswered memos','Good instincts, committee damage'],
+   poor:['The premise deserved legal representation','A budget in search of supervision','The movie loses an argument with itself'],
+   disaster:['An expensive cry for adult supervision','Please locate the person who could say no','The exit sign gives the best performance']
+  },
+  genre:{
+   rave:['This is how you do it','Genre filmmaking with teeth','Big swing, clean hit'],
+   great:['Finally, a movie unafraid of being a movie','Commitment beats respectability','The genre delivers'],
+   good:['Messy, muscular and mostly worth it','Enough pulse to survive the rough edges','The fun wins on points'],
+   mixed:['Too many rules, not enough movie','The good bits keep getting interrupted','Genre by committee'],
+   poor:['All ingredients, no appetite','A thriller in theory','The scares/action/fantasy need a pulse'],
+   disaster:['Chaos without the useful part','The nightmare is the edit','Even the explosions look tired']
+  },
+  cinephile:{
+   rave:['A studio film with a soul','Form, feeling and a point of view','The rare package that becomes cinema'],
+   great:['Specificity wins','A film made of choices','Imperfection with purpose'],
+   good:['More interesting than tidy','A point of view with rough edges','The compromises do not win'],
+   mixed:['Authorship under negotiation','Two films, one final cut','The idea survives the execution'],
+   poor:['Significance without shape','A point of view in quotation marks','Ambition becomes decoration'],
+   disaster:['A thesis without a film','Meaning has left the building','All intention, no pulse']
+  },
+  crowd:{
+   rave:['Buy the ticket','A proper night at the movies','Two hours very well spent'],
+   great:['Big, fun and actually good','The phone stays in your pocket','This one understands the assignment'],
+   good:['Worth the popcorn','Rough edges, good time','More fun than perfect'],
+   mixed:['Great trailer, complicated evening','Half a good night out','The middle needs an intermission'],
+   poor:['The popcorn deserved better','Longer than the villain’s plan','A good premise serving a sentence'],
+   disaster:['The exit sign steals the show','One star for eventually ending','A feature-length queue for nothing']
+  }
+ };
+ return variationPick(f,'critic-headline-'+critic.id+'-'+tier,pools[critic.voice][tier]);
+}
+function makeReview(f,critics,audience){
+ const sc=scriptById(f.scriptId),c=f.creative||defaultCreative(),id=ensureFilmIdentity(f),stars=reviewStars(critics),tier=reviewTier(critics),critic=dailyScreenCritic(f);
+ const paragraphs=[
+  criticOpeningParagraph(f,tier,critic),
+  criticPremiseParagraph(f,tier,critic),
+  criticCraftParagraph(f,tier,critic),
+  criticClosingParagraph(f,tier,critic,critics,audience)
+ ];
+ const headline=criticHeadline(f,tier,critic),quote=paragraphs[0];
+ return {publication:'The Daily Screen',critic:deep(critic),critics,audience,stars,headline,quote,paragraphs,filmIdentity:deep(id),sourceContext:{title:sc.title,genre:sc.genre,logline:sc.logline,creative:deep(c)}};
+}
+function capsuleOutletLine(f,o,tier,score,idx){
+ const sc=scriptById(f.scriptId),id=ensureFilmIdentity(f),p=premiseReviewContext(sc),subject=p?.name||f.title,lead=packageActors(f)[0],moneyLine=money(f.investment||f.budget||0),genre=(f.genre||sc.genre||'film').toLowerCase();
+ const pools={
+  industry:{
+   rave:[`${moneyLine} very visibly made it onto the screen`,`A package that became an asset rather than an expense`,`The rare greenlight that looks smarter after release`],
+   great:[`A marketable film with something to market`,`The spend is substantial; so is the evidence`,`Specific enough to have a commercial afterlife`],
+   good:[`A credible return on creative intent`,`The package survives contact with the finished film`,`Money on screen, compromises in view`],
+   mixed:[`The hook may travel further than the execution`,`A viable release with a very visible ceiling`,`The numbers will have to finish the argument`],
+   poor:[`${moneyLine} buys surprisingly little certainty`,`The package is easier to finance than defend`,`Someone will be explaining this greenlight on Monday`],
+   disaster:[`${moneyLine} and still searching for the movie`,`A write-down wearing a premiere suit`,`The P&L may need a trigger warning`]
+  },
+  craft:{
+   rave:[`Someone finally remembered action needs geography`,`Every department appears to have read the same screenplay`,`Craft this precise makes difficulty look accidental`],
+   great:[`${id.strength[0].toUpperCase()+id.strength.slice(1)} does the heavy lifting beautifully`,`A ${id.texture} film that looks finished rather than merely completed`,`The craft has opinions`],
+   good:[`Strong hands, a few visible seams`,`More texture than gloss`,`The filmmaking keeps rescuing the machinery`],
+   mixed:[`Beautiful shots, disputed ownership of the movie`,`The craft is specific; the whole is less certain`,`Several departments make excellent separate films`],
+   poor:[`“Fix it in post” appears to have reached post`,`The seams deserve supporting credit`,`Ambition keeps outrunning the render queue`],
+   disaster:[`Continuity has entered witness protection`,`The edit should be questioned without counsel`,`A technical post-mortem with opening credits`]
+  },
+  audience:{
+   rave:[`${subject} is about to become somebody's entire personality`,`Ridiculously easy to recommend`,`The kind of movie that creates a group chat on the walk home`],
+   great:[`${lead?.name||subject} gives the crowd exactly enough to shout about`,`Big grin, very few apologies`,`The trailer sold fun; the film actually delivered it`],
+   good:[`Worth the ticket and most of the snacks`,`A crowd-pleaser with acceptable bruising`,`You will forgive more than you expect`],
+   mixed:[`Great bits, suspiciously long gaps between them`,`The trailer may have had better pacing`,`A three-star film begging to be argued about`],
+   poor:[`The snacks have the stronger third act`,`A good premise serving community service`,`Hard work for a movie this loud`],
+   disaster:[`Two hours you can never stream back`,`The exit sign has tremendous screen presence`,`Even the popcorn seems concerned`]
+  },
+  auteur:{
+   rave:[`The studio system accidentally permits cinema`,`A point of view survives commercial oxygen`,`Form and feeling refuse to file separate paperwork`],
+   great:[`Authorship without the usual hostage note`,`A ${id.texture} argument worth having`,`The compromises have the decency to be interesting`],
+   good:[`Personality defeats polish on points`,`A film with fingerprints, not merely finish`,`The director wins several important arguments`],
+   mixed:[`Authorship interrupted by stakeholder feedback`,`The safer cut keeps haunting the interesting one`,`A point of view with visitation rights`],
+   poor:[`Significance has been applied topically`,`Aesthetic intent, dramatic foreclosure`,`The film mistakes solemnity for depth`],
+   disaster:[`An auteur theory emergency`,`All subtext, no text`,`The void has coverage`]
+  }
+ };
+ return variationPick(f,`capsule-v3142-${o.focus}-${idx}-${tier}`,pools[o.focus][tier]);
+}
 function makeReviewRoundup(f,critics,audience){
- const sc=scriptById(f.scriptId),m=f.metrics,id=ensureFilmIdentity(f),p=premiseReviewContext(sc),r=makeRng(hash(state.seed+'|roundup-v3141|'+f.id));
- const subject=p?.name||f.title;
+ const sc=scriptById(f.scriptId),m=f.metrics,r=makeRng(hash(state.seed+'|roundup-v3142|'+f.id));
  const outlets=[
-  {name:'The Trade Ledger',bias:(f.creative?.positioning==='commercial'?2:0),focus:'industry'},
-  {name:'Frame & Sound',bias:(sc.originality>78?3:-1),focus:'craft'},
-  {name:'Popcorn Weekly',bias:(audience>critics?3:-1),focus:'audience'},
-  {name:'Auteur Quarterly',bias:(f.creative?.positioning==='prestige'?3:0)+(m.direction>82?2:0),focus:'auteur'}
+  {name:'The Trade Ledger',critic:'Martin Pike',voice:'Dry-eyed trade analyst',bias:(f.creative?.positioning==='commercial'?2:0),focus:'industry'},
+  {name:'Frame & Sound',critic:'Celia Ward',voice:'Craft obsessive',bias:(sc.originality>78?3:-1),focus:'craft'},
+  {name:'Popcorn Weekly',critic:'Mick Reyes',voice:'Unapologetic crowd critic',bias:(audience>critics?3:-1),focus:'audience'},
+  {name:'Auteur Quarterly',critic:'Odette Shaw',voice:'High-minded cinephile',bias:(f.creative?.positioning==='prestige'?3:0)+(m.direction>82?2:0),focus:'auteur'}
  ];
  return outlets.map((o,idx)=>{
-  const score=Math.round(clamp(critics+o.bias+(r()-.5)*12,15,98)),tier=score>=84?'great':score>=70?'good':score>=55?'mixed':'poor';let lines=[];
-  if(o.focus==='industry')lines={
-   great:[`${f.title} turns a clear hook into premium studio filmmaking`,`A marketable package with an identity of its own`,`${subject} gives ${f.title} a commercially legible centre`],
-   good:[`Specific enough to sell beyond opening weekend`,`A sturdy release with more personality than the package promised`,`Commercially clear, creatively uneven in interesting ways`],
-   mixed:[`A strong package still searching for a complete movie`,`The hook travels further than the execution`,`Some real upside behind visible creative compromises`],
-   poor:[`An expensive premise without enough finished-film leverage`,`The package is easier to sell than the movie`,`A commercial proposition that never quite becomes an event`]
-  }[tier];
-  else if(o.focus==='craft')lines={
-   great:[`${id.strength[0].toUpperCase()+id.strength.slice(1)} gives the film its signature`,`A ${id.texture} film with unusually coherent craft`,`The formal choices make the premise feel newly cinematic`],
-   good:[`Strong craft keeps the rough edges from taking over`,`A clear visual identity with a few exposed seams`,`The filmmaking is more specific than the screenplay mechanics`],
-   mixed:[`Distinctive images, inconsistent control`,`A good-looking argument the film cannot always sustain`,`The craft is specific even when the storytelling wobbles`],
-   poor:[`The technical plan keeps exposing its limits`,`A visual idea without the control to carry it`,`Ambition repeatedly outruns execution`]
-  }[tier];
-  else if(o.focus==='auteur')lines={
-   great:[`A studio film that actually feels authored`,`The safer version is nowhere to be found`,`A point of view survives the machinery`],
-   good:[`Personality wins more often than polish`,`Specific choices keep the film alive`,`A director’s argument with a few compromises showing`],
-   mixed:[`Two versions of the movie keep fighting for control`,`Interesting enough to make the compromises frustrating`,`Authorship appears in flashes rather than as a whole`],
-   poor:[`A point of view announced more often than expressed`,`The film never settles on what it wants to be`,`Specific intentions, generic results`]
-  }[tier];
-  else lines=audience>=82?
-   [`${subject} gives audiences someone to root for`,`Easy to recommend and hard to mistake for another release`,`The premise lands because the movie knows where the fun is`]:
-   audience<58?
-   [`The premise is stronger than the word of mouth`,`A colder experience than the campaign promised`,`Too many obstacles between the audience and the hook`]:
-   [`A solid crowd movie with an identifiable personality`,`${subject} carries the film through its rougher stretches`,`A premise audiences may like more than critics do`];
-  return {publication:o.name,score,stars:reviewStars(score),headline:variationPick(f,`capsule-${o.focus}-${idx}`,lines)};
+  const score=Math.round(clamp(critics+o.bias+(r()-.5)*14,12,99)),tier=reviewTier(score);
+  return {publication:o.name,critic:o.critic,voice:o.voice,score,stars:reviewStars(score),headline:capsuleOutletLine(f,o,tier,score,idx)};
  });
 }
 
@@ -9907,9 +9977,9 @@ function weeklyCinemaText(f,row,me){
 function reviewScreen(f){
  const roundup=f.pressReviews||[],m=ensureMarketingState(f);
  return topbar('Press Review',f.review.publication)+`<main class="screen">${backHead(f.title,`${f.review.stars.toFixed(1)} / 5 ★ · ${f.review.critics}% critics · ${f.review.audience}% audience`)}
- <div class="hero"><div class="badge">${f.review.stars.toFixed(1)} / 5 ★</div><h2 style="margin:10px 0 6px">${f.review.headline||"The Daily Screen review"}</h2><div class="quote">“${f.review.quote}”</div></div>
+ <div class="hero"><div class="badge">${f.review.stars.toFixed(1)} / 5 ★</div><h2 style="margin:10px 0 6px">${f.review.headline||"The Daily Screen review"}</h2>${f.review.critic?`<div class="small" style="margin-bottom:9px">By <strong>${f.review.critic.name}</strong> · ${f.review.critic.title}</div>`:""}<div class="quote">“${f.review.quote}”</div></div>
  <div class="section-title"><h2>Main review</h2></div><div class="card body">${f.review.paragraphs.map(p=>`<p>${p}</p>`).join('')}</div>
- ${roundup.length?`<div class="section-title"><h2>Critical roundup</h2><span class="small">Capsule verdicts</span></div><div class="grid">${roundup.map(r=>`<div class="card"><div class="row">${pressLogoHTML(r.publication,'xs',true)}<span class="pill">${r.stars.toFixed(1)} / 5 ★</span></div><strong style="display:block;margin-top:9px">${r.headline||r.quote||"Review filed"}</strong></div>`).join('')}</div>`:''}
+ ${roundup.length?`<div class="section-title"><h2>Critical roundup</h2><span class="small">Capsule verdicts</span></div><div class="grid">${roundup.map(r=>`<div class="card"><div class="row">${pressLogoHTML(r.publication,'xs',true)}<span class="pill">${r.stars.toFixed(1)} / 5 ★</span></div>${r.critic?`<div class="small" style="margin-top:7px">${r.critic} · ${r.voice||"Critic"}</div>`:""}<strong style="display:block;margin-top:9px">${r.headline||r.quote||"Review filed"}</strong></div>`).join('')}</div>`:''}
  ${f.audienceSegments?`<div class="section-title"><h2>Audience segments</h2><span class="small">Post-release response</span></div><div class="grid">${Object.entries(f.audienceSegments).sort((a,b)=>b[1]-a[1]).map(([name,score])=>`<div class="card ${score>=80?'goodline':score<50?'dangerline':''}"><div class="row"><strong>${name}</strong><strong>${Math.round(score)}%</strong></div><div class="small" style="margin-top:5px">${score>=82?'Enthusiastic':score>=70?'Strong':score>=58?'Mixed-positive':score>=48?'Mixed':'Weak'}</div></div>`).join('')}</div>`:''}
  <div class="section-title"><h2>Campaign vs reality</h2></div><div class="card"><div class="listrow"><span>Trailer promise</span><strong>${m.trailer||'concept'}-first</strong></div><div class="listrow"><span>Pre-release heat</span><strong>${marketingPublicStatus(f).heat}</strong></div><div class="listrow"><span>Expectation pressure</span><strong>${marketingPublicStatus(f).pressure}</strong></div>${f.soundtrack?.committed?`<div class="listrow"><span>Music</span><strong>${soundtrackSummary(f)}</strong></div>`:''}${m.advancePress?`<div class="listrow"><span>Advance notices</span><strong>${m.advancePress}</strong></div>`:''}</div>
  <div class="section-title"><h2>What the review was responding to</h2></div><div class="card body"><strong>${f.review.sourceContext.title}</strong> · ${f.review.sourceContext.genre}<br><span class="small">${f.review.sourceContext.logline}</span><div class="hr"></div><span class="small"><strong>Finished-film identity:</strong> ${filmIdentityLine(f)}</span></div>
@@ -10487,7 +10557,7 @@ if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&
 function projectSlateSmokeChecks(){
  const failures=[],required=[
   ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],
-  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['ensureFilmIdentity',typeof ensureFilmIdentity],['productionEventFlavor',typeof productionEventFlavor],['filmPressAngle',typeof filmPressAngle],['premiseReviewParagraph',typeof premiseReviewParagraph],['publishStudioMomentAftermath',typeof publishStudioMomentAftermath],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
+  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['ensureFilmIdentity',typeof ensureFilmIdentity],['productionEventFlavor',typeof productionEventFlavor],['filmPressAngle',typeof filmPressAngle],['premiseReviewParagraph',typeof premiseReviewParagraph],['dailyScreenCritic',typeof dailyScreenCritic],['criticOpeningParagraph',typeof criticOpeningParagraph],['capsuleOutletLine',typeof capsuleOutletLine],['publishStudioMomentAftermath',typeof publishStudioMomentAftermath],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
  if(!app)failures.push('#app missing');
@@ -10498,7 +10568,7 @@ function projectSlateSmokeChecks(){
  try{if(queueStudioMoment.toString().includes('campaignMomentDeskEntry(f,type'))failures.push('campaign moments still duplicated to Desk');if(!resolveOpportunityDeskChoice.toString().includes("templateId==='rights-offer'"))failures.push('actionable rights flow missing')}catch(e){failures.push('v3.12.1 polish smoke failed')}
  try{const rv=(state.rivals||[])[0];if(rv){const x=rivalrySnapshot(rv);if(!x.label||!Array.isArray(x.events))failures.push('rivalry snapshot invalid')}if(!nav.toString().includes('globalBackToTop'))failures.push('global back-to-top missing')}catch(e){failures.push('v3.13 systems smoke failed')}
  try{const f=(state.films||[]).find(x=>x.owner==='player');if(f){const id=ensureFilmIdentity(f);if(!id?.archetype||!id?.texture)failures.push('film identity invalid')}if(makeReview.toString().includes('Strong moments, mixed results'))failures.push('legacy repetitive review generator active');if(soundtrackOffers.toString().indexOf('usedTracks')<0)failures.push('music freshness missing')}catch(e){failures.push('v3.14 variation smoke failed')}
- try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:variationPick'))failures.push('capsule reviews missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.1 premise/Apex smoke failed')}
+ try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
   const unique=new Set(probe.scripts.map(x=>x.title.toLowerCase())).size,quantified=probe.scripts.filter(x=>/^(No One|Nobody|Someone|Everyone)\b/i.test(x.title)).length;
