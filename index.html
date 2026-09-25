@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.14.0</title>
+<title>Project Slate — Premium Presentation v3.14.1</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.14.0';
+const VERSION='3.14.1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -2415,16 +2415,103 @@ function protagonistWithArticle(p){
  return `${/^[aeiou]/i.test(p)?'an':'a'} ${p}`;
 }
 function capPhrase(x){return x?x.charAt(0).toUpperCase()+x.slice(1):x}
+
+const PREMISE_DNA_BANK={
+ 'Action Thriller':{
+  roles:['CIA field officer','counterterrorism analyst','bomb-disposal officer','federal air marshal','former special-forces medic'],
+  settings:['Prague during a diplomatic summit','Berlin on election night','Istanbul airport during a security lockdown','London during a NATO summit','an Alpine border crossing during a blizzard'],
+  goals:['stop a coordinated attack on an international summit','recover a stolen bioweapon before it crosses the border','rescue a kidnapped intelligence source before a prisoner exchange','intercept a weapons shipment hidden inside a civilian convoy','expose a false-flag operation before it triggers a military response'],
+  pressures:['a terrorist cell stays one step ahead of the security services','a private military contractor starts erasing everyone connected to the operation','a rogue intelligence unit turns the city into a hunting ground','an arms-smuggling network begins moving its final shipment','a former agency asset starts using classified tactics against the people who trained them'],
+  complications:['the evidence points back to the operation that destroyed their career','their own handler may be protecting the people they are hunting','the architect of the plot is a former partner they once trusted','their government has already disavowed the mission','someone they love is trapped inside the target zone']
+ },
+ 'Psychological Horror':{
+  roles:['sleep researcher','bereavement counsellor','forensic psychologist','documentary sound recordist','night-shift doctor'],
+  settings:['an inherited mountain hotel','a coastal clinic cut off by storms','a condemned apartment block scheduled for demolition','a remote sleep laboratory','a small town preparing for its centenary'],
+  goals:['discover why strangers are sharing the same nightmare','learn what happened to the patients erased from the building records','prove that a series of impossible memories belong to real missing people','trace a voice appearing on recordings made in empty rooms','understand why patients are describing deaths that have not happened yet'],
+  pressures:['the visions begin predicting real deaths','the building seems to react whenever anyone tries to leave','each new witness remembers a different version of the same tragedy','the recordings start answering questions nobody spoke aloud','people connected to the case begin disappearing from photographs and records'],
+  complications:['every clue leads back to their own missing parent','they have begun experiencing the same symptoms as the victims','their closest ally insists the investigation already happened years ago','the only surviving witness knows a secret about their childhood','the phenomenon appears to know why they came there']
+ },
+ 'Prestige Drama':{
+  roles:['public defender','palliative-care nurse','failed concert pianist','local newspaper editor','union organiser'],
+  settings:['a fading industrial town','a family home being cleared for sale','a rural hospital facing closure','a city neighbourhood being redeveloped','a coastal community after a factory shutdown'],
+  goals:['repair a relationship with an estranged child before leaving town','keep a vulnerable family together through one final court case','reconcile with the sibling who stayed behind to care for their father','decide whether to expose a story that will destroy a lifelong friendship','hold a fractured community together through a bitter final negotiation'],
+  pressures:['old resentments resurface as money and memory pull the family apart','a decision made decades earlier returns with consequences nobody can avoid','the town begins choosing survival over loyalty','a private grief becomes impossible to keep separate from public responsibility','the people depending on them want mutually incompatible things'],
+  complications:['they are carrying responsibility for the event everyone else blames on someone else','the person they most need forgiveness from has no interest in giving it','their version of the family history may be the least reliable one','success would require betraying the principle that once defined them','the truth threatens the only relationship they have managed to preserve']
+ },
+ 'Science Fiction':{
+  roles:['memory architect','orbital rescue pilot','xenobiologist','systems engineer','climate modeller'],
+  settings:['a city built inside a failing weather shield','a research station drifting beyond lunar orbit','a generation ship approaching an uncharted signal','a corporate colony on a tidally locked world','an underwater data centre storing human memories'],
+  goals:['find the source of memories appearing in people who never lived them','bring a stranded crew home before their orbit decays','determine whether an alien signal is a warning or an invitation','stop an autonomous city system from choosing who is allowed to survive','recover a missing consciousness before the network is permanently wiped'],
+  pressures:['the system designed to protect the population starts rewriting its own rules','the signal begins responding to private memories instead of transmissions','the rescue window shrinks each time the crew uses life support','the corporation running the colony orders the evidence destroyed','the copied memories begin claiming they are the originals'],
+  complications:['their own memories contain gaps matching the anomaly','the missing person is the scientist who ended their career','the only workable solution would erase thousands of stored lives','their closest crewmate may already have been altered by the phenomenon','the system insists they personally authorised the disaster']
+ },
+ 'Comedy':{
+  roles:['wedding photographer','struggling restaurateur','junior talent agent','divorce lawyer','local radio host'],
+  settings:['a luxury resort hosting two weddings at once','a failing family restaurant during festival week','a film festival where every hotel room is overbooked','a small town competing for a national tourism prize','an expensive wellness retreat they cannot afford'],
+  goals:['survive a weekend working for two families who hate each other','fake a successful new life long enough to impress an ex','land one impossible client before their agency fires them','keep a disastrous public mistake from becoming national news','pretend to be part of a couple to secure a career-changing opportunity'],
+  pressures:['every lie requires a larger and more public lie to protect it','two rival families keep forcing them into contradictory promises','their supposed professional breakthrough is actually a complete fraud','an accidental viral video turns every private humiliation into content','the one person who can expose them decides to help for entirely selfish reasons'],
+  complications:['their ex arrives with the person they are supposed to impress','their most competent rival is also the only person willing to help','their family assumes the fake story is finally proof they have grown up','the client they are deceiving turns out to be unexpectedly decent','the lie starts producing opportunities they genuinely want to keep']
+ },
+ 'Family Adventure':{
+  roles:['young amateur cartographer','museum intern','three runaway siblings','apprentice lighthouse keeper','school science-club captain'],
+  settings:['an abandoned railway that appears only at dusk','a museum whose closed exhibits lead somewhere impossible','an island omitted from every modern map','a forest growing over a forgotten observatory','a seaside town built above a buried mechanical city'],
+  goals:['follow a hidden route to find a missing parent','return a stolen object before their town disappears from the map','reach a legendary observatory before a developer destroys the site','rescue a friend trapped beyond a doorway that opens only once a year','solve the route left in an explorer’s unfinished journal'],
+  pressures:['each step of the journey permanently changes the map behind them','a wealthy collector is following the same clues for very different reasons','the magical route is closing earlier every night','the adults trying to help cannot see the places the children can enter','the machine beneath the town has begun waking up'],
+  complications:['the final clue suggests the missing parent chose not to come home','one member of the group has secretly been helping their pursuer','finishing the journey may close the magical route forever','the object they are trying to return has become attached to one of them','the person who wrote the clues expected them specifically to find them']
+ },
+ 'Crime Thriller':{
+  roles:['courthouse cleaner','internal-affairs detective','financial-crimes investigator','night-shift dispatcher','crime-scene photographer'],
+  settings:['a courthouse with a sealed underground jury room','a port city during a police corruption inquiry','a casino preparing for a billion-dollar sale','a precinct scheduled to close in seven days','an evidence warehouse after a citywide blackout'],
+  goals:['discover who is still using a room officially sealed for twenty years','identify the officer leaking witness locations to organised crime','trace a missing account that connects judges, police and developers','find the caller who knows details from crimes that were never reported','prove that evidence is being replaced before a murder trial begins'],
+  pressures:['every official channel they use alerts someone inside the conspiracy','a professional crew starts cleaning up witnesses faster than they can find them','the money trail leads into institutions meant to investigate it','the anonymous source begins demanding crimes in exchange for information','the case starts collapsing as evidence disappears from secure storage'],
+  complications:['their closest colleague appears in the records they uncover','the witness they need is someone they previously helped convict','their own signature is attached to a piece of falsified evidence','the conspiracy is protecting a person they owe their life to','solving the case would expose the secret that got them promoted']
+ },
+ 'Fantasy':{
+  roles:['royal cartographer','disgraced court mage','graveyard keeper','young diplomat','monster hunter'],
+  settings:['a kingdom whose borders move every night','a city built around a sleeping dragon','an archive containing maps of places that do not yet exist','a valley where the dead return for one day each winter','a shattered empire connected by forbidden gates'],
+  goals:['find the missing province that vanished from every map','break the spell binding the capital to a dying monarch','carry a message to a kingdom erased from history','close the gates before an ancient army learns how to cross them','protect a child whose dreams are physically reshaping the world'],
+  pressures:['each use of magic removes another memory from the caster','the royal court would rather preserve the lie than save the kingdom','a rival expedition is rewriting the map as quickly as they can follow it','the dead have begun refusing to return to their graves','the creatures guarding the gates remember a war humanity deliberately forgot'],
+  complications:['their family helped create the curse they are trying to break','the missing kingdom is where they were actually born','the child they must protect may be causing the disaster intentionally','their enemy is the only person who understands the old magic','saving the kingdom requires destroying the institution they swore to serve']
+ }
+};
+const PREMISE_FIRST_NAMES=['Jack','Mara','Elena','Noah','Leah','Daniel','Nina','Elias','Maya','Theo','Rosa','Adrian','Lena','Jonah','Sofia','Marcus','Amira','Sam','Eva','Miles'];
+const PREMISE_LAST_NAMES=['Barry','Voss','Hart','Vale','Mercer','Quinn','Reed','Stone','Chen','Moreau','Shah','Cole','Brooks','North','Bell','Rao','Ward','Park','Okafor','Vega'];
 function generatedPremise(st,r,genre){
- const b=SCRIPT_TITLE_BANK[genre]||SCRIPT_TITLE_BANK['Prestige Drama'],protagonist=pick(r,b.nouns),setting=pick(r,b.settings),engine=pick(r,b.engines),subject=protagonistWithArticle(protagonist);
- const frames=[
-  `${capPhrase(subject)} in ${setting} ${engine}.`,
-  `When ${setting} is thrown into crisis, ${subject} ${engine}.`,
-  `Inside ${setting}, ${subject} ${engine}.`,
-  `${capPhrase(subject)} enters ${setting} and ${engine}.`
+ const bank=PREMISE_DNA_BANK[genre]||PREMISE_DNA_BANK['Prestige Drama'],name=`${pick(r,PREMISE_FIRST_NAMES)} ${pick(r,PREMISE_LAST_NAMES)}`,role=pick(r,bank.roles),setting=pick(r,bank.settings),goal=pick(r,bank.goals),pressure=pick(r,bank.pressures),complication=pick(r,bank.complications);
+ const loglines=[
+  `${capPhrase(role)} ${name} must ${goal} in ${setting} as ${pressure}, while ${complication}.`,
+  `In ${setting}, ${role} ${name} must ${goal}; ${pressure}, and ${complication}.`,
+  `${capPhrase(role)} ${name} enters ${setting} determined to ${goal}, only to discover that ${pressure} — and ${complication}.`
  ];
- return {title:uniqueScriptTitle(st,r,genre),logline:pick(r,frames),shape:{protagonist,setting,engine}};
+ const premiseDNA={version:3141,name,role,setting,goal,pressure,complication};
+ return {title:uniqueScriptTitle(st,r,genre),logline:pick(r,loglines),shape:{protagonist:`${role} ${name}`,setting,engine:goal},premiseDNA};
 }
+function premiseReviewContext(s){
+ const p=s?.premiseDNA;if(p?.name&&p?.goal)return p;
+ return null;
+}
+function premiseReviewParagraph(f,tier){
+ const s=scriptById(f.scriptId),p=premiseReviewContext(s),focus=scriptFocus(s);
+ if(!p){
+  return variationPick(f,'premise-review-generic-'+tier,[
+   `The film is built around ${focus}. Crucially, the finished version treats that premise as dramatic material rather than merely a hook for the trailer.`,
+   `What matters here is how ${focus} changes from a logline into scene-by-scene pressure; the better stretches keep the premise active rather than simply explaining it.`,
+   `The screenplay's central promise — ${s.logline.replace(/\.$/,'')} — remains visible in the finished film, and the review ultimately turns on how convincingly the production develops that promise.`
+  ]);
+ }
+ const positive=[
+  `${p.name}'s attempt to ${p.goal} gives the film a clear dramatic spine. ${capPhrase(p.pressure)} supplies the external pressure, but the more useful complication is that ${p.complication}.`,
+  `The premise works because ${p.name} is not simply being pushed through plot. As a ${p.role}, they have to ${p.goal}, while ${p.pressure}; the personal turn — ${p.complication} — keeps the machinery attached to a character.`,
+  `${p.setting} is more than backdrop. It forces ${p.name}, a ${p.role}, to pursue a concrete objective — ${p.goal} — while ${p.pressure}. The film gets its personality from the fact that ${p.complication}.`
+ ];
+ const critical=[
+  `The setup is specific enough: ${p.name}, a ${p.role}, must ${p.goal} in ${p.setting} while ${p.pressure}. The problem is that the film does not always make ${p.complication} feel as consequential as the logline promises.`,
+  `There is a strong movie buried in the premise of ${p.name} trying to ${p.goal}. ${capPhrase(p.pressure)} should keep tightening the story, but too many scenes treat the complication — ${p.complication} — as information rather than pressure.`,
+  `${p.name}'s problem is clear, and ${p.setting} gives it shape, but the film occasionally reduces its opposition to mechanics. ${capPhrase(p.complication)} should be the element making the premise personal; it is not always given enough room.`
+ ];
+ return variationPick(f,'premise-review-'+tier,(tier==='poor'||tier==='mixed')?critical:positive);
+}
+
 function marketBudgetForGenre(r,genre){
  const ranges={
   'Psychological Horror':[4,13],'Prestige Drama':[5,15],'Comedy':[6,17],'Crime Thriller':[8,20],
@@ -2448,7 +2535,7 @@ function looksLegacyGeneratedTitle(s){
 function refreshLegacyMarketPresentation(st){
  (st.scripts||[]).filter(s=>s.available&&s.status==='market'&&!s.filmStarted&&looksLegacyGeneratedTitle(s)).forEach(s=>{
   const r=makeRng(hash(st.seed+'|v28-refresh|'+s.id)),concept=generatedPremise(st,r,s.genre);
-  s.title=concept.title;s.logline=concept.logline;s.shape=concept.shape;
+  s.title=concept.title;s.logline=concept.logline;s.shape=concept.shape;s.premiseDNA=concept.premiseDNA;
  });
 }
 
@@ -2836,9 +2923,24 @@ function studioMomentChoice(choice){
  if(m.choiceContext==='marketing'&&f){const ok=resolveMarketingIntervention(f,choice,true);if(ok===false)return}
  m.resolvedChoice=choice;continueStudioMoment();
 }
+
+function publishStudioMomentAftermath(m){
+ if(!m?.afterDismiss)return;
+ if(m.afterDismiss==='challengerArrival'){
+  const rv=rivalById('RX1');if(!rv)return;const c=ensureChallengerState();
+  if(c.pressPublished)return;c.pressPublished=true;
+  addNews(state,`${rv.name} has officially launched with a reported ${money(rv.startingCash||rv.cash)} production war chest, immediately entering premium screenplay and talent conversations across The Lot.`,'Industry Alert');
+  addNews(state,`${rv.head.name}, the new ${rv.head.title.toLowerCase()} of ${rv.name}, says the company intends to build a major slate quickly rather than spend years climbing the existing studio hierarchy.`,'Trade Report');
+  if(typeof pushDeskItem==='function'&&!ensureDesk().items.some(x=>x.templateId==='challenger-arrival')&&!ensureDesk().archive.some(x=>x.templateId==='challenger-arrival')){
+   pushDeskItem({templateId:'challenger-arrival',repeatKey:'challenger-arrival',family:'industry',type:'industry',source:'Screen Trade',urgency:'normal',requiresAction:false,headline:`${rv.name} enters The Lot`,body:`A new studio has launched with roughly ${money(rv.startingCash||rv.cash)} in starting capital. Its arrival follows ${state.studio.name}'s rise to the top of the studio standings.`,choices:[],resolved:true,read:false,expanded:false});
+  }
+ }
+}
+
 function continueStudioMoment(){
  const m=activeStudioMoment();if(!m)return;
  state.activeStudioMoment=null;
+ publishStudioMomentAftermath(m);
  if(state.pendingCeremony){state.screen='ceremony';state.detail=null;save();render();return}
  if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;save();render();return}
  if(surfacePendingLegendUnlock()){save();render();return}
@@ -3174,7 +3276,7 @@ const LATE_GAME_CHALLENGER={
  id:'RX1',name:'Apex Motion Group',style:'Aggressive Capital',skill:87,capacity:3,cash:350,recognition:78,fans:5.4,reputation:72
 };
 function ensureChallengerState(st=state){
- st.challengerState=st.challengerState||{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null};
+ st.challengerState=st.challengerState||{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null,pressPublished:false};if(st.challengerState.pressPublished===undefined)st.challengerState.pressPublished=false;
  return st.challengerState;
 }
 function lateGameChallengerEligible(){
@@ -3190,16 +3292,13 @@ function launchLateGameChallenger(){
   id:s.id,name:s.name,style:s.style,skill:s.skill,capacity:s.capacity,cash:s.cash,startingCash:s.cash,films:[],reputation:s.reputation,recognition:s.recognition,fans:s.fans,signature:s.style,debt:0,totalInterest:0,restructures:0,commercialHistory:[],profile:p,head:rivalHeadProfile(s.name),relationship:-2,relationshipHistory:[],scriptWinsAgainstPlayer:0,lastScriptWinAgainstPlayerWeek:0,lastPlayerClashWeek:0
  };
  state.rivals.push(rv);c.launched=true;c.launchWeek=state.week;c.triggerYear=Math.ceil(state.week/52);c.triggerRank=1;c.triggerRecognition=Math.round(ensureStudioGrowth().recognition||0);
- addNews(state,`${s.name} has officially launched with a reported ${money(s.cash)} production war chest, immediately entering premium screenplay and talent conversations across The Lot.`,'Industry Alert');
- addNews(state,`${rv.head.name}, the new ${rv.head.title.toLowerCase()} of ${s.name}, says the company intends to build a major slate quickly rather than spend years climbing the existing studio hierarchy.`,'Trade Report');
- if(typeof pushDeskItem==='function')pushDeskItem({templateId:'challenger-arrival',repeatKey:'challenger-arrival',family:'industry',type:'industry',source:'Screen Trade',urgency:'normal',requiresAction:false,headline:`${s.name} enters The Lot`,body:`A new studio has launched with roughly ${money(s.cash)} in starting capital. Its arrival follows ${state.studio.name}'s rise to the top of the studio standings.`,choices:[],resolved:true,read:true,expanded:false});
- queueStudioMoment(null,'challengerArrival',{kicker:'A NEW POWER ENTERS THE LOT',title:`${s.name} has arrived`,tone:'warn',result:'$350M WAR CHEST',summary:`The industry has reacted to a new order. After ${state.studio.name} finished the year at #1, a heavily financed entrant has been built to compete immediately for scripts, stars and release dates.`,stats:[['Starting capital',money(s.cash)],['Production capacity',`${s.capacity} films`],['Chief executive',rv.head.name]],sections:[{title:'Why now',text:`${state.studio.name} is no longer the newcomer trying to be taken seriously. Its rise has helped convince outside capital that there is room to challenge the established hierarchy.`},{title:'What makes Apex dangerous',text:'Apex can carry expensive development, bid aggressively and survive misses that would hurt a smaller company. It still uses the same film-quality rules as everyone else: it can overpay, miscast, pick the wrong material and fail.'}]});
+ queueStudioMoment(null,'challengerArrival',{kicker:'A NEW POWER ENTERS THE LOT',title:`${s.name} has arrived`,tone:'warn',result:'$350M WAR CHEST',afterDismiss:'challengerArrival',summary:`The industry has reacted to a new order. After ${state.studio.name} finished the year at #1, a heavily financed entrant has been built to compete immediately for scripts, stars and release dates.`,stats:[['Starting capital',money(s.cash)],['Production capacity',`${s.capacity} films`],['Chief executive',rv.head.name]],sections:[{title:'Why now',text:`${state.studio.name} is no longer the newcomer trying to be taken seriously. Its rise has helped convince outside capital that there is room to challenge the established hierarchy.`},{title:'What makes Apex dangerous',text:'Apex can carry expensive development, bid aggressively and survive misses that would hurt a smaller company. It still uses the same film-quality rules as everyone else: it can overpay, miscast, pick the wrong material and fail.'}]});
  return true;
 }
 function maybeLaunchLateGameChallenger(){return launchLateGameChallenger()}
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=398;
+const SAVE_SCHEMA_VERSION=399;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -3408,6 +3507,17 @@ function applySaveSchemaMigrations(x,fromVersion){
  if(schema<398){
   (x.films||[]).forEach(f=>{if(!f.filmIdentity)f.filmIdentity=null});
   schema=398;
+ }
+
+
+ if(schema<399){
+  x.challengerState=x.challengerState||{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null};
+  if(x.challengerState.pressPublished===undefined)x.challengerState.pressPublished=!!(x.desk?.items||[]).some(i=>i.templateId==='challenger-arrival')||!!(x.desk?.archive||[]).some(i=>i.templateId==='challenger-arrival');
+  (x.scripts||[]).filter(sc=>sc.source==='Market'&&sc.available&&sc.status==='market'&&!sc.filmStarted&&!sc.premiseDNA).forEach(sc=>{
+   const r=makeRng(hash((x.seed||1)+'|premise-upgrade-v3141|'+sc.id)),concept=generatedPremise(x,r,sc.genre);
+   sc.logline=concept.logline;sc.shape=concept.shape;sc.premiseDNA=concept.premiseDNA;
+  });
+  schema=399;
  }
 
  x.saveSchema=schema;
@@ -3705,7 +3815,7 @@ function navTo(screen){state.history=[];state.detail=null;state.screen=screen;re
 
 function generateScript(st,week,market=true){
  const r=makeRng(hash(st.seed+'|script-v28|'+week+'|'+st.ids.script)),genre=pick(r,genres),concept=generatedPremise(st,r,genre);
- const s={id:uid('script',st),title:concept.title,genre,logline:concept.logline,synopsis:'',shape:concept.shape,price:0,naturalBudget:marketBudgetForGenre(r,genre),
+ const s={id:uid('script',st),title:concept.title,genre,logline:concept.logline,synopsis:'',shape:concept.shape,premiseDNA:concept.premiseDNA,price:0,naturalBudget:marketBudgetForGenre(r,genre),
   story:Math.round(48+r()*44),hook:Math.round(45+r()*50),originality:Math.round(43+r()*53),access:Math.round(43+r()*51),difficulty:Math.round(32+r()*61),
   source:'Market',status:market?'market':'development',owner:null,filmStarted:false,developmentSpend:0,available:market,createdWeek:week,bids:0};
  ensureScriptEcosystem(s);s.price=marketScriptPrice(s,r);
@@ -5561,9 +5671,9 @@ function commissionRights(r){
 }
 
 function makeCommissionedScript({genre,brief,scale,audience,writerId,title=null,logline=null,source='Commission',creativeIntent=null,synopsis=''}) {
- const w=writerById(writerId),r=makeRng(hash(state.seed+'|commission-v28|'+state.week+'|'+genre+'|'+writerId+'|'+(title||''))),concept=generatedPremise(state,r,genre);
+ const w=writerById(writerId),r=makeRng(hash(state.seed+'|commission-v3141|'+state.week+'|'+genre+'|'+writerId+'|'+(title||''))),concept=generatedPremise(state,r,genre),customLogline=!!logline?.trim();
  const scaleBudget=scale==='contained'?5+r()*7:scale==='large'?22+r()*15:10+r()*14,fit=writerFit(w,genre,brief),base=48+fit*.34;
- const s={id:uid('script',state),title:title?.trim()||concept.title,genre,logline:logline?.trim()||concept.logline,synopsis:(synopsis||'').trim(),shape:concept.shape,
+ const s={id:uid('script',state),title:title?.trim()||concept.title,genre,logline:logline?.trim()||concept.logline,synopsis:(synopsis||'').trim(),shape:customLogline?null:concept.shape,premiseDNA:customLogline?null:concept.premiseDNA,
   price:0,naturalBudget:+scaleBudget.toFixed(1),story:Math.round(clamp(base+(r()-.5)*18,38,95)),hook:Math.round(clamp(50+(w?.commercial||75)*.32+(r()-.5)*22,38,96)),
   originality:Math.round(clamp(52+r()*38,38,96)),access:Math.round(clamp(47+(w?.commercial||75)*.28+(r()-.5)*22,35,96)),difficulty:Math.round(clamp(35+scaleBudget*1.4+r()*22,30,94)),
   writerId,source,status:'writing',owner:'player',filmStarted:false,available:false,createdWeek:state.week,bids:0,developmentSpend:0,
@@ -6467,7 +6577,7 @@ function makeReview(f,critics,audience){
    `The film reaches for a ${id.texture} ${id.archetype.toLowerCase()} and too often lands as a collection of competing intentions.`
   ]
  };
- const lead=variationPick(f,'review-lead-'+tier,leads[tier]),paragraphs=[lead];
+ const lead=variationPick(f,'review-lead-'+tier,leads[tier]),paragraphs=[lead,premiseReviewParagraph(f,tier)];
  const strengthLines={
   performances:[
    `The performances are the film's anchor. The actors keep finding behaviour between the plot beats, giving scenes weight even when the screenplay is moving quickly.`,
@@ -6528,13 +6638,13 @@ function makeReview(f,critics,audience){
   ]
  };
  if(id.risk&&id.risk!==id.strength)paragraphs.push(variationPick(f,'review-risk-'+id.risk,riskLines[id.risk]||riskLines.pacing));
- if(f.creativeDirection){
+ if(f.creativeDirection&&paragraphs.length<4){
   paragraphs.push(variationPick(f,'review-direction-choice',[
    `You can feel the production choice to “${f.creativeDirection.label}” in the finished film. It is not a hidden modifier; it changes what the movie spends time looking at and what it is willing to leave unresolved.`,
    `Midway through production the film chose to “${f.creativeDirection.label},” and the finished cut commits to that decision rather than sanding it back into the original brief.`,
    `The most revealing creative decision came during shooting: “${f.creativeDirection.label}.” The movie is more specific because it follows that choice through to the end.`
   ]));
- }else if(f.soundtrack?.committed){
+ }else if(f.soundtrack?.committed&&paragraphs.length<4){
   const music=soundtrackSummary(f);
   paragraphs.push(variationPick(f,'review-music',[
    `${music} gives the finished film a recognisable musical identity without feeling pasted over the cut.`,
@@ -6552,8 +6662,10 @@ function makeReview(f,critics,audience){
 }
 
 
+
 function makeReviewRoundup(f,critics,audience){
- const sc=scriptById(f.scriptId),m=f.metrics,id=ensureFilmIdentity(f),r=makeRng(hash(state.seed+'|roundup-v314|'+f.id));
+ const sc=scriptById(f.scriptId),m=f.metrics,id=ensureFilmIdentity(f),p=premiseReviewContext(sc),r=makeRng(hash(state.seed+'|roundup-v3141|'+f.id));
+ const subject=p?.name||f.title;
  const outlets=[
   {name:'The Trade Ledger',bias:(f.creative?.positioning==='commercial'?2:0),focus:'industry'},
   {name:'Frame & Sound',bias:(sc.originality>78?3:-1),focus:'craft'},
@@ -6561,52 +6673,31 @@ function makeReviewRoundup(f,critics,audience){
   {name:'Auteur Quarterly',bias:(f.creative?.positioning==='prestige'?3:0)+(m.direction>82?2:0),focus:'auteur'}
  ];
  return outlets.map((o,idx)=>{
-  const score=Math.round(clamp(critics+o.bias+(r()-.5)*12,15,98)),high=score>=78,low=score<58;let lines=[];
-  if(o.focus==='craft')lines=high?[
-   `“The ${id.texture} craft is not decoration; it is the movie’s organising idea.”`,
-   `“${id.strength[0].toUpperCase()+id.strength.slice(1)} gives the film a formal confidence its weaker passages cannot erase.”`,
-   `“A technically considered film that knows which images and performances deserve emphasis.”`
-  ]:low?[
-   `“The film has a visual idea, but the execution keeps exposing where the plan ran out of precision.”`,
-   `“Interesting material, unevenly realised, with craft that fluctuates from sequence to sequence.”`
-  ]:[
-   `“The film is strongest when ${id.strength} and its ${id.texture} visual approach line up.”`,
-   `“There is enough formal personality here to make the inconsistencies more frustrating.”`
-  ];
-  else if(o.focus==='industry')lines=high?[
-   `“A piece of studio filmmaking with a specific identity and real commercial life.”`,
-   `“The campaign has an easier job because the finished film can be described as something more precise than its genre.”`,
-   `“A package that actually became a movie rather than remaining a collection of marketable parts.”`
-  ]:low?[
-   `“The economics may prove more interesting than the finished execution.”`,
-   `“A marketable package that never finds a creative centre strong enough to justify the spend.”`
-  ]:[
-   `“The film has enough identity to travel, though its commercial ceiling may depend on word of mouth.”`,
-   `“A credible release whose strongest selling point is more specific than its campaign suggests.”`
-  ];
-  else if(o.focus==='auteur')lines=high?[
-   `“The best thing about ${f.title} is that its choices feel connected to a point of view.”`,
-   `“A ${id.texture} film willing to follow its own instincts past the safer version.”`,
-   `“The production discovered a movie and, unusually, did not edit all the discovery out of it.”`
-  ]:low?[
-   `“Individual choices suggest authorship; the whole never settles into one argument.”`,
-   `“The film keeps announcing a point of view it cannot consistently sustain.”`
-  ]:[
-   `“There is an actual film-maker’s argument here, even when the execution wobbles.”`,
-   `“Specific enough to be interesting, inconsistent enough to remain unresolved.”`
-  ];
-  else lines=audience>=82?[
-   `“The kind of movie audiences leave wanting to talk about rather than merely rate.”`,
-   `“Its ${id.strength} gives the crowd something immediate to latch onto.”`,
-   `“A surprisingly easy film to recommend because its personality is obvious within minutes.”`
-  ]:audience<58?[
-   `“Hard to imagine broad word of mouth overcoming the film’s colder or less coherent stretches.”`,
-   `“The movie asks for patience without always giving the audience enough in return.”`
-  ]:[
-   `“A solid night out with a more specific personality than the average ${f.genre.toLowerCase()}.”`,
-   `“Some viewers will love the ${id.texture} approach; others will wish the film simply moved on.”`
-  ];
-  return {publication:o.name,score,stars:reviewStars(score),quote:variationPick(f,`roundup-${o.focus}-${idx}`,lines)};
+  const score=Math.round(clamp(critics+o.bias+(r()-.5)*12,15,98)),tier=score>=84?'great':score>=70?'good':score>=55?'mixed':'poor';let lines=[];
+  if(o.focus==='industry')lines={
+   great:[`${f.title} turns a clear hook into premium studio filmmaking`,`A marketable package with an identity of its own`,`${subject} gives ${f.title} a commercially legible centre`],
+   good:[`Specific enough to sell beyond opening weekend`,`A sturdy release with more personality than the package promised`,`Commercially clear, creatively uneven in interesting ways`],
+   mixed:[`A strong package still searching for a complete movie`,`The hook travels further than the execution`,`Some real upside behind visible creative compromises`],
+   poor:[`An expensive premise without enough finished-film leverage`,`The package is easier to sell than the movie`,`A commercial proposition that never quite becomes an event`]
+  }[tier];
+  else if(o.focus==='craft')lines={
+   great:[`${id.strength[0].toUpperCase()+id.strength.slice(1)} gives the film its signature`,`A ${id.texture} film with unusually coherent craft`,`The formal choices make the premise feel newly cinematic`],
+   good:[`Strong craft keeps the rough edges from taking over`,`A clear visual identity with a few exposed seams`,`The filmmaking is more specific than the screenplay mechanics`],
+   mixed:[`Distinctive images, inconsistent control`,`A good-looking argument the film cannot always sustain`,`The craft is specific even when the storytelling wobbles`],
+   poor:[`The technical plan keeps exposing its limits`,`A visual idea without the control to carry it`,`Ambition repeatedly outruns execution`]
+  }[tier];
+  else if(o.focus==='auteur')lines={
+   great:[`A studio film that actually feels authored`,`The safer version is nowhere to be found`,`A point of view survives the machinery`],
+   good:[`Personality wins more often than polish`,`Specific choices keep the film alive`,`A director’s argument with a few compromises showing`],
+   mixed:[`Two versions of the movie keep fighting for control`,`Interesting enough to make the compromises frustrating`,`Authorship appears in flashes rather than as a whole`],
+   poor:[`A point of view announced more often than expressed`,`The film never settles on what it wants to be`,`Specific intentions, generic results`]
+  }[tier];
+  else lines=audience>=82?
+   [`${subject} gives audiences someone to root for`,`Easy to recommend and hard to mistake for another release`,`The premise lands because the movie knows where the fun is`]:
+   audience<58?
+   [`The premise is stronger than the word of mouth`,`A colder experience than the campaign promised`,`Too many obstacles between the audience and the hook`]:
+   [`A solid crowd movie with an identifiable personality`,`${subject} carries the film through its rougher stretches`,`A premise audiences may like more than critics do`];
+  return {publication:o.name,score,stars:reviewStars(score),headline:variationPick(f,`capsule-${o.focus}-${idx}`,lines)};
  });
 }
 
@@ -8122,7 +8213,7 @@ function invitationConcept(kind,t,r){
  const genre=pick(r,(t?.genres||genres).filter(Boolean)),concept=generatedPremise(state,r,genre),standing=opportunityStanding(),scale=invitationScale(r,standing),naturalBudget=invitationBudgetForScale(r,genre,scale);
  const qualityLift=Math.max(0,(standing.recognition-48)*.10),asking=+(clamp(.38+naturalBudget*.018+qualityLift*.012+(kind==='package'?(t?.star||50)*.004:(t?.craft||75)*.003),.55,2.8)).toFixed(2);
  const commitment=+(clamp(asking*.88+naturalBudget*.015,.65,3.4)).toFixed(2);
- return {kind,genre,title:concept.title,logline:concept.logline,shape:concept.shape,scale,naturalBudget,asking,commitment,talentId:t?.id||null,createdWeek:state.week};
+ return {kind,genre,title:concept.title,logline:concept.logline,shape:concept.shape,premiseDNA:concept.premiseDNA,scale,naturalBudget,asking,commitment,talentId:t?.id||null,createdWeek:state.week};
 }
 function invitationTalent(kind,r){
  const pool=state.talent.filter(t=>!t.retired&&!(t.isLegend&&t.retired));
@@ -8156,7 +8247,7 @@ function makeInvitationScript(spec,owned){
  if(!spec)return null;
  const r=makeRng(hash((state.seed||1)+'|invite-script|'+spec.title+'|'+spec.createdWeek)),kind=spec.kind,t=talentById(spec.talentId),boost=kind==='passion'?4:2;
  if(owned&&!spend(spec.commitment))return null;
- const s={id:uid('script',state),title:spec.title,genre:spec.genre,logline:spec.logline,synopsis:'',shape:spec.shape||'',price:owned?0:spec.asking,naturalBudget:spec.naturalBudget,
+ const s={id:uid('script',state),title:spec.title,genre:spec.genre,logline:spec.logline,synopsis:'',shape:spec.shape||'',premiseDNA:spec.premiseDNA||null,price:owned?0:spec.asking,naturalBudget:spec.naturalBudget,
   story:Math.round(clamp(62+boost+r()*27,45,95)),hook:Math.round(clamp((kind==='package'?66:58)+r()*28,42,96)),originality:Math.round(clamp((kind==='passion'?69:58)+r()*27,40,97)),access:Math.round(clamp((kind==='package'?66:52)+r()*27,38,96)),difficulty:Math.round(clamp(36+spec.naturalBudget*1.3+r()*18,32,94)),
   source:'Industry Invitation',status:owned?'owned':'market',owner:owned?'player':null,filmStarted:false,developmentSpend:owned?spec.commitment:0,available:!owned,createdWeek:state.week,bids:0,marketState:null,
   invitationType:kind,invitationTalentId:t?.id||null,invitationAttachUntil:state.week+10,invitationDirectorId:kind==='passion'?t?.id:null,invitationActorId:kind==='package'?t?.id:null};
@@ -9816,9 +9907,9 @@ function weeklyCinemaText(f,row,me){
 function reviewScreen(f){
  const roundup=f.pressReviews||[],m=ensureMarketingState(f);
  return topbar('Press Review',f.review.publication)+`<main class="screen">${backHead(f.title,`${f.review.stars.toFixed(1)} / 5 ★ · ${f.review.critics}% critics · ${f.review.audience}% audience`)}
- <div class="hero"><div class="badge">${f.review.stars.toFixed(1)} / 5 ★</div><div class="quote" style="margin-top:8px">“${f.review.quote}”</div></div>
+ <div class="hero"><div class="badge">${f.review.stars.toFixed(1)} / 5 ★</div><h2 style="margin:10px 0 6px">${f.review.headline||"The Daily Screen review"}</h2><div class="quote">“${f.review.quote}”</div></div>
  <div class="section-title"><h2>Main review</h2></div><div class="card body">${f.review.paragraphs.map(p=>`<p>${p}</p>`).join('')}</div>
- ${roundup.length?`<div class="section-title"><h2>Review roundup</h2></div><div class="grid">${roundup.map(r=>`<div class="card"><div class="row">${pressLogoHTML(r.publication,'xs',true)}<span class="pill">${r.stars.toFixed(1)} / 5 ★</span></div><div class="quote" style="font-size:15px;margin-top:8px">${r.quote}</div><div class="small" style="margin-top:6px">${r.score}%</div></div>`).join('')}</div>`:''}
+ ${roundup.length?`<div class="section-title"><h2>Critical roundup</h2><span class="small">Capsule verdicts</span></div><div class="grid">${roundup.map(r=>`<div class="card"><div class="row">${pressLogoHTML(r.publication,'xs',true)}<span class="pill">${r.stars.toFixed(1)} / 5 ★</span></div><strong style="display:block;margin-top:9px">${r.headline||r.quote||"Review filed"}</strong></div>`).join('')}</div>`:''}
  ${f.audienceSegments?`<div class="section-title"><h2>Audience segments</h2><span class="small">Post-release response</span></div><div class="grid">${Object.entries(f.audienceSegments).sort((a,b)=>b[1]-a[1]).map(([name,score])=>`<div class="card ${score>=80?'goodline':score<50?'dangerline':''}"><div class="row"><strong>${name}</strong><strong>${Math.round(score)}%</strong></div><div class="small" style="margin-top:5px">${score>=82?'Enthusiastic':score>=70?'Strong':score>=58?'Mixed-positive':score>=48?'Mixed':'Weak'}</div></div>`).join('')}</div>`:''}
  <div class="section-title"><h2>Campaign vs reality</h2></div><div class="card"><div class="listrow"><span>Trailer promise</span><strong>${m.trailer||'concept'}-first</strong></div><div class="listrow"><span>Pre-release heat</span><strong>${marketingPublicStatus(f).heat}</strong></div><div class="listrow"><span>Expectation pressure</span><strong>${marketingPublicStatus(f).pressure}</strong></div>${f.soundtrack?.committed?`<div class="listrow"><span>Music</span><strong>${soundtrackSummary(f)}</strong></div>`:''}${m.advancePress?`<div class="listrow"><span>Advance notices</span><strong>${m.advancePress}</strong></div>`:''}</div>
  <div class="section-title"><h2>What the review was responding to</h2></div><div class="card body"><strong>${f.review.sourceContext.title}</strong> · ${f.review.sourceContext.genre}<br><span class="small">${f.review.sourceContext.logline}</span><div class="hr"></div><span class="small"><strong>Finished-film identity:</strong> ${filmIdentityLine(f)}</span></div>
@@ -10396,7 +10487,7 @@ if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&
 function projectSlateSmokeChecks(){
  const failures=[],required=[
   ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],
-  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['ensureFilmIdentity',typeof ensureFilmIdentity],['productionEventFlavor',typeof productionEventFlavor],['filmPressAngle',typeof filmPressAngle],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
+  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['ensureFilmIdentity',typeof ensureFilmIdentity],['productionEventFlavor',typeof productionEventFlavor],['filmPressAngle',typeof filmPressAngle],['premiseReviewParagraph',typeof premiseReviewParagraph],['publishStudioMomentAftermath',typeof publishStudioMomentAftermath],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
  if(!app)failures.push('#app missing');
@@ -10407,6 +10498,7 @@ function projectSlateSmokeChecks(){
  try{if(queueStudioMoment.toString().includes('campaignMomentDeskEntry(f,type'))failures.push('campaign moments still duplicated to Desk');if(!resolveOpportunityDeskChoice.toString().includes("templateId==='rights-offer'"))failures.push('actionable rights flow missing')}catch(e){failures.push('v3.12.1 polish smoke failed')}
  try{const rv=(state.rivals||[])[0];if(rv){const x=rivalrySnapshot(rv);if(!x.label||!Array.isArray(x.events))failures.push('rivalry snapshot invalid')}if(!nav.toString().includes('globalBackToTop'))failures.push('global back-to-top missing')}catch(e){failures.push('v3.13 systems smoke failed')}
  try{const f=(state.films||[]).find(x=>x.owner==='player');if(f){const id=ensureFilmIdentity(f);if(!id?.archetype||!id?.texture)failures.push('film identity invalid')}if(makeReview.toString().includes('Strong moments, mixed results'))failures.push('legacy repetitive review generator active');if(soundtrackOffers.toString().indexOf('usedTracks')<0)failures.push('music freshness missing')}catch(e){failures.push('v3.14 variation smoke failed')}
+ try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:variationPick'))failures.push('capsule reviews missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.1 premise/Apex smoke failed')}
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
   const unique=new Set(probe.scripts.map(x=>x.title.toLowerCase())).size,quantified=probe.scripts.filter(x=>/^(No One|Nobody|Someone|Everyone)\b/i.test(x.title)).length;
