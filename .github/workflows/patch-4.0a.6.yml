@@ -44,3 +44,5 @@ jobs:
           git add index.html
           git commit -m "v4.0a.6 normalize rival financing"
           git push
+
+# trigger
