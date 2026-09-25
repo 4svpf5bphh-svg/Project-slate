@@ -1,109 +1,44 @@
-name: Project Slate 4.0a.5 patch
+name: one-shot v4.0a.5 legacy catalogue and turnaround
 on:
   push:
-    paths:
-      - ".github/workflows/patch-4.0a.5.yml"
+    branches: [main]
+
 permissions:
   contents: write
+
 jobs:
   patch:
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, 'v4.0a.5 legacy catalogue and turnaround rebalance')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      - name: Apply 4.0a.5 tuning
-        shell: bash
+
+      - name: Patch Project Slate
+        run: python .github/patches/patch_4_0a_5.py
+
+      - name: JavaScript syntax check
         run: |
-          python3 - <<'PY'
+          python - <<'PY'
           from pathlib import Path
-
-          p = Path("index.html")
-          s = p.read_text()
-
-          def rep(old, new, label):
-              global s
-              n = s.count(old)
-              if n != 1:
-                  raise SystemExit(f"{label}: expected 1 occurrence, found {n}")
-              s = s.replace(old, new, 1)
-
-          rep("<title>Project Slate — Premium Presentation v4.0a.4</title>",
-              "<title>Project Slate — Premium Presentation v4.0a.5</title>", "title")
-          rep("const VERSION='4.0a.4';", "const VERSION='4.0a.5';", "version")
-          rep("audit-benchmark-v4004", "audit-benchmark-v4005", "benchmark seed")
-          rep("v4.0a.4-catalogue-variance", "v4.0a.5-legacy-catalogue-turnaround", "benchmark model")
-
-          old_turn = """ const natural=Math.max(3,s.naturalBudget||12),baseRights=Math.max(s.acquisitionCost||0,s.developmentSpend||0,s.price||0,.35),scaleCarry=clamp(natural*.045,.25,1.8),devCarry=.30+rr()*.75;
- const prior=+(baseRights+scaleCarry+devCarry).toFixed(2),marketAnchor=clamp(.38+natural*.035,.50,1.75),askCap=clamp(.58+natural*.055,.75,2.85),transferDiscount=.34+rr()*.18;
- const ask=+clamp(Math.min(prior*transferDiscount,marketAnchor+rr()*.45),.35,askCap).toFixed(2);"""
-          new_turn = """ const natural=Math.max(3,s.naturalBudget||12),baseRights=Math.max(s.acquisitionCost||0,s.developmentSpend||0,s.price||0,.25),scaleCarry=clamp(natural*.035,.18,1.35),devCarry=.22+rr()*.55;
- const prior=+(baseRights+scaleCarry+devCarry).toFixed(2),budgetAnchor=clamp(natural*(.012+rr()*.010),.12,.78),askCap=clamp(natural*.028,.18,1.20),transferDiscount=.20+rr()*.12;
- // v4.0a.5: turnaround is an opportunity created by a prior studio exiting the project.
- // Rights should normally be cheaper relative to the film's natural production scale than a fresh market acquisition.
- const ask=+clamp(Math.min(prior*transferDiscount,budgetAnchor),.12,askCap).toFixed(2);"""
-          rep(old_turn, new_turn, "turnaround pricing")
-
-          old_cat = """function aiCatalogueWeeklyRevenue(rv){
- let total=0;
- state.films.filter(f=>f.owner===rv.id&&f.stage==='complete').forEach(f=>{
-  const a=ensureAfterlifeState(f);a.catalogueAge=Math.max(0,state.week-(f.completeWeek||state.week));
-  const age=a.catalogueAge,decay=Math.exp(-age/46),sequel=state.films.some(x=>x.ipParentId===f.id&&!['complete','shelved'].includes(x.stage))?1.18:1;
-  const awards=a.wins.length?1.15:a.nominations.length?1.07:1,cult=a.cultStatus?1.12:1;
-  const rev=+Math.max(.0005,(afterlifeStrength(f)/100)*.055*decay*sequel*awards*cult).toFixed(4);total+=rev;
- });
- total=+total.toFixed(4);rv.lastCatalogueRevenue=total;rv.catalogueRevenue=+((rv.catalogueRevenue||0)+total).toFixed(4);return total;
-}"""
-          new_cat = """function aiLegacyCatalogueWeeklyRevenue(rv){
- // The six incumbent rivals enter Project Slate as established studios, not Week-1 startups.
- // Seed a modest back-catalogue tail from stature, then let it age while new releases replenish the library.
- // The late-game challenger is genuinely new and therefore receives no inherited catalogue.
- if(typeof LATE_GAME_CHALLENGER!=='undefined'&&rv.id===LATE_GAME_CHALLENGER.id)return 0;
- if(!Number.isFinite(rv.legacyCatalogueBase)){
-  const stature=clamp(((rv.recognition||48)-40)/24,0,1);
-  rv.legacyCatalogueBase=+(.11+stature*.10).toFixed(4);
- }
- const age=Math.max(0,(state.week||1)-1),floor=.38,decay=floor+(1-floor)*Math.exp(-age/182);
- return +(rv.legacyCatalogueBase*decay).toFixed(4);
-}
-function aiCatalogueWeeklyRevenue(rv){
- let total=0;
- state.films.filter(f=>f.owner===rv.id&&f.stage==='complete').forEach(f=>{
-  const a=ensureAfterlifeState(f);a.catalogueAge=Math.max(0,state.week-(f.completeWeek||state.week));
-  const age=a.catalogueAge,decay=Math.exp(-age/46),sequel=state.films.some(x=>x.ipParentId===f.id&&!['complete','shelved'].includes(x.stage))?1.18:1;
-  const awards=a.wins.length?1.15:a.nominations.length?1.07:1,cult=a.cultStatus?1.12:1;
-  const rev=+Math.max(.0005,(afterlifeStrength(f)/100)*.055*decay*sequel*awards*cult).toFixed(4);total+=rev;
- });
- const legacy=aiLegacyCatalogueWeeklyRevenue(rv);total+=legacy;
- total=+total.toFixed(4);rv.lastCatalogueRevenue=total;rv.legacyCatalogueRevenue=+((rv.legacyCatalogueRevenue||0)+legacy).toFixed(4);rv.catalogueRevenue=+((rv.catalogueRevenue||0)+total).toFixed(4);return total;
-}"""
-          rep(old_cat, new_cat, "legacy catalogue")
-
-          rep("catalogueRevenue:rv.catalogueRevenue||0,overhead:rv.lifetimeOverhead||0",
-              "catalogueRevenue:rv.catalogueRevenue||0,legacyCatalogueRevenue:rv.legacyCatalogueRevenue||0,overhead:rv.lifetimeOverhead||0",
-              "benchmark rival legacy field")
-          rep("catalogueRevenue:auditRound(rivals.reduce((a,r)=>a+r.catalogueRevenue,0)),overhead:",
-              "catalogueRevenue:auditRound(rivals.reduce((a,r)=>a+r.catalogueRevenue,0)),legacyCatalogueRevenue:auditRound(rivals.reduce((a,r)=>a+r.legacyCatalogueRevenue,0)),overhead:",
-              "benchmark snapshot legacy total")
-          rep("avgCatalogueRevenue:auditRound(finals.length?finals.reduce((a,x)=>a+(x.catalogueRevenue||0),0)/finals.length:null),avgOverhead:",
-              "avgCatalogueRevenue:auditRound(finals.length?finals.reduce((a,x)=>a+(x.catalogueRevenue||0),0)/finals.length:null),avgLegacyCatalogueRevenue:auditRound(finals.length?finals.reduce((a,x)=>a+(x.legacyCatalogueRevenue||0),0)/finals.length:null),avgOverhead:",
-              "benchmark aggregate legacy total")
-          rep("<div class=\"listrow\"><span>Average 5-year rival catalogue receipts</span><strong>${money(bench.avgCatalogueRevenue||0)}</strong></div><div class=\"listrow\"><span>Average 5-year rival overhead</span>",
-              "<div class=\"listrow\"><span>Average 5-year rival catalogue receipts</span><strong>${money(bench.avgCatalogueRevenue||0)}</strong></div><div class=\"listrow\"><span>Legacy catalogue share</span><strong>${money(bench.avgLegacyCatalogueRevenue||0)}</strong></div><div class=\"listrow\"><span>Average 5-year rival overhead</span>",
-              "benchmark UI legacy row")
-
-          rep("if(!aiWeeklyFinance.toString().includes('aiCatalogueWeeklyRevenue'))failures.push('AI catalogue parity missing');",
-              "if(!aiWeeklyFinance.toString().includes('aiCatalogueWeeklyRevenue'))failures.push('AI catalogue parity missing');\n  if(!aiCatalogueWeeklyRevenue.toString().includes('aiLegacyCatalogueWeeklyRevenue'))failures.push('AI legacy catalogue seed missing');\n  if(!releaseTurnaroundScript.toString().includes('budgetAnchor'))failures.push('turnaround rights rebalance missing');",
-              "smoke tests")
-
-          p.write_text(s)
-          Path(".github/workflows/patch-4.0a.5.yml").unlink()
+          s=Path("index.html").read_text(encoding="utf-8")
+          start=s.index("<script>")+len("<script>")
+          end=s.rindex("</script>")
+          Path("/tmp/project-slate.js").write_text(s[start:end],encoding="utf-8")
           PY
+          node --check /tmp/project-slate.js
 
-          git config user.name "Project Slate Patch Bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add index.html .github/workflows/patch-4.0a.5.yml
+      - name: Text smoke checks
+        run: |
+          grep -q "const VERSION='4.0a.5';" index.html
+          grep -q "aiLegacyCatalogueWeeklyRevenue" index.html
+          grep -q "budgetAnchor" index.html
+          grep -q "v4.0a.5-legacy-catalogue-turnaround" index.html
+          git diff --check
+
+      - name: Commit update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
           git commit -m "v4.0a.5 legacy catalogue and turnaround rebalance"
           git push
-
-# trigger after workflow exists on main
