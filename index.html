@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.11.2</title>
+<title>Project Slate — Premium Presentation v3.12.0</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -625,7 +625,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.11.2';
+const VERSION='3.12.0';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -1578,47 +1578,200 @@ function maybeGenerateIndustryYearbook(){
 }
 
 
+
 const PRESS_PERSONALITIES={
  'mara-vance':{id:'mara-vance',name:'Mara Vance',publication:'Screen Trade',beat:'Studios & strategy',tone:'Trade analyst',bio:'Measured, sceptical of easy narratives and unusually interested in how a studio is changing over time.'},
  'imani-kerr':{id:'imani-kerr',name:'Imani Kerr',publication:'The Call Sheet',beat:'Talent & The Lot',tone:'Industry columnist',bio:'Fast on agency chatter, casting politics and the small professional slights that turn into bigger stories.'},
  'ruth-bell':{id:'ruth-bell',name:'Ruth Bell',publication:'Awards Wire',beat:'Prestige & awards',tone:'Critic-columnist',bio:'Takes filmmakers seriously, remembers disappointments and is slow to declare anything a masterpiece.'},
- 'daniel-mercer':{id:'daniel-mercer',name:'Daniel Mercer',publication:'Box Office Weekly',beat:'Exhibition & finance',tone:'Box-office reporter',bio:'Obsessed with cost, release windows and whether a studio is believing its own publicity.'}
+ 'daniel-mercer':{id:'daniel-mercer',name:'Daniel Mercer',publication:'Box Office Weekly',beat:'Exhibition & finance',tone:'Box-office reporter',bio:'Obsessed with cost, release windows and whether a studio is believing its own publicity.'},
+ 'celia-hart':{id:'celia-hart',name:'Celia Hart',publication:'Aurelia Daily',beat:'Culture & campaigns',tone:'Culture reporter',bio:'Tracks how films are sold to audiences, remembers overpromises and notices when a studio lets filmmakers speak for themselves.'}
 };
+
 function journalistProfileById(id){return PRESS_PERSONALITIES[id]||null}
 function journalistIdFromByline(byline=''){const name=String(byline).split(' · ')[0].trim();return Object.values(PRESS_PERSONALITIES).find(x=>x.name===name)?.id||null}
 function recurringJournalistForKind(kind,r){
  const map={
   'Box Office Alert':'daniel-mercer','Box Office':'daniel-mercer','Trade Finance':'daniel-mercer','Studio Finance':'daniel-mercer',
-  'Awards':'ruth-bell','Press Release':'ruth-bell',
+  'Awards':'ruth-bell','Press Release':'celia-hart',
   'Talent Watch':'imani-kerr','Industry Drama':'imani-kerr','Casting':'imani-kerr',
   'Development':'mara-vance','Market Watch':'mara-vance','Script Market':'mara-vance','Your Studio':'mara-vance','Studio Watch':'mara-vance','Industry':'mara-vance'
  };
  const id=map[kind];return id&&r()<.76?PRESS_PERSONALITIES[id]:null;
 }
+
 function ensurePressMemory(st=state){st.pressMemory=st.pressMemory||{};return st.pressMemory}
+function pressMemoryEntry(st,id){
+ const mem=ensurePressMemory(st),x=mem[id]||(mem[id]={stories:0,playerMentions:0,lastWeek:0,lastPlayerWeek:0,lastPlayerHeadline:null});
+ if(x.rapport===undefined)x.rapport=0;if(x.interactions===undefined)x.interactions=0;if(x.lastInteractionWeek===undefined)x.lastInteractionWeek=0;
+ x.choiceHistory=x.choiceHistory||[];x.kinds=x.kinds||{};return x;
+}
+function pressRapportLabel(v){return v>=5?'Open line':v>=2?'Constructive':v<=-5?'Frosty':v<=-2?'Guarded':'Professional'}
+const PRESS_INTERACTION_EFFECTS={
+ 'press-budget':{transparent:2,confident:0,decline:-2},
+ 'press-release':{event:0,measured:1,filmmaker:1},
+ 'critic-narrative':{respect:2,audience:0,fight:-3},
+ 'finance-question':{open:1,deny:-1,decline:-2}
+};
+function recordPressInteraction(item,key){
+ if(!item?.journalistId)return;
+ const j=journalistProfileById(item.journalistId);if(!j)return;
+ const mem=pressMemoryEntry(state,item.journalistId),delta=PRESS_INTERACTION_EFFECTS[item.templateId]?.[key]??0;
+ mem.rapport=clamp((mem.rapport||0)+delta,-10,10);mem.interactions=(mem.interactions||0)+1;mem.lastInteractionWeek=state.week;mem.lastChoice=key;mem.lastTemplateId=item.templateId;
+ mem.choiceHistory.unshift({week:state.week,templateId:item.templateId,choice:key,delta});mem.choiceHistory=mem.choiceHistory.slice(0,12);
+}
 function newsTouchesPlayer(st,item){
  const q=`${item?.text||''} ${item?.headline||''}`.toLowerCase();
  if(st.studio?.name&&q.includes(st.studio.name.toLowerCase()))return true;
  return (st.films||[]).some(f=>f.owner==='player'&&f.title&&q.includes(f.title.toLowerCase()));
 }
+function ordinal(n){const m=n%100;if(m>=11&&m<=13)return `${n}th`;return `${n}${n%10===1?'st':n%10===2?'nd':n%10===3?'rd':'th'}`}
 function applyJournalistCallback(st,item){
  if(!item?.journalistId||!newsTouchesPlayer(st,item))return item;
- const mem=ensurePressMemory(st)[item.journalistId],j=journalistProfileById(item.journalistId);if(!mem||!j||!mem.playerMentions)return item;
- const n=mem.playerMentions;
- if(n<2||st.week-(mem.lastPlayerWeek||0)>30)return item;
- const lines={
-  'mara-vance':`${j.name} has been following ${st.studio.name}'s trajectory closely; this is the ${n+1}${n+1===3?'rd':'th'} time she has returned to the studio in her recent coverage.`,
-  'imani-kerr':`${j.name}'s column has circled back to ${st.studio.name} repeatedly, with agents and talent now treating the studio as part of the ongoing Lot conversation.`,
-  'ruth-bell':`${j.name} has covered the studio before and is reading this result against the expectations created by its earlier films, not as an isolated release.`,
-  'daniel-mercer':`${j.name} has now built a running commercial read on ${st.studio.name}, comparing this move with the studio's earlier spending and box-office results.`
- };
- const line=lines[item.journalistId];if(line){item.body=item.body||[];item.body=[...item.body.slice(0,2),line]}
+ const mem=pressMemoryEntry(st,item.journalistId),j=journalistProfileById(item.journalistId);if(!j)return item;
+ const extras=[],n=mem.playerMentions||0;
+ if(n>=2&&st.week-(mem.lastPlayerWeek||0)<=30){
+  const lines={
+   'mara-vance':`${j.name} has been following ${st.studio.name}'s trajectory closely; this is the ${ordinal(n+1)} time she has returned to the studio in her recent coverage.`,
+   'imani-kerr':`${j.name}'s column has circled back to ${st.studio.name} repeatedly, with agents and talent now treating the studio as part of the ongoing Lot conversation.`,
+   'ruth-bell':`${j.name} has covered the studio before and is reading this result against the expectations created by its earlier films, not as an isolated release.`,
+   'daniel-mercer':`${j.name} has built a running commercial read on ${st.studio.name}, comparing this move with the studio's earlier spending and box-office results.`,
+   'celia-hart':`${j.name} has been tracking how ${st.studio.name} sells its films, comparing the current message with promises made on earlier campaigns.`
+  };
+  if(lines[item.journalistId])extras.push(lines[item.journalistId]);
+ }
+ if((mem.interactions||0)>0&&st.week-(mem.lastInteractionWeek||0)<=40){
+  if(mem.rapport>=3)extras.push(`${j.name} has had relatively open access to the studio in recent exchanges. That access informs the reporting, but not the outlet's verdict.`);
+  else if(mem.rapport<=-3)extras.push(`Recent requests from ${j.name} have often met limited access or pushback, a tension now sitting behind the reporter's continuing coverage of the studio.`);
+ }
+ if(typeof state!=='undefined'&&st===state&&typeof executivePersonaSnapshot==='function'&&Math.abs(hash(item.id+'|exec-frame'))%3===0){
+  const exec=executivePersonaSnapshot();
+  if(!exec.unformed)extras.push(`The move also fits an increasingly familiar executive pattern: the trade currently reads the studio leadership as ${exec.primary.label.toLowerCase()}.`);
+ }
+ if(extras.length){item.body=item.body||[];item.body=[...item.body,...extras].slice(0,5)}
  return item;
 }
 function recordJournalistCoverage(st,item){
- if(!item?.journalistId)return;const mem=ensurePressMemory(st),x=mem[item.journalistId]||(mem[item.journalistId]={stories:0,playerMentions:0,lastWeek:0,lastPlayerWeek:0,lastPlayerHeadline:null});
- x.stories++;x.lastWeek=st.week;if(newsTouchesPlayer(st,item)){x.playerMentions++;x.lastPlayerWeek=st.week;x.lastPlayerHeadline=item.headline}
+ if(!item?.journalistId)return;const x=pressMemoryEntry(st,item.journalistId);
+ x.stories++;x.lastWeek=st.week;x.kinds[item.kind]=(x.kinds[item.kind]||0)+1;
+ if(newsTouchesPlayer(st,item)){x.playerMentions++;x.lastPlayerWeek=st.week;x.lastPlayerHeadline=item.headline}
 }
+
+function ensureExecutivePersona(st=state){
+ st.executivePersona=st.executivePersona||{history:[],lastPrimary:null,lastEvaluatedWeek:0};st.executivePersona.history=st.executivePersona.history||[];return st.executivePersona;
+}
+const EXECUTIVE_DECISION_WEIGHTS={
+ 'press-budget:transparent':{discipline:2,publicity:1},'press-budget:confident':{commercial:2,publicity:1},'press-budget:decline':{publicity:-1},
+ 'press-release:event':{commercial:2,publicity:2,risk:1},'press-release:measured':{discipline:2,publicity:1},'press-release:filmmaker':{creative:2,talent:1},
+ 'agency-package:meet':{talent:2},'agency-package:hardball':{commercial:1,talent:-1,risk:1},'talent-pitch:meet':{talent:2},
+ 'crew-story:spend':{talent:2,creative:1},'crew-story:meet':{talent:1},'crew-story:hold':{discipline:1,talent:-1},
+ 'festival-invite:accept':{creative:2,publicity:1,risk:1},'festival-invite:private':{creative:1,discipline:1},
+ 'critic-narrative:respect':{creative:1,publicity:2},'critic-narrative:audience':{commercial:2,publicity:1},'critic-narrative:fight':{risk:2,publicity:1},
+ 'star-interview:book':{commercial:1,publicity:2},'star-interview:film':{creative:1,discipline:1},'star-interview:joint':{creative:1,talent:1,publicity:1},
+ 'catalogue-call:decline':{discipline:1},'catalogue-call:listen':{commercial:1},'finance-question:open':{discipline:2,publicity:1},'finance-question:deny':{risk:1}
+};
+const EXECUTIVE_PERSONA_DEFS={
+ creative:{id:'creative',label:'Creative Patron',desc:'The business increasingly expects leadership to protect filmmakers, performance and distinctive material even when the easier commercial answer is available.'},
+ commercial:{id:'commercial',label:'Market Operator',desc:'Leadership is becoming associated with audience reach, positioning, release confidence and a willingness to treat films as commercial events.'},
+ talent:{id:'talent',label:'Talent Builder',desc:'Agents and collaborators increasingly see the company as a place where relationships can compound across films rather than reset after every deal.'},
+ discipline:{id:'discipline',label:'Disciplined Steward',desc:'The executive reputation is being built around controlled spending, measured promises and preserving enough runway to keep making films.'},
+ publicity:{id:'publicity',label:'Public-Facing Showman',desc:'Campaign choices and press engagement have made leadership unusually visible in how the studio creates attention around its films.'},
+ risk:{id:'risk',label:'High-Conviction Gambler',desc:'The studio is increasingly associated with taking conspicuous swings: scale, originals, aggressive positioning or choices that accept volatility for upside.'}
+};
+function executiveDecisionSignals(){
+ const d=ensureDesk(),all=[...(d.items||[]),...(d.archive||[])].filter(x=>x.resolved&&x.choice),score={creative:0,commercial:0,talent:0,discipline:0,publicity:0,risk:0};
+ all.forEach(x=>{const w=EXECUTIVE_DECISION_WEIGHTS[`${x.templateId}:${x.choice}`];Object.entries(w||{}).forEach(([k,v])=>score[k]=(score[k]||0)+v)});
+ return {count:all.length,score};
+}
+function executivePersonaSnapshot(){
+ const done=playerFilms().filter(f=>f.stage==='complete'),rep=state.reputation||{},dec=executiveDecisionSignals(),n=Math.max(1,done.length);
+ const worked=(state.talent||[]).filter(t=>(t.relationship||0)!==0||(t.credits||[]).some(c=>typeof c==='object'&&c.studio===state.studio?.name));
+ const directors=worked.filter(t=>t.type==='Director'),avgRel=worked.length?worked.reduce((a,t)=>a+(t.relationship||0),0)/worked.length:0,avgDirRel=directors.length?directors.reduce((a,t)=>a+(t.relationship||0),0)/directors.length:0;
+ const prestige=done.filter(f=>f.creative?.positioning==='prestige').length/n,commercial=done.filter(f=>f.creative?.positioning==='commercial').length/n,event=done.filter(f=>f.campaign==='event').length/n;
+ const disciplined=done.filter(f=>{const sc=scriptById(f.scriptId),ratio=(f.budget||0)/Math.max(1,sc?.naturalBudget||f.budget||1);return ratio>=.84&&ratio<=1.20}).length/n;
+ const profitable=done.filter(f=>(f.studioRevenue||0)-(f.investment||0)>0).length/n;
+ const highScale=done.filter(f=>{const sc=scriptById(f.scriptId),ratio=(f.budget||0)/Math.max(1,sc?.naturalBudget||f.budget||1);return ratio>1.22||(f.budget||0)>=35}).length/n;
+ const originals=done.filter(f=>/original/i.test(scriptById(f.scriptId)?.source||'')).length/n,selfDist=done.filter(f=>(f.distributionStrategy||'self')==='self').length/n;
+ const bridge=state.finance?.bridgeDebt||0,press=rep.press??50;
+ const signals=[
+  {...EXECUTIVE_PERSONA_DEFS.creative,score:clamp(28+(rep.creative??45)*.42+prestige*18+Math.max(0,avgDirRel)*.30+dec.score.creative*2,0,100),evidence:`${Math.round(prestige*100)}% of completed releases are prestige-positioned; director relationship signal ${avgDirRel>=8?'strong':avgDirRel<=-4?'strained':'mixed'}.`},
+  {...EXECUTIVE_PERSONA_DEFS.commercial,score:clamp(28+(rep.commercial??45)*.42+profitable*12+commercial*10+event*10+dec.score.commercial*2,0,100),evidence:`${Math.round(profitable*100)}% of completed releases are profitable; ${Math.round(event*100)}% used event-style campaigns.`},
+  {...EXECUTIVE_PERSONA_DEFS.talent,score:clamp(28+(rep.talent??45)*.42+clamp(avgRel+10,0,30)*.55+dec.score.talent*2,0,100),evidence:`Working-talent relationship average ${avgRel>=0?'+':''}${avgRel.toFixed(1)} across ${worked.length||0} established studio relationships.`},
+  {...EXECUTIVE_PERSONA_DEFS.discipline,score:clamp(24+(rep.financial??50)*.50+disciplined*18+profitable*7-Math.min(14,bridge*.35)+dec.score.discipline*2,0,100),evidence:`${Math.round(disciplined*100)}% of completed films stayed near natural production scale${bridge?`; bridge debt is ${money(bridge)}`:'; no bridge debt is outstanding'}.`},
+  {...EXECUTIVE_PERSONA_DEFS.publicity,score:clamp(26+press*.42+studioUpgradeLevel('publicity')*6+event*8+dec.score.publicity*2,0,100),evidence:`Press standing is ${Math.round(press)}/100 with ${studioUpgradeLevel('publicity')} publicity department upgrade${studioUpgradeLevel('publicity')===1?'':'s'} and ${dec.count} recorded Desk decisions.`},
+  {...EXECUTIVE_PERSONA_DEFS.risk,score:clamp(32+highScale*18+originals*13+selfDist*7+dec.score.risk*2.5-dec.score.discipline*.6,0,100),evidence:`${Math.round(highScale*100)}% of completed releases were high-scale bets; ${Math.round(originals*100)}% came from original material.`}
+ ].sort((a,b)=>b.score-a.score);
+ const evidenceCount=done.length+dec.count,unformed=evidenceCount<4;
+ let primary=signals[0],secondary=signals[1];
+ if(!unformed&&primary.score>=58&&secondary&&Math.abs(primary.score-secondary.score)<=4){
+  const pair=[primary.id,secondary.id].sort().join('+'),hybrids={
+   'creative+talent':{id:'filmmaker-ally',label:'Filmmaker Ally',desc:'The strongest signal combines creative protection with durable talent relationships.'},
+   'commercial+discipline':{id:'studio-operator',label:'Studio Operator',desc:'The trade increasingly reads leadership as commercially minded without losing control of the balance sheet.'},
+   'commercial+publicity':{id:'showman-operator',label:'Showman Operator',desc:'Audience ambition and visible campaign instincts are becoming the clearest executive signature.'},
+   'creative+risk':{id:'creative-gambler',label:'Creative Gambler',desc:'Leadership is developing a reputation for backing distinctive material with unusually high conviction.'},
+   'commercial+talent':{id:'talent-broker',label:'Talent Broker',desc:'The company is becoming known for using relationships and star packages as part of its commercial strategy.'}
+  };
+  primary=hybrids[pair]||{id:`hybrid-${pair}`,label:'Hybrid Executive',desc:'No single operating instinct dominates; the industry is reading a combination of strong, recurring behaviours.'};
+  primary.score=(signals[0].score+signals[1].score)/2;
+ }
+ if(unformed)primary={id:'unformed',label:'Still Being Defined',desc:'There is not yet enough repeated behaviour for the industry to put a durable label on how this studio is run.',score:0};
+ return {primary,signals,unformed,evidenceCount,done:done.length,decisionCount:dec.count};
+}
+function updateExecutivePersonaHistory(){
+ const mem=ensureExecutivePersona(),snap=executivePersonaSnapshot();mem.lastEvaluatedWeek=state.week;if(snap.unformed)return snap;
+ if(mem.lastPrimary!==snap.primary.id){
+  const previous=mem.lastPrimary;mem.lastPrimary=snap.primary.id;mem.history.unshift({week:state.week,id:snap.primary.id,label:snap.primary.label});mem.history=mem.history.slice(0,16);
+  if(previous)addNews(state,`The trade's read on ${state.studio.name}'s leadership is shifting. Recent decisions increasingly fit a ${snap.primary.label.toLowerCase()} pattern.`,'Studio Watch');
+  else addNews(state,`${state.studio.name}'s leadership is beginning to acquire a recognisable executive reputation: ${snap.primary.label}.`,'Studio Watch');
+ }
+ return snap;
+}
+function executivePersonaSnapshotCard(){
+ const x=executivePersonaSnapshot(),top=x.signals.slice(0,2);
+ return `<div class="section-title"><h2>Executive reputation</h2><button class="btn ghost" data-studio-tab="identity">Open Identity</button></div><div class="card ${x.unformed?'':'goodline'}"><div class="row"><div><div class="badge">EARNED · NOT SELECTED</div><strong style="display:block;margin-top:5px">${x.primary.label}</strong></div>${x.unformed?'':`<span class="pill blue">${Math.round(x.primary.score)} signal</span>`}</div><div class="body" style="margin-top:7px">${x.primary.desc}</div>${!x.unformed?`<div class="small" style="margin-top:8px">Strongest underlying reads: ${top.map(s=>s.label).join(' · ')}</div>`:''}</div>`;
+}
+function executivePersonaIdentitySection(){
+ const x=executivePersonaSnapshot(),history=ensureExecutivePersona().history||[];
+ return `<div class="section-title"><h2>Executive reputation</h2><span class="small">Derived from repeated decisions, results and relationships</span></div><div class="card ${x.unformed?'':'goodline'}"><div class="row"><div><div class="badge">CURRENT TRADE READ</div><div class="quote" style="margin-top:6px">${x.primary.label}</div></div>${x.unformed?'':`<span class="pill blue">${Math.round(x.primary.score)} signal</span>`}</div><div class="body" style="margin-top:8px">${x.primary.desc}</div></div><div class="grid cols3" style="margin-top:10px">${x.signals.slice(0,3).map(sig=>`<div class="card"><div class="row"><strong>${sig.label}</strong><span class="pill">${Math.round(sig.score)}</span></div><div class="small" style="margin-top:7px">${sig.evidence}</div></div>`).join('')}</div>${history.length?`<div class="small" style="margin-top:10px">Recent executive labels: ${history.slice(0,4).map(h=>`${h.label} · W${h.week}`).join('  ·  ')}</div>`:''}`;
+}
+
+function ensureIndustryMood(st=state){st.industryMood=st.industryMood||{history:[],lastQuarter:0};st.industryMood.history=st.industryMood.history||[];return st.industryMood}
+function industryMoodSnapshot(){
+ ensureAudienceMarket();const recent=state.films.filter(f=>f.stage==='complete'&&state.week-(f.completeWeek||0)<=13);
+ const audiences=recent.map(f=>f.review?.audience).filter(Number.isFinite),avgAudience=audiences.length?audiences.reduce((a,b)=>a+b,0)/audiences.length:68;
+ const profits=recent.map(f=>f.owner==='player'?(f.studioRevenue||0)-(f.investment||0):(f.estimatedProfit||0)),avgProfit=profits.length?profits.reduce((a,b)=>a+b,0)/profits.length:0;
+ const treasuries=(state.rivals||[]).map(aiTreasurySnapshot),capital=treasuries.length?treasuries.reduce((a,x)=>a+(x.available||0),0)/treasuries.length:10,debt=(state.rivals||[]).length?(state.rivals||[]).reduce((a,x)=>a+(x.debt||0),0)/state.rivals.length:0;
+ const market=ensureAudienceMarket(),crowding=genres.reduce((a,g)=>a+(market.supply[g]||0),0)/genres.length;
+ const talentHeat=(state.talent||[]).filter(t=>!t.retired).sort((a,b)=>(b.momentum||60)-(a.momentum||60)).slice(0,12),talentMomentum=talentHeat.length?talentHeat.reduce((a,t)=>a+(t.momentum||60),0)/talentHeat.length:70;
+ const genreReads=genres.map(g=>({genre:g,signal:industryGenreSignal(g),...genreMarketLabel(g)})).sort((a,b)=>b.signal-a.signal),hot=genreReads[0],cold=genreReads.at(-1);
+ const financing=capital>=18&&debt<15?'Capital available':capital<6||debt>30?'Capital tight':'Selective financing';
+ const talent=talentMomentum>=85?'Talent has leverage':talentMomentum>=77?'Competitive talent market':'Balanced talent market';
+ const releases=crowding>=10?'Crowded release lanes':crowding<=4.5?'Open release lanes':'Competitive release lanes';
+ const audience=avgAudience>=76?'Audience confidence high':avgAudience<=60?'Audiences cautious':'Audience response mixed';
+ const confidence=(avgAudience-67)*.55+avgProfit*.32+(capital-10)*.16-Math.max(0,crowding-7)*.55;
+ let label='Selective market';
+ if(recent.length<2&&Math.abs(confidence)<5)label='Market still forming';
+ else if(confidence>=10&&crowding<9)label='Expansionary';
+ else if(confidence>=5&&crowding>=9)label='Confident but crowded';
+ else if(confidence>=5)label='Confident';
+ else if(confidence<=-7)label='Risk-off';
+ const summary=`${financing}; ${talent.toLowerCase()}. ${hot?.genre||'No genre'} is the hottest visible lane${cold?.signal<=-3?`, while ${cold.genre} is cooling`:''}.`;
+ return {label,summary,financing,talent,releases,audience,hot,cold,avgAudience,avgProfit,capital,crowding,recentCount:recent.length};
+}
+function captureIndustryMoodQuarter(){
+ const box=ensureIndustryMood(),quarter=Math.ceil(state.week/13),key=quarter;if(box.lastQuarter===key)return box.history[0]||null;
+ const x=industryMoodSnapshot(),entry={week:state.week,year:Math.ceil(state.week/52),quarter:((quarter-1)%4)+1,label:x.label,summary:x.summary,financing:x.financing,talent:x.talent,releases:x.releases,audience:x.audience,hotGenre:x.hot?.genre||null,coldGenre:x.cold?.genre||null};
+ box.lastQuarter=key;box.history.unshift(entry);box.history=box.history.slice(0,20);
+ addNews(state,`Quarterly trade read: ${x.label}. ${x.summary}`,'Market Watch');return entry;
+}
+function industryMoodPanel(mood=industryMoodSnapshot()){
+ const hist=ensureIndustryMood().history||[];
+ return `<div class="grid cols4" style="margin-top:12px"><div class="card"><div class="badge">Financing</div><strong>${mood.financing}</strong></div><div class="card"><div class="badge">Talent</div><strong>${mood.talent}</strong></div><div class="card"><div class="badge">Release market</div><strong>${mood.releases}</strong></div><div class="card"><div class="badge">Audience</div><strong>${mood.audience}</strong></div></div>${hist.length?`<div class="section-title"><h2>Quarterly tape</h2><span class="small">Persistent trade snapshots</span></div><div class="card">${hist.slice(0,4).map(h=>`<div class="listrow"><div><strong>Y${h.year} Q${h.quarter} · ${h.label}</strong><div class="small">${h.summary}</div></div><span class="small">W${h.week}</span></div>`).join('')}</div>`:''}`;
+}
+function pressRoomSnapshot(){
+ const rows=Object.values(PRESS_PERSONALITIES).map(j=>({j,m:pressMemoryEntry(state,j.id)})).sort((a,b)=>(b.m.playerMentions||0)-(a.m.playerMentions||0)||(b.m.stories||0)-(a.m.stories||0)).slice(0,5);
+ return `<div class="section-title"><h2>Press room</h2><span class="small">Recurring journalists remember access, pushback and prior coverage</span></div><div class="grid cols2">${rows.map(({j,m})=>`<div class="journalist-card"><div><div class="badge">${j.publication}</div><strong>${j.name}</strong><span>${j.beat} · ${j.tone}</span></div><div><div class="row"><strong>${pressRapportLabel(m.rapport||0)}</strong><span class="small">${m.playerMentions||0} studio mention${(m.playerMentions||0)===1?'':'s'}</span></div><div class="small" style="margin-top:6px">${m.lastPlayerHeadline?`Latest studio coverage: ${m.lastPlayerHeadline}`:j.bio}</div>${m.interactions?`<div class="small" style="margin-top:5px">Last direct exchange: W${m.lastInteractionWeek} · ${m.lastChoice||'response recorded'}</div>`:''}</div></div>`).join('')}</div>`;
+}
+
 
 const NEWS_KIND_LABELS={
  'Industry':'Industry','Press Release':'First Look','Trade Report':'Business','Talent Watch':'Talent','Your Studio':'Studios',
@@ -1973,7 +2126,7 @@ function studioUpgradeBenefitLabel(k){
 function studioUpgradeNewsBenefit(k){return {production:'more production capacity',casting:'deeper casting access and scouting',publicity:'a stronger publicity operation',development:'a larger rights-and-development pipeline',post:'deeper editorial and music-supervision options'}[k]||'a stronger studio operation'}
 function buyStudioUpgrade(k){const g=ensureStudioGrowth(),n=nextStudioUpgrade(k);if(!n)return showToast('This department is already fully developed.');if(g.recognition<n.recognition)return showToast(`Studio recognition ${n.recognition} is required.`);if(!spend(n.cost))return;g.upgrades[k]=(g.upgrades[k]||0)+1;g.history.unshift({week:state.week,key:k,name:n.name,cost:n.cost});addNews(state,`${state.studio.name} opened its ${n.name}. The expansion adds ${moneyFine(n.overhead)} to weekly overhead in exchange for ${studioUpgradeNewsBenefit(k)}.`,'Your Studio');save();render()}
 function studioFansLabel(v){return v>=10?`${v.toFixed(1)}m global followers`:v>=1?`${v.toFixed(2)}m followers`:`${Math.round(v*1000)}k followers`}
-function playerStudioEntity(){const g=ensureStudioGrowth(),done=playerFilms().filter(f=>f.stage==='complete'),recent=done.filter(f=>state.week-(f.completeWeek||0)<=52);return {id:'player',name:state.studio.name,player:true,fans:g.fans,recognition:g.recognition,awards:done.reduce((s,f)=>s+(ensureAfterlifeState(f).wins?.length||0),0),recentProfit:recent.reduce((s,f)=>s+((f.studioRevenue||0)-(f.investment||0)),0),reputation:Object.values(state.reputation).reduce((a,b)=>a+b,0)/4,style:studioIdentityPrimary().label}}
+function playerStudioEntity(){const g=ensureStudioGrowth(),done=playerFilms().filter(f=>f.stage==='complete'),recent=done.filter(f=>state.week-(f.completeWeek||0)<=52);return {id:'player',name:state.studio.name,player:true,fans:g.fans,recognition:g.recognition,awards:done.reduce((s,f)=>s+(ensureAfterlifeState(f).wins?.length||0),0),recentProfit:recent.reduce((s,f)=>s+((f.studioRevenue||0)-(f.investment||0)),0),reputation:Object.values(state.reputation).reduce((a,b)=>a+b,0)/Math.max(1,Object.values(state.reputation).length),style:studioIdentityPrimary().label}}
 function rivalStudioEntity(rv){const done=state.films.filter(f=>f.owner===rv.id&&f.stage==='complete'),recent=done.filter(f=>state.week-(f.completeWeek||0)<=52);return {id:rv.id,name:rv.name,player:false,fans:rv.fans||.5,recognition:rv.recognition??rv.reputation??50,awards:done.reduce((s,f)=>s+(ensureAfterlifeState(f).wins?.length||0),0),recentProfit:recent.reduce((s,f)=>s+(f.estimatedProfit||0),0),reputation:rv.reputation||50,style:rv.style}}
 function studioRankingScore(e){return (e.recognition||0)*.58+Math.min(24,Math.sqrt(Math.max(0,e.fans||0))*6.2)+Math.max(-10,Math.min(16,(e.recentProfit||0)*.18))+Math.min(12,(e.awards||0)*1.8)+(e.reputation||50)*.12}
 function studioStandings(){return [playerStudioEntity(),...state.rivals.map(rivalStudioEntity)].map(x=>({...x,score:studioRankingScore(x)})).sort((a,b)=>b.score-a.score).map((x,i)=>({...x,rank:i+1}))}
@@ -2973,7 +3126,7 @@ function launchLateGameChallenger(){
 function maybeLaunchLateGameChallenger(){return launchLateGameChallenger()}
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=394;
+const SAVE_SCHEMA_VERSION=395;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -3150,6 +3303,15 @@ function applySaveSchemaMigrations(x,fromVersion){
   (x.films||[]).forEach(f=>{if(f.afterlife?.streaming&&f.afterlife.streaming.ownedPlatform===undefined)f.afterlife.streaming.ownedPlatform=null});
   schema=394;
  }
+
+ if(schema<395){
+  x.reputation=x.reputation||{creative:45,commercial:45,talent:45,financial:50};if(x.reputation.press===undefined)x.reputation.press=50;
+  x.executivePersona=x.executivePersona||{history:[],lastPrimary:null,lastEvaluatedWeek:0};x.executivePersona.history=x.executivePersona.history||[];
+  x.industryMood=x.industryMood||{history:[],lastQuarter:0};x.industryMood.history=x.industryMood.history||[];
+  x.pressMemory=x.pressMemory||{};Object.values(x.pressMemory).forEach(m=>{if(m.rapport===undefined)m.rapport=0;if(m.interactions===undefined)m.interactions=0;if(m.lastInteractionWeek===undefined)m.lastInteractionWeek=0;m.choiceHistory=m.choiceHistory||[];m.kinds=m.kinds||{}});
+  schema=395;
+ }
+
  x.saveSchema=schema;
  return x;
 }
@@ -3160,7 +3322,7 @@ function migrateState(x){
  x.version=VERSION;
  x.difficulty=x.difficulty||'normal';x.uiDifficultyDraft=x.uiDifficultyDraft||x.difficulty||'normal';x.developmentUnlocks=x.developmentUnlocks||{commissionNotified:false,originalNotified:false};x.screenplayEconomy=x.screenplayEconomy||{history:[],lastWeek:0,turnarounds:0,lastTurnaroundWeek:0};x.challengerState=x.challengerState||{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null};x.industryOpportunities=x.industryOpportunities||{lastOfferWeek:0,history:[],accepted:0};x.emergingTalentState=x.emergingTalentState||{lastIntroductionWeek:0,history:[]};x.corporateState=x.corporateState||{status:'private',founderOwnership:100,investorConfidence:62,ipoDeclinedUntil:0,ipoWeek:null,ipoProceeds:0,lastReviewWeek:0,lastOfferWeek:0,lastFundamental:null,lastMarketCap:null,lastSharePrice:null,history:[],quarterly:[],boardPressure:false};
  x.calendarDay=Number.isFinite(x.calendarDay)?x.calendarDay:Math.max(1,((x.week||1)-1)*7+1);x.lastWeeklyHeartbeatWeek=x.lastWeeklyHeartbeatWeek||x.week||1;
- x.agencyWindows=x.agencyWindows||{};x.collaborations=x.collaborations||{};x.careerThreads=x.careerThreads||{active:[],history:[],nextId:1,lastUpdatedWeek:0};x.pressMemory=x.pressMemory||{};x.fastForward=x.fastForward||{uses:0,lastFromDay:null,lastToDay:null};x.legends=x.legends||{unlocked:{},history:[],pending:[],initialized:false};x.legends.unlocked=x.legends.unlocked||{};x.legends.history=x.legends.history||[];x.legends.pending=x.legends.pending||[];x.activeLegendUnlockId=x.activeLegendUnlockId||null;syncPrivateRealRoster(x);ensureBaseFictionalRoster(x);ensureAudienceMarket(x);x.lastAwardsSeasonResolved=x.lastAwardsSeasonResolved||0;x.portraitCache=x.portraitCache||{};Object.keys(x.portraitCache).forEach(k=>{const v=x.portraitCache[k];if(v==='__none__')delete x.portraitCache[k];else if(typeof v==='string')x.portraitCache[k]=normalizePortraitSource(v)||v});x.talentWatchlist=x.talentWatchlist||[];x.yearbooks=x.yearbooks||[];x.awardsArchive=x.awardsArchive||[];x.awardsNominationsArchive=x.awardsNominationsArchive||[];x.pendingAwardsNominations=x.pendingAwardsNominations||null;x.awardsCeremonyStep=Number.isFinite(x.awardsCeremonyStep)?x.awardsCeremonyStep:0;x.pendingCeremony=x.pendingCeremony||null;x.availabilityWatches=x.availabilityWatches||[];x.studioIdentity=x.studioIdentity||{history:[],lastPrimary:null,lastEvaluatedWeek:0};ensureStudioIdentity(x);x.pendingFilmWraps=x.pendingFilmWraps||[];x.activeFilmWrapId=x.activeFilmWrapId||null;x.uiFilmWrapStep=Number.isFinite(x.uiFilmWrapStep)?clamp(x.uiFilmWrapStep,0,4):0;x.studioMomentQueue=x.studioMomentQueue||[];x.activeStudioMoment=x.activeStudioMoment||null;x.boxOfficeMemory=x.boxOfficeMemory||{leaderId:null,streak:0,lastWeek:0};ensureEconomyState(x);(x.films||[]).forEach(f=>{
+ x.agencyWindows=x.agencyWindows||{};x.collaborations=x.collaborations||{};x.careerThreads=x.careerThreads||{active:[],history:[],nextId:1,lastUpdatedWeek:0};x.pressMemory=x.pressMemory||{};x.executivePersona=x.executivePersona||{history:[],lastPrimary:null,lastEvaluatedWeek:0};x.industryMood=x.industryMood||{history:[],lastQuarter:0};x.reputation=x.reputation||{};if(x.reputation.press===undefined)x.reputation.press=50;x.fastForward=x.fastForward||{uses:0,lastFromDay:null,lastToDay:null};x.legends=x.legends||{unlocked:{},history:[],pending:[],initialized:false};x.legends.unlocked=x.legends.unlocked||{};x.legends.history=x.legends.history||[];x.legends.pending=x.legends.pending||[];x.activeLegendUnlockId=x.activeLegendUnlockId||null;syncPrivateRealRoster(x);ensureBaseFictionalRoster(x);ensureAudienceMarket(x);x.lastAwardsSeasonResolved=x.lastAwardsSeasonResolved||0;x.portraitCache=x.portraitCache||{};Object.keys(x.portraitCache).forEach(k=>{const v=x.portraitCache[k];if(v==='__none__')delete x.portraitCache[k];else if(typeof v==='string')x.portraitCache[k]=normalizePortraitSource(v)||v});x.talentWatchlist=x.talentWatchlist||[];x.yearbooks=x.yearbooks||[];x.awardsArchive=x.awardsArchive||[];x.awardsNominationsArchive=x.awardsNominationsArchive||[];x.pendingAwardsNominations=x.pendingAwardsNominations||null;x.awardsCeremonyStep=Number.isFinite(x.awardsCeremonyStep)?x.awardsCeremonyStep:0;x.pendingCeremony=x.pendingCeremony||null;x.availabilityWatches=x.availabilityWatches||[];x.studioIdentity=x.studioIdentity||{history:[],lastPrimary:null,lastEvaluatedWeek:0};ensureStudioIdentity(x);x.pendingFilmWraps=x.pendingFilmWraps||[];x.activeFilmWrapId=x.activeFilmWrapId||null;x.uiFilmWrapStep=Number.isFinite(x.uiFilmWrapStep)?clamp(x.uiFilmWrapStep,0,4):0;x.studioMomentQueue=x.studioMomentQueue||[];x.activeStudioMoment=x.activeStudioMoment||null;x.boxOfficeMemory=x.boxOfficeMemory||{leaderId:null,streak:0,lastWeek:0};ensureEconomyState(x);(x.films||[]).forEach(f=>{
   ensureProductionDepth(f);ensureDistributionState(f);
   const fs=(x.scripts||[]).find(s=>s.id===f.scriptId);
   if(fs?.ipParentFilmId&&!f.ipParentId)f.ipParentId=fs.ipParentFilmId;
@@ -3214,13 +3376,13 @@ function migrateState(x){
 function initialState(){
  const seed=(crypto&&crypto.getRandomValues)?crypto.getRandomValues(new Uint32Array(1))[0]:Math.floor(Math.random()*4294967295);
  const st={
-  version:VERSION,saveSchema:SAVE_SCHEMA_VERSION,seed,week:1,calendarDay:1,lastWeeklyHeartbeatWeek:1,studio:null,cash:40,difficulty:'normal',uiDifficultyDraft:'normal',developmentUnlocks:{commissionNotified:false,originalNotified:false},reputation:{creative:45,commercial:45,talent:45,financial:50},
+  version:VERSION,saveSchema:SAVE_SCHEMA_VERSION,seed,week:1,calendarDay:1,lastWeeklyHeartbeatWeek:1,studio:null,cash:40,difficulty:'normal',uiDifficultyDraft:'normal',developmentUnlocks:{commissionNotified:false,originalNotified:false},reputation:{creative:45,commercial:45,talent:45,financial:50,press:50},
   finance:{bridgeDebt:0,weeklyInterest:.012,totalInterest:0,quote:0},
   screenplayEconomy:{history:[],lastWeek:0,turnarounds:0,lastTurnaroundWeek:0},
   notifications:[],notificationKeys:[],activeNotificationId:null,
   industryTab:'news',uiStudioTab:'overview',uiLegacyTab:'overview',uiSlateTab:'pipeline',uiReleaseTab:'box',
   uiPeopleFilter:'all',uiPeopleSearch:'',
-  collaborations:{},careerThreads:{active:[],history:[],nextId:1,lastUpdatedWeek:0},pressMemory:{},fastForward:{uses:0,lastFromDay:null,lastToDay:null},challengerState:{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null},industryOpportunities:{lastOfferWeek:0,history:[],accepted:0},emergingTalentState:{lastIntroductionWeek:0,history:[]},corporateState:{status:'private',founderOwnership:100,investorConfidence:62,ipoDeclinedUntil:0,ipoWeek:null,ipoProceeds:0,lastReviewWeek:0,lastOfferWeek:0,lastFundamental:null,lastMarketCap:null,lastSharePrice:null,history:[],quarterly:[],boardPressure:false,streamingPlatform:{status:'none',name:null,model:null,launchWeek:null,launchCost:0,subscribers:0,peakSubscribers:0,lastQuarterSubscribers:0,lastQuarterWeek:0,exclusiveFilmIds:[],history:[],quarterly:[],lifetimeRevenue:0,lifetimeOperatingCost:0,currentQuarterRevenue:0,currentQuarterCost:0,lastWeeklyRevenue:0,lastWeeklyCost:0,lastWeeklyNet:0,lastExclusiveWeek:null,notifiedWeek:0,declinedUntil:0,woundDownWeek:null}},studioHistory:{anniversaries:[],rivalLeadership:[],hallSnapshots:[],retrospectives:[],lastLeadershipChangeWeek:0},industryRipples:[],audienceMarket:null,portraitCache:{},talentWatchlist:[],yearbooks:[],awardsArchive:[],awardsNominationsArchive:[],pendingAwardsNominations:null,awardsCeremonyStep:0,pendingCeremony:null,availabilityWatches:[],studioIdentity:{history:[],lastPrimary:null,lastEvaluatedWeek:0},pendingFilmWraps:[],activeFilmWrapId:null,uiFilmWrapStep:0,studioMomentQueue:[],activeStudioMoment:null,boxOfficeMemory:{leaderId:null,streak:0,lastWeek:0},economy:{lifetimeOverhead:0,lifetimeCatalogue:0,lifetimeAncillary:0,lastWeeklyOverhead:0,lastCatalogueReceipts:0},studioGrowth:{fans:.04,recognition:12,upgrades:{production:0,casting:0,publicity:0,development:0,post:0},history:[]},studioMilestones:{completed:{},history:[],lastCheckedWeek:0,initialized:false},legends:{unlocked:{},history:[],pending:[],initialized:false},activeLegendUnlockId:null,talentDrama:[],
+  collaborations:{},careerThreads:{active:[],history:[],nextId:1,lastUpdatedWeek:0},pressMemory:{},executivePersona:{history:[],lastPrimary:null,lastEvaluatedWeek:0},industryMood:{history:[],lastQuarter:0},fastForward:{uses:0,lastFromDay:null,lastToDay:null},challengerState:{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null},industryOpportunities:{lastOfferWeek:0,history:[],accepted:0},emergingTalentState:{lastIntroductionWeek:0,history:[]},corporateState:{status:'private',founderOwnership:100,investorConfidence:62,ipoDeclinedUntil:0,ipoWeek:null,ipoProceeds:0,lastReviewWeek:0,lastOfferWeek:0,lastFundamental:null,lastMarketCap:null,lastSharePrice:null,history:[],quarterly:[],boardPressure:false,streamingPlatform:{status:'none',name:null,model:null,launchWeek:null,launchCost:0,subscribers:0,peakSubscribers:0,lastQuarterSubscribers:0,lastQuarterWeek:0,exclusiveFilmIds:[],history:[],quarterly:[],lifetimeRevenue:0,lifetimeOperatingCost:0,currentQuarterRevenue:0,currentQuarterCost:0,lastWeeklyRevenue:0,lastWeeklyCost:0,lastWeeklyNet:0,lastExclusiveWeek:null,notifiedWeek:0,declinedUntil:0,woundDownWeek:null}},studioHistory:{anniversaries:[],rivalLeadership:[],hallSnapshots:[],retrospectives:[],lastLeadershipChangeWeek:0},industryRipples:[],audienceMarket:null,portraitCache:{},talentWatchlist:[],yearbooks:[],awardsArchive:[],awardsNominationsArchive:[],pendingAwardsNominations:null,awardsCeremonyStep:0,pendingCeremony:null,availabilityWatches:[],studioIdentity:{history:[],lastPrimary:null,lastEvaluatedWeek:0},pendingFilmWraps:[],activeFilmWrapId:null,uiFilmWrapStep:0,studioMomentQueue:[],activeStudioMoment:null,boxOfficeMemory:{leaderId:null,streak:0,lastWeek:0},economy:{lifetimeOverhead:0,lifetimeCatalogue:0,lifetimeAncillary:0,lastWeeklyOverhead:0,lastCatalogueReceipts:0},studioGrowth:{fans:.04,recognition:12,upgrades:{production:0,casting:0,publicity:0,development:0,post:0},history:[]},studioMilestones:{completed:{},history:[],lastCheckedWeek:0,initialized:false},legends:{unlocked:{},history:[],pending:[],initialized:false},activeLegendUnlockId:null,talentDrama:[],
   uiPickerSearch:'',uiPickerSort:'fit',uiPickerAvailable:false,uiStudioNameDraft:'',uiBrandDraft:{theme:'violet',mark:'aperture',wordmark:'modern'},
   screen:'setup',detail:null,history:[],ids:{film:0,script:0,event:0,review:0,notification:0,talent:0,news:0},
   scripts:[],market:[],writers:[],talent:[],rivals:[],films:[],boxOffice:[],news:[],completed:[],decisions:[],
@@ -7044,7 +7206,7 @@ function runWeeklyHeartbeat(targetWeek){
  Object.entries(state.agencyWindows||{}).forEach(([id,w])=>{if(targetWeek>w.expiresWeek||filmById(w.filmId)?.stage!=='development')delete state.agencyWindows[id]});
  const interest=serviceBridge(),streamingReceipts=typeof collectOwnedStreamingWeeklyRevenue==='function'?collectOwnedStreamingWeeklyRevenue():0,overhead=studioWeeklyOverhead(),finance=payWeeklyOverhead(overhead);
  tickAudienceMarket();tickIPWorld();const catalogueReceipts=updateAfterlifeRevenue();recordWeeklyEconomy(overhead,catalogueReceipts);maybeWarnCashRunway();maybeResolveAwardsNominations();maybeResolveAwardsSeason();
- aiWeeklyFinance();updateWritingProjects();updatePlayerFilms();advanceAI();if(typeof processScreenplayMarketWeek==='function')processScreenplayMarketWeek();if(typeof maybeLaunchLateGameChallenger==='function')maybeLaunchLateGameChallenger();if(typeof maybeGenerateIndustryInvitation==='function')maybeGenerateIndustryInvitation();aiStartProjects();checkPlayerReleaseCompetition();rotateMarket();if(state.week%13===0)updateStudioIdentityHistory();ageAndCareers();checkAvailabilityWatches();maybeGenerateTalentDrama();generateIndustryPress();maybeGenerateTrendNews();maybeGenerateIndustryYearbook();if(typeof processHollywoodHistoryWeek==='function')processHollywoodHistoryWeek();if(typeof processCorporateWeek==='function')processCorporateWeek();generateStudioDeskWeek();updateCareerThreads();checkStudioMilestones();checkDevelopmentUnlocks();rebuildDecisions();
+ aiWeeklyFinance();updateWritingProjects();updatePlayerFilms();advanceAI();if(typeof processScreenplayMarketWeek==='function')processScreenplayMarketWeek();if(typeof maybeLaunchLateGameChallenger==='function')maybeLaunchLateGameChallenger();if(typeof maybeGenerateIndustryInvitation==='function')maybeGenerateIndustryInvitation();aiStartProjects();checkPlayerReleaseCompetition();rotateMarket();if(state.week%13===0){updateStudioIdentityHistory();updateExecutivePersonaHistory();captureIndustryMoodQuarter()}ageAndCareers();checkAvailabilityWatches();maybeGenerateTalentDrama();generateIndustryPress();maybeGenerateTrendNews();maybeGenerateIndustryYearbook();if(typeof processHollywoodHistoryWeek==='function')processHollywoodHistoryWeek();if(typeof processCorporateWeek==='function')processCorporateWeek();generateStudioDeskWeek();updateCareerThreads();checkStudioMilestones();checkDevelopmentUnlocks();rebuildDecisions();
  if(interest>.01&&state.week%4===0)addNews(state,`${money(interest)} of bridge-finance interest accrued this week. The running cost of emergency borrowing is now becoming a material part of studio cash flow.`,'Studio Finance');
  if(overhead>=.16&&finance.borrowed===0&&state.week%13===0)addNews(state,`${state.studio.name} is carrying ${moneyFine(overhead)} in weekly operating and slate overhead as the company scales.`,'Studio Finance');
 }
@@ -8031,6 +8193,7 @@ function studioIdentityBody(){
  const snap=studioIdentitySnapshot(),r=state.reputation,g=ensureStudioGrowth(),mem=ensureStudioIdentity();
  const established=snap.established,top=snap.topGenre;
  return `<div class="identityhero"><div><div class="badge">CURRENT INDUSTRY IDENTITY</div><div class="identityname">${snap.primary.label}</div><div class="body">${snap.primary.desc}</div></div><div class="identityscore"><strong>${Math.round(snap.primary.score)}</strong><span>signal strength</span></div></div>
+ ${executivePersonaIdentitySection()}
  <div class="section-title"><h2>Studio branding</h2><span class="small">Presentation only · change whenever you like</span></div>${brandPickerHTML(ensurePlayerBrand())}
  <div class="section-title"><h2>What the business thinks you are</h2><span class="small">Earned from released films — never chosen at setup</span></div>
  ${established.length?`<div class="grid cols3">${established.map(t=>`<div class="card goodline"><div class="row"><strong>${t.label}</strong><span class="pill good">${Math.round(t.score)}</span></div><div class="body" style="margin-top:8px">${t.desc}</div><div class="small" style="margin-top:9px"><strong>Industry effect:</strong> ${t.effect}</div></div>`).join('')}</div>`:`<div class="card body">The studio is still too young for a durable label. After roughly three releases, repeated choices and results begin to create a reputation the market reacts to.</div>`}
@@ -8282,14 +8445,14 @@ function deskCandidateAllowed(t,x){
  return true;
 }
 const DESK_TEMPLATES=[
- {id:'press-budget',type:'press',source:'Screen Trade',urgency:'action',when:()=>{const f=deskFilm();return f&&f.budget>=20},make:()=>{const f=deskFilm();return {filmId:f.id,subject:f.title,headline:`Trade reporter asks about the scale of ${f.title}`,body:`A Screen Trade reporter is preparing a piece on escalating production budgets and wants your studio on record about ${f.title}'s ${money(f.budget)} spend.`,choices:[['transparent','Be transparent'],['confident','Project confidence'],['decline','Decline comment']]}}},
- {id:'press-release',type:'press',source:'Aurelia Daily',urgency:'action',when:()=>{const f=deskFilm();return f&&['scheduled','cinema'].includes(f.stage)},make:()=>{const f=deskFilm();return {filmId:f.id,subject:f.title,headline:`Aurelia Daily wants a quote on ${f.title}'s campaign`,body:`The culture desk wants to know whether the studio sees ${f.title} as a broad event or a film that needs time to find its audience.`,choices:[['event','Call it an event'],['measured','Keep expectations measured'],['filmmaker','Put the filmmaker forward']]}}},
+ {id:'press-budget',type:'press',source:'Screen Trade',journalistId:'mara-vance',urgency:'action',when:()=>{const f=deskFilm();return f&&f.budget>=20},make:()=>{const f=deskFilm();return {filmId:f.id,subject:f.title,headline:`Trade reporter asks about the scale of ${f.title}`,body:`A Screen Trade reporter is preparing a piece on escalating production budgets and wants your studio on record about ${f.title}'s ${money(f.budget)} spend.`,choices:[['transparent','Be transparent'],['confident','Project confidence'],['decline','Decline comment']]}}},
+ {id:'press-release',type:'press',source:'Aurelia Daily',journalistId:'celia-hart',urgency:'action',when:()=>{const f=deskFilm();return f&&['scheduled','cinema'].includes(f.stage)},make:()=>{const f=deskFilm();return {filmId:f.id,subject:f.title,headline:`Aurelia Daily wants a quote on ${f.title}'s campaign`,body:`The culture desk wants to know whether the studio sees ${f.title} as a broad event or a film that needs time to find its audience.`,choices:[['event','Call it an event'],['measured','Keep expectations measured'],['filmmaker','Put the filmmaker forward']]}}},
  {id:'agency-package',type:'talent',source:'Agency Desk',urgency:'action',when:()=>!!agencyPackagePitchCandidate(),make:()=>{const p=agencyPackagePitchCandidate();if(!p)return null;const names=p.picks.map(x=>x.t.name),parts=p.picks.map(x=>`${x.t.name} for ${x.role}`).join(' and ');return {filmId:p.f.id,talentId:p.picks[0].t.id,talentIds:p.picks.map(x=>x.t.id),agencyId:p.a.id,source:p.a.name,subject:names.join(' + '),headline:`${p.a.name} brings a ${p.picks.length}-client package for ${p.f.title}`,body:`${p.a.name} is proposing ${parts}. The agency will hold a four-week priority conversation with the group if you take the meeting. This is access, not proof of role fit: actors still need screen-test evidence and every contract is negotiated separately.`,choices:[['meet','Hear the package'],['pass','Pass cleanly'],['hardball','Demand exclusivity']]}}},
  {id:'talent-pitch',type:'talent',source:'Talent Desk',urgency:'action',when:()=>!!proactiveTalentPitch(),make:()=>{const p=proactiveTalentPitch();if(!p)return null;const {f,t}=p;return {filmId:f.id,talentId:t.id,source:talentAgency(t).name,subject:t.name,headline:`${t.name} asks to discuss ${f.title}`,body:`After working with your studio, ${t.name} has asked their representatives to seek a conversation about ${f.title}. Their interest is genuine, but the part and terms still need to work. Respond within four weeks.`,choices:[['meet','Invite a conversation'],['read','Send the screenplay'],['pass','Pass with thanks']]}}},
  {id:'production-leak',type:'crisis',source:'Studio Publicity',urgency:'urgent',cooldown:10,when:()=>!!activePlayerFilms().find(x=>x.stage==='production'),make:()=>{const f=activePlayerFilms().find(x=>x.stage==='production');return {filmId:f.id,subject:f.title,headline:`Unapproved ${f.title} set images are circulating`,body:`Low-quality set photographs are moving through fan accounts, revealing more of the production design than publicity intended.`,choices:[['embrace','Release an official image'],['contain','Issue takedowns'],['ignore','Let it burn out']]}}},
  {id:'production-rumour',type:'gossip',source:'Lotline',urgency:'normal',make:()=>{const rv=deskRival();return {subject:rv?.name||'Rival studio',headline:`Rumour: ${rv?.name||'a rival'} may be cooling on an expensive package`,body:`Two people around The Lot say internal enthusiasm has softened. Neither financing nor the creative package has visibly changed, so the report may be premature.`,truth:['true','mixed','false'][state.week%3],choices:[]}}},
  {id:'rival-poach',type:'gossip',source:'Lotline',urgency:'normal',make:()=>{const rv=deskRival(),f=deskFilm();return {filmId:f?.id||null,subject:rv?.name||'Rival studio',headline:`Whisper: ${rv?.name||'a rival'} is circling talent connected to ${f?.title||'your slate'}`,body:`The chatter is specific enough to notice but not strong enough to treat as fact. Agency sources are not confirming active negotiations.`,truth:['false','true','mixed'][(state.week+1)%3],choices:[]}}},
- {id:'finance-question',type:'finance',source:'The Ledger',urgency:'action',when:()=>state.finance?.bridgeDebt>0,make:()=>({subject:state.studio.name,headline:'Finance desk asks whether bridge borrowing changes the slate',body:`The Ledger has noticed financing activity around ${state.studio.name}. A reporter wants to know whether liquidity pressure will affect upcoming greenlights.`,choices:[['open','Acknowledge discipline'],['deny','Say the slate is unchanged'],['decline','Decline comment']]})},
+ {id:'finance-question',type:'finance',source:'The Ledger',journalistId:'daniel-mercer',urgency:'action',when:()=>state.finance?.bridgeDebt>0,make:()=>({subject:state.studio.name,headline:'Finance desk asks whether bridge borrowing changes the slate',body:`The Ledger has noticed financing activity around ${state.studio.name}. A reporter wants to know whether liquidity pressure will affect upcoming greenlights.`,choices:[['open','Acknowledge discipline'],['deny','Say the slate is unchanged'],['decline','Decline comment']]})},
  {id:'rival-hit',type:'industry',source:'Screen Trade',urgency:'normal',make:()=>{const rv=deskRival();return {subject:rv?.name||'Rival',headline:`${rv?.name||'A rival studio'} is drawing heat after a strong weekend`,body:`Buyers and agencies are watching whether the studio converts momentum into more aggressive packaging over the next month.`,choices:[]}}},
  {id:'rival-strain',type:'industry',source:'The Ledger',urgency:'normal',make:()=>{const rv=state.rivals?.slice().sort((a,b)=>(a.cash||0)-(b.cash||0))[0];return {subject:rv?.name||'Rival',headline:`Questions grow around ${rv?.name||'a rival'}'s spending pace`,body:`Trade finance desks are comparing the company's active commitments with its estimated liquidity. Nothing public suggests a crisis, but the scrutiny is increasing.`,choices:[]}}},
  {id:'festival-invite',type:'press',source:'Aurelia Film Week',urgency:'action',when:()=>{const f=deskFilm();return f&&['post','scheduled'].includes(f.stage)},make:()=>{const f=deskFilm();return {filmId:f.id,subject:f.title,headline:`Aurelia Film Week asks about an early ${f.title} presentation`,body:`Programmers are interested in a limited first-look presentation. It could add prestige and conversation, but it also gives the industry an earlier read on the film.`,choices:[['accept','Accept interest'],['private','Offer private screening'],['pass','Hold for release']]}}},
@@ -8297,7 +8460,7 @@ const DESK_TEMPLATES=[
  {id:'test-screen',type:'pulse',source:'Pulse',urgency:'action',when:()=>{const f=deskFilm();return f&&['post','scheduled'].includes(f.stage)},make:()=>{const f=deskFilm();return {filmId:f.id,subject:f.title,headline:`Social conversation around ${f.title} is splitting into two camps`,body:`One group wants a broader emotional sell; the most engaged fans are responding to the stranger, more specific parts of the campaign. Publicity can sharpen the positioning now or leave the ambiguity intact.`,choices:[['broad','Broaden the message'],['core','Lean into core fans'],['steady','Keep current positioning']]}}},
  {id:'fan-clip',type:'pulse',source:'Pulse',urgency:'action',when:()=>{const f=deskFilm();return f&&['scheduled','cinema'].includes(f.stage)},make:()=>{const f=deskFilm();return {filmId:f.id,subject:f.title,headline:`A ${f.title} clip is outperforming the paid campaign`,body:`An organic short-form clip has become the most shared piece of material connected to the film this week. The team can amplify it, redirect attention, or avoid looking like the studio is chasing the meme.`,choices:[['boost','Amplify the clip'],['redirect','Redirect to trailer'],['organic','Leave it organic']]}}},
  {id:'writer-call',type:'talent',source:'Writers Guild Desk',urgency:'normal',make:()=>({subject:'Development',headline:'A writer with heat is asking which studios are truly filmmaker-friendly',body:`Representatives are comparing how studios handled notes, rewrites and credit on recent projects. Your development choices are becoming part of the informal reputation market.`,choices:[]})},
- {id:'critic-narrative',type:'press',source:'The Review',urgency:'action',when:()=>playerFilms().some(f=>f.review),make:()=>{const f=playerFilms().filter(x=>x.review).slice(-1)[0];return {filmId:f.id,subject:f.title,headline:`The Review asks how you read the critical narrative on ${f.title}`,body:`A columnist wants a response to the gap between critical and audience reaction. Your answer will become part of the film's continuing story online as well as in the trade press.`,choices:[['respect','Respect the reviews'],['audience','Point to audiences'],['fight','Push back hard']]}}},
+ {id:'critic-narrative',type:'press',source:'The Review',journalistId:'ruth-bell',urgency:'action',when:()=>playerFilms().some(f=>f.review),make:()=>{const f=playerFilms().filter(x=>x.review).slice(-1)[0];return {filmId:f.id,subject:f.title,headline:`The Review asks how you read the critical narrative on ${f.title}`,body:`A columnist wants a response to the gap between critical and audience reaction. Your answer will become part of the film's continuing story online as well as in the trade press.`,choices:[['respect','Respect the reviews'],['audience','Point to audiences'],['fight','Push back hard']]}}},
  {id:'catalogue-call',type:'finance',source:'Meridian Capital',urgency:'action',when:()=>playerFilms().some(f=>f.stage==='complete'),make:()=>({subject:'Catalogue',headline:'Investor asks about acquiring a slice of catalogue income',body:`A finance group has informally sounded out the studio about monetising a small portion of future catalogue receipts for cash today. No formal offer is on the table yet.`,choices:[['listen','Hear the proposal'],['decline','Keep the catalogue'],['signal','Signal openness later']]})},
  {id:'rival-director',type:'gossip',source:'Lotline',urgency:'normal',make:()=>{const rv=deskRival();return {subject:rv?.name||'Rival',headline:`Rumour: ${rv?.name||'a rival'} has lost a director over creative control`,body:`The claim is spreading quickly, but the filmmaker remains publicly attached. This is exactly the kind of Lot story that can be true in spirit before it is true in fact.`,truth:['mixed','false','true'][(state.week+2)%3],choices:[]}}},
  {id:'opening-tracking',type:'pulse',source:'Pulse',urgency:'normal',when:()=>{const f=deskFilm();return f&&f.stage==='scheduled'},make:()=>{const f=deskFilm(),p=ensureFilmSocial(f);return {filmId:f.id,subject:f.title,headline:`${f.title} social conversation index reaches ${p.volume}`,body:`Conversation is ${p.volume>=70?'strong':p.volume>=50?'healthy':'soft'} for this point in the campaign. Sentiment is ${p.sentiment>=65?'positive':p.sentiment<42?'fragile':'mixed'}, with fan intensity at ${p.fandom}/100.`,pulseScore:p.volume,choices:[]}}},
@@ -8338,7 +8501,7 @@ function generateStudioDeskWeek(){
  }catch(e){}});
  if(!evaluated.length){expireDeskItems();return}
  evaluated.sort((a,b)=>b.score-a.score);const {t,x}=evaluated[0],actionable=(x.choices||[]).length>0;
- const item=pushDeskItem({...x,templateId:t.id,repeatKey:deskRepeatKey(t,x),family:deskEventFamily(t.id),type:t.type,source:x.source||t.source,urgency:t.urgency||'normal',requiresAction:actionable,expiresWeek:actionable?state.week+4:null});
+ const item=pushDeskItem({...x,templateId:t.id,repeatKey:deskRepeatKey(t,x),family:deskEventFamily(t.id),type:t.type,source:x.source||t.source,journalistId:x.journalistId||t.journalistId||null,urgency:t.urgency||'normal',requiresAction:actionable,expiresWeek:actionable?state.week+4:null});
  if(actionable)d.lastDecisionGeneratedWeek=state.week;
  expireDeskItems();return item;
 }
@@ -8507,6 +8670,7 @@ function resolveDeskChoice(id,key){
   const t=talentById(item.talentId),f=filmById(item.filmId);
   if(openAgencyWindow(t,f))item.outcome=`${talentAgency(t).name} has opened a priority conversation on ${f.title} through Week ${state.week+4}. ${t.name} is more receptive to a screen test or role offer while the window lasts; availability and terms still apply.`;
  }
+ if(typeof recordPressInteraction==='function')recordPressInteraction(item,key);
  if(typeof updateCareerThreads==='function')updateCareerThreads();
  const after=deskImpactSnapshot(item);item.impact=deskImpactSummary(before,after);addNews(state,`${state.studio.name} responded to ${item.headline.toLowerCase()}. ${item.outcome}`,'Studio Desk');save();render();
 }
@@ -8642,6 +8806,7 @@ function studioScreen(){
    <div><div class="kpi">${active.length}</div><div class="small">Active projects</div></div>
    <div><div class="kpi">${money(state.cash)}</div><div class="small">Cash</div></div>
   </div></div>
+  ${executivePersonaSnapshotCard()}
   ${careerThreadsSnapshot()}
   ${productionDailiesSnapshot()}
   ${studioMilestoneSnapshot()}
@@ -9314,13 +9479,16 @@ function industryRecords(){
  </div>
  ${state.yearbooks?.length?`<div class="section-title"><h2>Industry yearbooks</h2><span class="small">A permanent record of each 52-week year</span></div><div class="grid">${state.yearbooks.map(y=>`<div class="card"><div class="row"><strong>Year ${y.year} · ${y.era||'Industry yearbook'}</strong><span class="small">through W${y.week}</span></div>${y.biggestGross?`<div class="listrow"><span>Box-office leader</span><strong>${y.biggestGross.title} · ${money(y.biggestGross.value)}</strong></div>`:''}${y.bestReviewed?`<div class="listrow"><span>Critics' favourite</span><strong>${y.bestReviewed.title} · ${y.bestReviewed.value}%</strong></div>`:''}${y.bestResult?`<div class="listrow"><span>Best studio result</span><strong>${y.bestResult.title} · ${y.bestResult.value>=0?'+':''}${money(y.bestResult.value)}</strong></div>`:''}${y.playerHeadline?`<div class="listrow"><span>Your headline film</span><strong>${y.playerHeadline.title}${y.playerHeadline.critics?` · ${y.playerHeadline.critics}% critics`:y.playerHeadline.gross?` · ${money(y.playerHeadline.gross)}`:''}</strong></div>`:''}${y.hotActor?`<div class="listrow"><span>Hottest actor</span><strong>${y.hotActor.name} · ${Math.round(y.hotActor.momentum)}</strong></div>`:''}${y.hotDirector?`<div class="listrow"><span>Hottest director</span><strong>${y.hotDirector.name} · ${Math.round(y.hotDirector.momentum)}</strong></div>`:''}</div>`).join('')}</div>`:''}`;
 }
+
 function industryTrendsBody(){
- ensureAudienceMarket();const genreCards=genres.map(g=>({g,...genreMarketLabel(g)}));
- return `<div class="hero"><div class="badge">Audience & Market</div><div class="quote" style="margin-top:8px">Trends emerge from what audiences respond to, what studios release and how crowded each lane becomes.</div><div class="body" style="margin-top:8px">No exposed “genre +15%” modifiers: these are trade signals from the living simulation.</div></div>
+ ensureAudienceMarket();const genreCards=genres.map(g=>({g,...genreMarketLabel(g)})),mood=industryMoodSnapshot();
+ return `<div class="hero"><div class="badge">INDUSTRY MOOD · CURRENT QUARTER</div><div class="quote" style="margin-top:8px">${mood.label}</div><div class="body" style="margin-top:8px">${mood.summary}</div><div class="small" style="margin-top:7px">This is a trade read of the living simulation, not a hidden global buff. Financing, talent, audience response and crowding are being summarized from conditions already in the market.</div></div>
+ ${industryMoodPanel(mood)}
  <div class="section-title"><h2>Audience appetites</h2></div><div class="grid cols2">${SEGMENT_KEYS.map(segment=>{const interests=segmentCurrentInterests(segment),top=interests.slice(0,2),low=interests.at(-1);return `<div class="card"><strong>${segment}</strong><div class="small" style="margin-top:7px">Most receptive to <strong>${top.map(x=>x.genre).join(' / ')}</strong>.</div><div class="small" style="margin-top:5px">Cooler on ${low.genre} right now.</div></div>`}).join('')}</div>
  <div class="section-title"><h2>Genre market</h2><span class="small">Hits create heat; imitation can create crowding</span></div><div class="grid cols2">${genreCards.map(x=>`<div class="card ${x.cls==='good'?'goodline':x.cls==='bad'?'dangerline':''}"><div class="row"><strong>${x.g}</strong><span class="pill ${x.cls}">${x.label}</span></div><div class="small" style="margin-top:7px">${x.text}</div></div>`).join('')}</div>
  <div class="section-title"><h2>Your studio's audience equity</h2></div><div class="grid cols2">${SEGMENT_KEYS.map(k=>{const v=ensureAudienceMarket().affinity[k]||0;return `<div class="card"><div class="row"><strong>${k}</strong><span class="pill ${v>=5?'good':v<=-3?'warn':''}">${audienceAffinityLabel(v)}</span></div></div>`}).join('')}</div>`;
 }
+
 function awardsIndustryBody(){
  const current=awardsCurrentSeason(),archive=state.awardsArchive||[],nom=current.nominations,nominationWeek=(current.season-1)*52+50,ceremonyWeek=current.end,eligible=current.films.filter(f=>f.review?.critics>=60||f.creative?.positioning==='prestige'||f.review?.audience>=82).sort((a,b)=>awardsEligibilityScore(b,'picture')-awardsEligibilityScore(a,'picture')).slice(0,10);
  return `<div class="section-title"><h2>Year ${current.season} awards race</h2><span class="small">${nom?'Nominations locked':`Nominations W${nominationWeek} · ceremony W${ceremonyWeek}`}</span></div>
@@ -9341,7 +9509,7 @@ function industryScreen(){
  else if(tab==='trends')body=industryTrendsBody();
  else if(tab==='awards')body=awardsIndustryBody();
  else if(tab==='records')body=`<div class="section-title"><h2>Industry records</h2><span class="small">The history generated by this career</span></div>${industryRecords()}`;
- else body=`<div class="section-title"><h2>Top stories</h2><span class="small">The stories shaping the business</span></div><div class="grid">${(important.length?important:state.news.slice(0,5)).map(n=>`<div class="card click ${n.kind==='Box Office Alert'||n.kind==='Industry Alert'?'attention':n.kind==='Your Studio'?'goodline':''}" data-news-id="${n.id}"><div class="row">${pressLogoHTML(n.publication||'Screen Trade','xs',true)}<span class="small">${n.day?calendarShortDate(n.day):'W'+n.week}</span></div><div class="quote" style="font-size:16px;margin-top:8px">${n.headline}</div><div class="small" style="margin-top:7px">${n.deck}</div></div>`).join('')}</div><div class="section-title"><h2>Talent watch</h2><button class="btn ghost" data-industry-tab="people">Open People</button></div><div class="card">${hot.map(t=>`<div class="listrow click" data-talent="${t.id}"><div class="talentidentity">${portraitHTML(t,'xs')}<div><strong>${t.name}</strong><div class="small">${t.type} · ${t.careerState||t.tag}</div></div></div><span class="pill ${t.momentum>=88?'good':''}">Momentum ${momentumIndicator(t)}</span></div>`).join('')}</div><div class="section-title"><h2>Latest wire</h2></div><div class="grid">${state.news.slice(0,24).map(n=>`<div class="card click ${n.kind==='Your Studio'?'goodline':''}" data-news-id="${n.id}"><div class="row">${pressLogoHTML(n.publication||'Screen Trade','xs',true)}<span class="small">${n.day?calendarShortDate(n.day):'W'+n.week}</span></div><div class="body" style="margin-top:7px"><strong>${n.headline}</strong></div><div class="small" style="margin-top:6px">${newsKindLabel(n.kind)}</div></div>`).join('')}</div>`;
+ else body=`<div class="section-title"><h2>Top stories</h2><span class="small">The stories shaping the business</span></div><div class="grid">${(important.length?important:state.news.slice(0,5)).map(n=>`<div class="card click ${n.kind==='Box Office Alert'||n.kind==='Industry Alert'?'attention':n.kind==='Your Studio'?'goodline':''}" data-news-id="${n.id}"><div class="row">${pressLogoHTML(n.publication||'Screen Trade','xs',true)}<span class="small">${n.day?calendarShortDate(n.day):'W'+n.week}</span></div><div class="quote" style="font-size:16px;margin-top:8px">${n.headline}</div><div class="small" style="margin-top:7px">${n.deck}</div></div>`).join('')}</div>${pressRoomSnapshot()}<div class="section-title"><h2>Talent watch</h2><button class="btn ghost" data-industry-tab="people">Open People</button></div><div class="card">${hot.map(t=>`<div class="listrow click" data-talent="${t.id}"><div class="talentidentity">${portraitHTML(t,'xs')}<div><strong>${t.name}</strong><div class="small">${t.type} · ${t.careerState||t.tag}</div></div></div><span class="pill ${t.momentum>=88?'good':''}">Momentum ${momentumIndicator(t)}</span></div>`).join('')}</div><div class="section-title"><h2>Latest wire</h2></div><div class="grid">${state.news.slice(0,24).map(n=>`<div class="card click ${n.kind==='Your Studio'?'goodline':''}" data-news-id="${n.id}"><div class="row">${pressLogoHTML(n.publication||'Screen Trade','xs',true)}<span class="small">${n.day?calendarShortDate(n.day):'W'+n.week}</span></div><div class="body" style="margin-top:7px"><strong>${n.headline}</strong></div><div class="small" style="margin-top:6px">${newsKindLabel(n.kind)}</div></div>`).join('')}</div>`;
  return topbar('Industry','The world beyond your own slate')+`<main class="screen">${tabs}${body}</main>${nav()}`;
 }
 // Project Slate UI: moments
@@ -9690,13 +9858,14 @@ if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&
 function projectSlateSmokeChecks(){
  const failures=[],required=[
   ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],
-  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
+  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
  if(!app)failures.push('#app missing');
  if(typeof rivalSignatureIdentity!=='undefined')failures.push('stale rivalSignatureIdentity symbol present');
  try{if(pickerControls('Actor').includes('Project fit'))failures.push('actor fit sort leaked');if(soundtrackShortlistSize()<5)failures.push('music shortlist too small');const qs=(state.talent||[]).filter(t=>t.type==='Actor').map(t=>{ensureTalentMarketEconomy(t);return t.fee});if(qs.length&&Math.max(...qs)<7)failures.push('actor salary range compressed');if(qs.length&&Math.min(...qs)>3.2)failures.push('low-cost actor market missing')}catch(e){failures.push('casting economy smoke failed')}
  try{if(AGENCIES.length<4)failures.push('agency roster missing');const t=(state.talent||[]).find(x=>!x.retired);if(t){const x=agencyMarketLeverage(t);if(!Number.isFinite(x.pressure)||!x.label||!x.relationship)failures.push('agency leverage invalid')}}catch(e){failures.push('agency depth smoke failed')}
+ try{const e=executivePersonaSnapshot(),m=industryMoodSnapshot();if(!e.primary?.label||e.signals.length<6)failures.push('executive persona invalid');if(!m.label||!m.financing||!m.talent)failures.push('industry mood invalid');if(Object.keys(PRESS_PERSONALITIES).length<5)failures.push('press personality roster incomplete')}catch(e){failures.push('v3.12 systems smoke failed')}
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
   const unique=new Set(probe.scripts.map(x=>x.title.toLowerCase())).size,quantified=probe.scripts.filter(x=>/^(No One|Nobody|Someone|Everyone)\b/i.test(x.title)).length;
