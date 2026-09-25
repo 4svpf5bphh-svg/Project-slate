@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.12.1</title>
+<title>Project Slate — Premium Presentation v3.13.0</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -618,6 +618,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .awards-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.awards-history-summary{margin-top:7px;line-height:1.45;overflow-wrap:anywhere}.awards-history-winners{margin-top:10px;border-top:1px solid var(--border)}.awards-history-row{display:grid;grid-template-columns:minmax(120px,.65fr) minmax(0,1.35fr);gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--border)}.awards-history-row:last-child{border-bottom:0}.awards-history-row span{font-size:11px;color:var(--muted)}.awards-history-row strong{text-align:right;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
 @media(max-width:620px){
  .supporting-pickerbar{padding-top:9px;padding-bottom:9px}.supporting-pickerbar .pickerbar-inner{grid-template-columns:1fr;gap:9px}.supporting-pickerbar .pickerbar-summary strong{font-size:13px}.supporting-pickerbar .pickerbar-summary .small{font-size:10px;margin-top:2px}.pickerbar-actions{display:grid;grid-template-columns:minmax(88px,.72fr) minmax(0,1.45fr);width:100%;gap:8px}.pickerbar-actions .btn{width:100%;min-width:0;min-height:44px;padding:8px 10px}.supporting-pickerbar+.bottomnav{} .thread-resolved-row{grid-template-columns:1fr;gap:4px}.production-wire-grid{grid-template-columns:1fr}.awards-history-row{grid-template-columns:1fr;gap:3px}.awards-history-row strong{text-align:left}.awards-history-head{align-items:flex-start}.contract-choice.selected-choice,.marketing-choice.selected-choice{box-shadow:inset 5px 0 0 var(--accent2),0 0 0 2px color-mix(in srgb,var(--accent) 22%,transparent),0 12px 30px rgba(0,0,0,.24)}}
+
+.global-back-top{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);z-index:47;width:46px;height:46px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent) 38%,var(--border));background:rgba(24,29,38,.94);color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.34),inset 0 1px rgba(255,255,255,.05);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:18px;font-weight:900;opacity:0;transform:translateY(10px) scale(.92);pointer-events:none;transition:opacity .16s ease,transform .16s ease,border-color .16s ease}
+.global-back-top.visible{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.global-back-top:active{transform:scale(.94)}
+@media(min-width:900px){.global-back-top{right:max(22px,calc((100vw - 980px)/2 - 58px))}}
+
 </style>
 </head>
 <body>
@@ -625,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.12.1';
+const VERSION='3.13.0';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -2849,9 +2855,72 @@ const RIVAL_HEADS={
  'Apex Motion Group':{name:'Evelyn Cross',title:'Chair & CEO',personality:'Expansionist',bio:'A finance-trained studio builder hired with a mandate to buy scale quickly. Cross has the money to overpay, the patience to absorb misses, and very little interest in waiting her turn on The Lot.'}
 };
 function rivalHeadProfile(name){return deep(RIVAL_HEADS[name]||{name:'Studio leadership',title:'Chief Executive',personality:'Private',bio:'The studio keeps its leadership profile deliberately low.'})}
-function ensureRivalCharacter(rv){if(!rv)return null;rv.head=rv.head||rivalHeadProfile(rv.name);rv.relationship=Number.isFinite(rv.relationship)?rv.relationship:0;rv.relationshipHistory=rv.relationshipHistory||[];rv.scriptWinsAgainstPlayer=rv.scriptWinsAgainstPlayer||0;rv.lastScriptWinAgainstPlayerWeek=rv.lastScriptWinAgainstPlayerWeek||0;rv.lastPlayerClashWeek=rv.lastPlayerClashWeek||0;return rv}
+function ensureRivalCharacter(rv){
+ if(!rv)return null;rv.head=rv.head||rivalHeadProfile(rv.name);rv.relationship=Number.isFinite(rv.relationship)?rv.relationship:0;rv.relationshipHistory=rv.relationshipHistory||[];
+ rv.scriptWinsAgainstPlayer=rv.scriptWinsAgainstPlayer||0;rv.playerScriptWinsAgainstRival=rv.playerScriptWinsAgainstRival||0;rv.lastScriptWinAgainstPlayerWeek=rv.lastScriptWinAgainstPlayerWeek||0;rv.lastPlayerClashWeek=rv.lastPlayerClashWeek||0;
+ rv.competitiveHistory=rv.competitiveHistory||[];rv.rivalrySinceWeek=rv.rivalrySinceWeek||null;rv.lastRivalryEventWeek=rv.lastRivalryEventWeek||0;rv.lastRivalryLabel=rv.lastRivalryLabel||'Normal competition';return rv;
+}
 function rivalDisposition(rv){ensureRivalCharacter(rv);const v=rv.relationship||0;return v>=18?'Warm respect':v>=7?'Respectful':v<=-18?'Hostile':v<=-7?'Frosty':'Competitive'}
 function adjustRivalRelationship(rv,delta,reason='Industry interaction'){if(!rv||!delta)return;ensureRivalCharacter(rv);const before=rv.relationship||0;rv.relationship=clamp(before+delta,-40,40);rv.relationshipHistory.unshift({week:state.week,from:before,to:rv.relationship,delta,reason});rv.relationshipHistory=rv.relationshipHistory.slice(0,16)}
+function recordRivalryEvent(rv,type,label,weight=1,key=null,meta={}){
+ if(!rv)return null;ensureRivalCharacter(rv);const eventKey=key||`${type}:${state.week}:${label}`;
+ if(rv.competitiveHistory.some(x=>x.key===eventKey))return null;
+ const e={key:eventKey,week:state.week,type,label,weight,filmId:meta.filmId||null,scriptId:meta.scriptId||null,season:meta.season||null,outcome:meta.outcome||null};
+ rv.competitiveHistory.unshift(e);rv.competitiveHistory=rv.competitiveHistory.slice(0,40);rv.lastRivalryEventWeek=state.week;if(!rv.rivalrySinceWeek)rv.rivalrySinceWeek=state.week;return e;
+}
+function rivalryGenreLane(rv){
+ const cutoff=state.week-104,player=playerFilms().filter(f=>f.stage==='complete'&&(f.completeWeek||0)>=cutoff),rival=state.films.filter(f=>f.owner===rv.id&&f.stage==='complete'&&(f.completeWeek||0)>=cutoff);
+ const pc={},rc={};player.forEach(f=>pc[f.genre]=(pc[f.genre]||0)+1);rival.forEach(f=>rc[f.genre]=(rc[f.genre]||0)+1);
+ const rows=genres.map(g=>({genre:g,player:pc[g]||0,rival:rc[g]||0,overlap:Math.min(pc[g]||0,rc[g]||0)})).filter(x=>x.overlap>0).sort((a,b)=>b.overlap-a.overlap);
+ return {rows,total:rows.reduce((a,x)=>a+x.overlap,0),top:rows[0]||null};
+}
+function rivalryRankGap(rv){
+ const table=studioStandings(),p=table.find(x=>x.player),r=table.find(x=>x.id===rv.id);return p&&r?Math.abs(p.rank-r.rank):99;
+}
+function rivalrySnapshot(rv){
+ ensureRivalCharacter(rv);const recent=(rv.competitiveHistory||[]).filter(x=>state.week-(x.week||0)<=156);
+ let eventScore=0;recent.forEach(x=>{const age=state.week-(x.week||state.week),decay=age<=52?1:age<=104?.65:.38;eventScore+=(x.weight||1)*decay});
+ const lane=rivalryGenreLane(rv),rankGap=rivalryRankGap(rv),hostility=Math.max(0,-(rv.relationship||0))*.16;
+ const laneScore=Math.min(4,lane.total*.85),rankScore=rankGap<=1?2:rankGap===2?1:0;
+ const score=eventScore+laneScore+rankScore+hostility;
+ let rank=0,label='Normal competition',tone='blue',desc='The studios share the same market, but there is not yet enough repeated history to call it a rivalry.';
+ if(score>=15){rank=3;label='Defining rivalry';tone='bad';desc='Repeated collisions now shape how both studios are discussed, scheduled and judged against each other.'}
+ else if(score>=8){rank=2;label=(rv.relationship||0)>=7?'Respectful rivalry':'Active rivalry';tone=(rv.relationship||0)>=7?'good':'warn';desc='This is no longer a one-off clash. The same two studios keep meeting in consequential parts of the business.'}
+ else if(score>=4){rank=1;label='Recurring friction';tone='warn';desc='Several recent collisions are beginning to form a recognisable competitive pattern.'}
+ const reasons=[];
+ const auctions=recent.filter(x=>x.type.startsWith('auction')).length,releases=recent.filter(x=>x.type.startsWith('release')).length,awards=recent.filter(x=>x.type==='awards').length;
+ if(auctions)reasons.push(`${auctions} contested screenplay result${auctions===1?'':'s'}`);
+ if(releases)reasons.push(`${releases} release-calendar confrontation${releases===1?'':'s'}`);
+ if(awards)reasons.push(`${awards} awards-season collision${awards===1?'':'s'}`);
+ if(lane.top&&lane.top.overlap>=2)reasons.push(`both studios repeatedly working in ${lane.top.genre}`);
+ if(rankGap<=2)reasons.push(`the studios sitting close together in the industry table`);
+ if((rv.relationship||0)<=-7)reasons.push(`a ${rivalDisposition(rv).toLowerCase()} executive relationship`);
+ return {rank,label,tone,desc,reasons,events:recent,lane,rankGap,score};
+}
+function rivalryBidPressure(rv){
+ const x=rivalrySnapshot(rv);if(x.rank<2)return 1;
+ return (rv.relationship||0)<=-7?(x.rank>=3?1.045:1.028):1.015;
+}
+function rivalryProfileHTML(rv){
+ const x=rivalrySnapshot(rv),recent=x.events.slice(0,6);
+ return `<div class="section-title"><h2>Competitive history</h2><span class="pill ${x.tone}">${x.label}</span></div><div class="card ${x.rank>=3?'dangerline':x.rank>=2?'attention':''}"><div class="body">${x.desc}</div>${x.reasons.length?`<div class="small" style="margin-top:8px"><strong>Why the trade sees it this way:</strong> ${naturalNames(x.reasons)}.</div>`:''}${recent.length?`<div class="hr"></div>${recent.map(e=>`<div class="listrow"><div><strong>${e.label}</strong><div class="small">${String(e.type).replace(/-/g,' ')} · W${e.week}</div></div>${e.outcome?`<span class="small">${e.outcome}</span>`:''}</div>`).join('')}`:`<div class="small" style="margin-top:8px">No direct competitive history has accumulated yet.</div>`}</div>`;
+}
+function recordAwardsRivalries(c){
+ if(!c?.categories)return;
+ const byRival=new Map();
+ c.categories.forEach(cat=>{
+  const playerIn=cat.nominees.some(n=>n.owner==='player');if(!playerIn)return;
+  const winner=cat.nominees.find(n=>n.filmId===cat.winnerId);
+  cat.nominees.filter(n=>n.owner!=='player').forEach(n=>{
+   const rv=rivalById(n.owner);if(!rv)return;const x=byRival.get(rv.id)||{rv,shared:0,playerWins:0,rivalWins:0};x.shared++;
+   if(winner?.owner==='player')x.playerWins++;else if(winner?.owner===rv.id)x.rivalWins++;byRival.set(rv.id,x);
+  });
+ });
+ byRival.forEach(x=>{
+  const outcome=x.playerWins>x.rivalWins?`${state.studio.name} had the edge`:x.rivalWins>x.playerWins?`${x.rv.name} had the edge`:'split field';
+  recordRivalryEvent(x.rv,'awards',`Shared the Year ${c.season} awards field in ${x.shared} categor${x.shared===1?'y':'ies'}`,Math.min(2.4,.8+x.shared*.28),`awards:${c.season}:${x.rv.id}`,{season:c.season,outcome});
+ });
+}
 
 
 function aiStudioProfile(style){
@@ -3126,7 +3195,7 @@ function launchLateGameChallenger(){
 function maybeLaunchLateGameChallenger(){return launchLateGameChallenger()}
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=396;
+const SAVE_SCHEMA_VERSION=397;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -3321,6 +3390,14 @@ function applySaveSchemaMigrations(x,fromVersion){
   }
   (x.films||[]).forEach(f=>{if(f.marketingState?.deskMomentKeys)f.marketingState.deskMomentKeys=[]});
   schema=396;
+ }
+
+
+ if(schema<397){
+  (x.rivals||[]).forEach(rv=>{
+   rv.competitiveHistory=rv.competitiveHistory||[];rv.playerScriptWinsAgainstRival=rv.playerScriptWinsAgainstRival||0;rv.rivalrySinceWeek=rv.rivalrySinceWeek||null;rv.lastRivalryEventWeek=rv.lastRivalryEventWeek||0;rv.lastRivalryLabel=rv.lastRivalryLabel||'Normal competition';
+  });
+  schema=397;
  }
 
  x.saveSchema=schema;
@@ -4044,11 +4121,16 @@ function maybeRivalReleaseResponse(playerFilm){
  const rivals=state.films.filter(x=>x.owner!=='player'&&x.stage==='scheduled'&&x.releaseWeek===playerFilm.releaseWeek&&x.genre===playerFilm.genre);
  if(!rivals.length)return;
  const tracking=preReleaseTracking(playerFilm),r=makeRng(hash(state.seed+`|date-response|${playerFilm.id}|${playerFilm.releaseWeek}`));
- const target=rivals.sort((a,b)=>(a.budget||0)-(b.budget||0))[0];
+ const target=rivals.sort((a,b)=>(a.budget||0)-(b.budget||0))[0],rv=ensureRivalCharacter(rivalById(target.owner)),rivalry=rivalrySnapshot(rv);
  if(tracking.center<16||r()>.38)return;
+ if(rivalry.rank>=2&&r()<(.38+rivalry.rank*.08)){
+  recordRivalryEvent(rv,'release-standoff',`${rv.head.name} held ${target.title} against ${playerFilm.title}`,2.2,`release-stand:${target.id}:${playerFilm.id}`,{filmId:playerFilm.id,outcome:'Date held'});
+  addNews(state,`${rv.head.name}'s ${rv.name} is holding ${target.title} in Week ${target.releaseWeek} despite ${playerFilm.title}'s tracking. The trade is reading the decision through the studios' ${rivalry.label.toLowerCase()}.`,'Release Calendar');return;
+ }
  const delta=r()<.5?-1:1,newWeek=Math.max(state.week+2,target.releaseWeek+delta);
  if(state.films.some(x=>x.owner!=='player'&&x.id!==target.id&&x.releaseWeek===newWeek&&x.genre===target.genre))return;
  const old=target.releaseWeek;target.releaseWeek=newWeek;target.releaseDay=typeof releaseDayForWeek==='function'?releaseDayForWeek(newWeek):null;
+ if(rv)recordRivalryEvent(rv,'release-move',`${rv.name} moved ${target.title} away from ${playerFilm.title}`,.65,`release-move:${target.id}:${playerFilm.id}`,{filmId:playerFilm.id,outcome:'Rival moved'});
  addNews(state,`${target.studio} has moved ${target.title} out of Week ${old}, leaving ${playerFilm.title} with less direct ${playerFilm.genre.toLowerCase()} competition.`,'Release Calendar');
 }
 
@@ -4538,7 +4620,7 @@ function buildAwardsCeremony(season){
 }
 function triggerAwardsCeremony(){
  const season=Math.floor(state.week/52);if(season<1||state.lastAwardsSeasonResolved>=season)return false;
- const c=buildAwardsCeremony(season);state.lastAwardsSeasonResolved=season;state.awardsArchive=state.awardsArchive||[];state.awardsArchive.unshift(c);state.awardsArchive=state.awardsArchive.slice(0,20);state.pendingCeremony=c;state.awardsCeremonyStep=0;state.screen='ceremony';state.detail=null;state.history=[];
+ const c=buildAwardsCeremony(season);recordAwardsRivalries(c);state.lastAwardsSeasonResolved=season;state.awardsArchive=state.awardsArchive||[];state.awardsArchive.unshift(c);state.awardsArchive=state.awardsArchive.slice(0,20);state.pendingCeremony=c;state.awardsCeremonyStep=0;state.screen='ceremony';state.detail=null;state.history=[];
  addNews(state,`The Year ${season} awards concluded with ${c.playerWins?`${state.studio.name} collecting ${c.playerWins} win${c.playerWins===1?'':'s'} from ${c.playerNoms} nomination${c.playerNoms===1?'':'s'}`:'the industry recognising the year’s strongest films and performances'}.`,'Awards');if(typeof checkStudioMilestones==='function')checkStudioMilestones();return true;
 }
 function maybeResolveAwardsSeason(){if(state.week%52===0)triggerAwardsCeremony()}
@@ -7157,9 +7239,25 @@ function updateCareerThreads(){
  const box=ensureCareerThreads();if(!state.studio)return;const seen=new Set();
  // A live release-date confrontation is the clearest rival story in the calendar.
  const clashes=rivalReleaseClashes();const byRival=new Map();clashes.forEach(c=>{if(!byRival.has(c.rival.id))byRival.set(c.rival.id,c)});
- byRival.forEach(c=>{const rv=ensureRivalCharacter(c.rival);rv.lastPlayerClashWeek=state.week;const key=`rival-date:${rv.id}`;if(!careerThread(key))adjustRivalRelationship(rv,-1,`Dated ${c.rivalFilm.title} against ${c.player.title}`);seen.add(key);upsertCareerThread({key,type:'rivalry',tone:'warn',priority:88,rivalId:rv.id,title:`${rv.head.name} has dated against you`,summary:`${rv.name}'s ${c.rivalFilm.title} is opening in Week ${c.week}, directly against ${c.player.title}.`,detail:`${rv.head.personality} ${rv.head.title.toLowerCase()} ${rv.head.name} has chosen the same corridor. The films will share audience attention, exhibitor space and the trade narrative until the weekend settles.`,progress:`W${c.week} showdown`})});
+ byRival.forEach(c=>{const rv=ensureRivalCharacter(c.rival);rv.lastPlayerClashWeek=state.week;const key=`rival-date:${rv.id}`;if(!careerThread(key)){adjustRivalRelationship(rv,-1,`Dated ${c.rivalFilm.title} against ${c.player.title}`);recordRivalryEvent(rv,'release-clash',`${c.rivalFilm.title} dated directly against ${c.player.title}`,2.8,`release-clash:${c.rivalFilm.id}:${c.player.id}`,{filmId:c.player.id,outcome:`Week ${c.week}`})}seen.add(key);upsertCareerThread({key,type:'rivalry',tone:'warn',priority:88,rivalId:rv.id,title:`${rv.head.name} has dated against you`,summary:`${rv.name}'s ${c.rivalFilm.title} is opening in Week ${c.week}, directly against ${c.player.title}.`,detail:`${rv.head.personality} ${rv.head.title.toLowerCase()} ${rv.head.name} has chosen the same corridor. The films will share audience attention, exhibitor space and the trade narrative until the weekend settles.`,progress:`W${c.week} showdown`})});
  // Repeated auction defeats become a persistent competitive thread rather than disposable news.
  state.rivals.forEach(rv=>{ensureRivalCharacter(rv);const key=`auction-rivalry:${rv.id}`,recent=(rv.lastScriptWinAgainstPlayerWeek||0)&&state.week-(rv.lastScriptWinAgainstPlayerWeek||0)<=52;if((rv.scriptWinsAgainstPlayer||0)>=2&&recent){seen.add(key);upsertCareerThread({key,type:'rivalry',tone:'bad',priority:72,rivalId:rv.id,title:`${rv.head.name} keeps beating you to material`,summary:`${rv.name} has outbid you ${rv.scriptWinsAgainstPlayer} times in contested screenplay deals.`,detail:`What began as normal competition is becoming a recognisable pattern on The Lot. Future auctions against ${rv.head.name} will carry history even when the numbers look routine.`,progress:`${rv.scriptWinsAgainstPlayer} auction losses`})}else if(careerThread(key)&&!recent)resolveCareerThread(key,'A full year passed without another auction defeat to the same studio, and the rivalry cooled.')});
+
+ state.rivals.forEach(rv=>{
+  ensureRivalCharacter(rv);const x=rivalrySnapshot(rv),key=`rivalry-core:${rv.id}`;
+  if(x.rank>=2){
+   seen.add(key);upsertCareerThread({key,type:'rivalry',tone:x.rank>=3?'bad':x.tone,priority:x.rank>=3?90:80,rivalId:rv.id,title:x.rank>=3?`${rv.head.name} has become the rival your studio is measured against`:`The ${rv.name} rivalry is becoming a pattern`,summary:x.reasons.length?`${naturalNames(x.reasons.slice(0,3))} have turned routine competition into ${x.label.toLowerCase()}.`:x.desc,detail:`${x.desc} This remains emergent: a long quiet period, different strategic lanes or warmer dealings can cool the rivalry again.`,progress:x.label});
+   if(rv.lastRivalryLabel!==x.label){
+    const prior=rv.lastRivalryLabel;rv.lastRivalryLabel=x.label;
+    if(prior&&prior!=='Normal competition'&&x.rank>=3)addNews(state,`${rv.head.name}'s ${rv.name} and ${state.studio.name} are increasingly being framed as a defining studio rivalry after repeated collisions across the business.`,'Studio Watch');
+    else if(x.rank===2)addNews(state,`${rv.name} and ${state.studio.name} are no longer meeting by accident. The trade now sees an active rivalry taking shape between the two companies.`,'Studio Watch');
+   }
+  }else{
+   if(careerThread(key)&&state.week-(rv.lastRivalryEventWeek||0)>39)resolveCareerThread(key,'The studios stopped colliding often enough for the rivalry to define the current story.');
+   if(x.rank<2)rv.lastRivalryLabel=x.label;
+  }
+ });
+
  // Strong repeat collaborations should feel like an ongoing relationship, not a number on a profile.
  const collab=trustedCollaboratorThreadCandidate();if(collab){const t=collab.t,key=`collaborator:${t.id}`,latest=collab.credits[0];seen.add(key);upsertCareerThread({key,type:'relationship',tone:'good',priority:62,talentId:t.id,title:`${t.name} is becoming part of the studio's story`,summary:`${collab.credits.length} credits with ${state.studio.name} and a ${relationshipLabel(t.relationship||0).toLowerCase()} working relationship.`,detail:`The relationship now has memory. Agents, journalists and future collaborators can read ${latest?.title||'the recent work'} as part of a continuing partnership rather than a one-off booking.`,progress:`Relationship ${Math.round(t.relationship||0)}`})}
  // Representation now carries forward as an active story instead of resetting after each Desk item.
@@ -7335,7 +7433,7 @@ function screenplayRivalInterest(s,rv){
  const rr=makeRng(hash((state.seed||1)+'|script-interest|'+s.id+'|'+rv.id+'|'+(s.marketState?.listedWeek||s.createdWeek||1)));
  const score=aiScriptScore(rv,s)+(rr()-.5)*5,threshold=health==='Under pressure'?76:health==='Leveraged'?73:70;
  if(score<threshold)return null;
- const mult=clamp(1.03+Math.max(0,score-threshold)*.018+(rv.profile?.risk||.5)*.12+rr()*.06,1.03,1.88);
+ const mult=clamp((1.03+Math.max(0,score-threshold)*.018+(rv.profile?.risk||.5)*.12+rr()*.06)*rivalryBidPressure(rv),1.03,1.92);
  const ceiling=+((s.price||.4)*mult).toFixed(2),intent=score>=86||mult>=1.58?'Aggressive':score>=77||mult>=1.34?'Serious':'Watching';
  return {rivalId:rv.id,score:+score.toFixed(1),intent,ceiling};
 }
@@ -7440,7 +7538,7 @@ function acquireScreenplayForPlayer(s,price,kind='market'){
 function sellScreenplayToRival(s,rv,price,kind='auction'){
  if(!rv)return false;price=+price.toFixed(2);if(rv.cash<price)price=Math.max(.1,Math.min(price,rv.cash*.22));rv.cash=Math.max(0,rv.cash-price);s.available=false;s.status='owned';s.owner=rv.id;s.acquisitionCost=price;state.market=state.market.filter(id=>id!==s.id);if(s.marketState)s.marketState.status='sold';
  screenplayRecordSale(s,rv.id,price,kind);ensureRivalCharacter(rv);
- const m=s.marketState||{},contested=(m.playerBid||0)>0;if(contested){rv.scriptWinsAgainstPlayer=(rv.scriptWinsAgainstPlayer||0)+1;rv.lastScriptWinAgainstPlayerWeek=state.week;adjustRivalRelationship(rv,-2,`Won ${s.title} after a screenplay auction`)}
+ const m=s.marketState||{},contested=(m.playerBid||0)>0;if(contested){rv.scriptWinsAgainstPlayer=(rv.scriptWinsAgainstPlayer||0)+1;rv.lastScriptWinAgainstPlayerWeek=state.week;adjustRivalRelationship(rv,-2,`Won ${s.title} after a screenplay auction`);recordRivalryEvent(rv,'auction-loss',`${rv.name} beat ${state.studio.name} to ${s.title}`,2.4,`auction:${s.id}:${rv.id}`,{scriptId:s.id,outcome:'Rival win'})}
  addNews(state,`${rv.head.name}'s ${rv.name} acquired ${s.title} for roughly ${money(price)}${contested?`, beating ${state.studio.name} in the final bidding`:''}.`,'Script Market');
  if(contested)pushDeskItem({templateId:'script-auction-result',scriptId:s.id,subject:s.title,source:'Rights Desk',headline:`${s.title} goes to ${rv.name}`,body:`The screenplay closed at roughly ${money(price)}. ${state.studio.name}'s final offer was ${money(m.playerBid||0)}.`,read:false,expanded:true,resolved:true,requiresAction:false,type:'development',system:true,destination:{screen:'develop',detail:{type:'script',id:s.id}}});
  return true;
@@ -7485,7 +7583,7 @@ function settleScriptAuction(s){
  snap.interested.forEach(x=>{const rr=makeRng(hash((state.seed||1)+'|script-final|'+s.id+'|'+x.rivalId+'|'+state.week));const final=Math.min(x.ceiling,Math.max(Number(m.rivalBids[x.rivalId])||0,x.ceiling*(.88+rr()*.12)));m.rivalBids[x.rivalId]=+final.toFixed(2)});
  const rivalLeader=Object.entries(m.rivalBids).map(([id,bid])=>({rv:rivalById(id),bid:+bid})).filter(x=>x.rv).sort((a,b)=>b.bid-a.bid)[0]||null;
  if(m.playerBid>0&&(!rivalLeader||m.playerBid>=rivalLeader.bid)){
-  if(acquireScreenplayForPlayer(s,m.playerBid,'auction')){pushDeskItem({templateId:'script-auction-result',scriptId:s.id,subject:s.title,source:'Rights Desk',headline:`You won ${s.title}`,body:`Best-and-final bidding closed with ${state.studio.name} acquiring the screenplay for ${money(m.playerBid)}.`,read:false,expanded:true,resolved:true,requiresAction:false,type:'development',system:true,destination:{screen:'develop',detail:{type:'script',id:s.id}}});return true}
+  if(acquireScreenplayForPlayer(s,m.playerBid,'auction')){if(rivalLeader){ensureRivalCharacter(rivalLeader.rv);rivalLeader.rv.playerScriptWinsAgainstRival=(rivalLeader.rv.playerScriptWinsAgainstRival||0)+1;recordRivalryEvent(rivalLeader.rv,'auction-win',`${state.studio.name} beat ${rivalLeader.rv.name} to ${s.title}`,2.1,`auction:${s.id}:${rivalLeader.rv.id}`,{scriptId:s.id,outcome:'Your win'})}pushDeskItem({templateId:'script-auction-result',scriptId:s.id,subject:s.title,source:'Rights Desk',headline:`You won ${s.title}`,body:`Best-and-final bidding closed with ${state.studio.name} acquiring the screenplay for ${money(m.playerBid)}.`,read:false,expanded:true,resolved:true,requiresAction:false,type:'development',system:true,destination:{screen:'develop',detail:{type:'script',id:s.id}}});return true}
   // An unfunded winning bid collapses; seller takes the strongest financed rival.
   if(rivalLeader){addNews(state,`${state.studio.name}'s winning ${money(m.playerBid)} offer for ${s.title} could not be funded at closing.`,'Script Market');return sellScreenplayToRival(s,rivalLeader.rv,rivalLeader.bid,'auction')}
  }
@@ -8107,7 +8205,7 @@ function nav(){
   ['industry','◌','Industry']
  ];
  const deskCount=state.studio&&typeof deskActionCount==='function'?deskActionCount():0;
- return `<nav class="bottomnav">${items.map(i=>`<button class="navbtn ${state.screen===i[0]?'active':''}" data-nav="${i[0]}"><span class="icon">${i[1]}</span>${i[2]}${i[0]==='studio'&&deskCount?`<span class="navbadge">${deskCount}</span>`:''}</button>`).join('')}</nav>`;
+ return `<nav class="bottomnav">${items.map(i=>`<button class="navbtn ${state.screen===i[0]?'active':''}" data-nav="${i[0]}"><span class="icon">${i[1]}</span>${i[2]}${i[0]==='studio'&&deskCount?`<span class="navbadge">${deskCount}</span>`:''}</button>`).join('')}</nav><button id="globalBackToTop" class="global-back-top" aria-label="Back to top" title="Back to top">↑</button>`;
 }
 function backHead(title,sub=''){return `<div class="screenhead"><button class="back" id="backBtn">← Back</button><h1>${title}</h1>${sub?`<div class="small">${sub}</div>`:''}</div>`}
 function stagePill(f){
@@ -9441,7 +9539,6 @@ function talentProfile(id){
  ${t.careerMilestones?.length?`<div class="section-title"><h2>Career timeline</h2></div><div class="card">${t.careerMilestones.slice(0,8).map(m=>`<div class="listrow"><span>${m.label}</span><span class="small">W${m.week}</span></div>`).join('')}</div>`:''}
  ${t.isRealPerson?`<div class="section-title"><h2>Selected credits</h2></div><div class="card">${(t.realCredits||[]).map(c=>`<div class="listrow"><span>${c}</span></div>`).join('')}<div class="small" style="margin-top:8px">Private roster reference. Portrait is loaded from Wikipedia/Wikimedia when available. All game ratings and simulated outcomes are fictional.</div></div>`:''}
  <div class="section-title"><h2>Project Slate career</h2><span class="small">${recent.length} credit${recent.length===1?'':'s'} in the last 78 weeks</span></div><div class="card">${t.credits.length?t.credits.slice(0,10).map(c=>`<div class="listrow"><div><strong>${typeof c==='string'?c:c.title||'Generated credit'}</strong>${typeof c==='object'?`<div class="small">${c.role||''}${c.character?` as ${c.character}`:''} · ${money(c.gross||0)} WW · ${c.critics||0}% critics</div>`:''}</div><span class="small">${typeof c==='object'&&c.week?'W'+c.week:''}</span></div>`).join(''):`<div class="body">No credits have been generated yet in this Project Slate career.</div>`}</div>
- <button class="btn ghost block" id="talentBackToTop" style="margin-top:14px">↑ Back to top</button>
  </main>${nav()}`;
 }
 function peopleDirectory(){
@@ -9486,6 +9583,7 @@ function rivalProfile(id){
  <div class="studio-brand-hero rival-brand-hero" style="--brand:${brandTheme(rivalBrand(r)).accent};--brand2:${brandTheme(rivalBrand(r)).accent2};--branddark:${brandTheme(rivalBrand(r)).dark}"><div>${studioLogoHTML(r.name,rivalBrand(r),'lg',true)}<div class="badge" style="margin-top:12px">${sig.label}</div><div class="quote" style="margin-top:7px">${sig.philosophy}</div></div><div class="body rival-head-copy" style="max-width:420px"><div class="rival-headline"><span class="rival-head-monogram">${r.head.name.split(/\s+/).map(x=>x[0]).slice(0,2).join('')}</span><div><strong>${r.head.name}</strong><div class="small">${r.head.title} · ${r.head.personality}</div></div></div><div class="small" style="margin-top:8px">${r.head.bio}</div><div class="small" style="margin-top:9px"><strong>Current tone with your studio:</strong> ${rivalDisposition(r)}.</div><div class="small" style="margin-top:9px"><strong>Distribution tendency:</strong> ${sig.distribution}${fav?` · Most-produced genre: ${fav[0]}`:''}</div></div></div>
  <div class="grid cols4" style="margin-top:12px"><div class="card"><div class="badge">Trade estimate</div><div class="kpi">${p.status}</div></div><div class="card"><div class="badge">Completed films</div><div class="kpi">${p.done.length}</div></div><div class="card"><div class="badge">Estimated film P/L</div><div class="kpi" style="font-size:17px">${moneyRange(p.pnl)}</div></div><div class="card"><div class="badge">Wins / losses</div><div class="kpi">${p.wins} / ${p.losses}</div></div></div>
  <div class="grid cols4" style="margin-top:12px"><div class="card"><div class="badge">Recent commercial form</div><div class="kpi">${p.recent>8?'Hot':p.recent<-8?'Cold':'Mixed'}</div></div><div class="card"><div class="badge">Creative reputation</div><div class="kpi">${Math.round(p.creative)}</div></div><div class="card"><div class="badge">Debt pressure</div><div class="kpi">${p.debt>25?'High':p.debt>8?'Moderate':'Low'}</div></div><div class="card"><div class="badge">Liquidity</div><div class="kpi">${p.available>25?'Deep':p.available>10?'Healthy':p.available>2?'Tight':'Restricted'}</div></div></div>
+ ${rivalryProfileHTML(r)}
  <div class="section-title"><h2>Current slate</h2></div><div class="grid">${active.length?active.map(f=>`<div class="card click" data-industry-film="${f.id}"><div class="film-card-layout">${filmKeyArtHTML(f,'thumb')}<div class="film-card-copy"><div class="row"><div><strong>${f.title}</strong><div class="small">${f.genre} · ${fmtStage(f.stage)}</div></div>${f.releaseWeek?`<span class="pill">${typeof releaseDayForWeek==='function'?calendarShortDate(releaseDayForWeek(f.releaseWeek)):'W'+f.releaseWeek}</span>`:''}</div>${f.releaseWeek?`<div class="small" style="margin-top:6px">${distributionLabel(f)}</div>`:''}</div></div></div>`).join(''):`<div class="card body">No active projects.</div>`}</div>
  <div class="section-title"><h2>Recent releases</h2></div><div class="grid">${recent.length?recent.map(f=>`<div class="card click ${f.estimatedProfit>3?'goodline':f.estimatedProfit<-4?'dangerline':''}" data-industry-film="${f.id}"><div class="film-card-layout">${filmKeyArtHTML(f,'thumb')}<div class="film-card-copy"><div class="row"><div><strong>${f.title}</strong><div class="small">${money(f.finalGross)} WW · ${aiFilmResultLabel(f)}</div></div><strong style="font-size:12px">${moneyRange(f.estimatedProfit||0)}</strong></div></div></div></div>`).join(''):`<div class="card body">No completed films yet.</div>`}</div>
  </main>${nav()}`;
@@ -9640,8 +9738,26 @@ function advanceFilmWrapChapter(delta=1){
  requestScrollTop();save();render();
 }
 
+
+let globalBackToTopListenerBound=false;
+function syncGlobalBackToTop(){
+ if(typeof window==='undefined'||typeof document==='undefined')return;
+ const b=document.getElementById('globalBackToTop');if(!b)return;
+ const blocked=!!document.querySelector('.pickerbar')||['setup','filmWrap','legendUnlock','studioMoment','nominations','ceremony'].includes(state.screen);
+ b.classList.toggle('visible',!blocked&&window.scrollY>420);
+}
+function bindGlobalBackToTop(){
+ const b=document.getElementById('globalBackToTop');
+ if(b)b.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+ if(!globalBackToTopListenerBound&&typeof window!=='undefined'){
+  window.addEventListener('scroll',syncGlobalBackToTop,{passive:true});globalBackToTopListenerBound=true;
+ }
+ syncGlobalBackToTop();
+}
+
 function bind(){
  bindBrandControls();
+ bindGlobalBackToTop();
  document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>navTo(b.dataset.nav));
  document.querySelectorAll('[data-script]').forEach(b=>b.onclick=()=>push('develop',{type:'script',id:b.dataset.script}));
  document.querySelectorAll('[data-script-tab]').forEach(b=>b.onclick=()=>{state.uiScriptTab=b.dataset.scriptTab;state.detail=null;save();render()});
@@ -9766,7 +9882,6 @@ function bind(){
  const peopleSearch=document.getElementById('peopleSearch');if(peopleSearch)peopleSearch.oninput=()=>{state.uiPeopleSearch=peopleSearch.value;save();render()};
  const peopleFilter=document.getElementById('peopleFilter');if(peopleFilter)peopleFilter.onchange=()=>{state.uiPeopleFilter=peopleFilter.value;save();render()};
  const toggleTalentWatch=document.getElementById('toggleTalentWatch');if(toggleTalentWatch&&state.detail?.type==='talent'){const t=talentById(state.detail.id);toggleTalentWatch.onclick=()=>setTalentWatch(t.id,!watchedTalent(t))};
- const talentBackToTop=document.getElementById('talentBackToTop');if(talentBackToTop)talentBackToTop.onclick=()=>{if(typeof window!=='undefined')window.scrollTo({top:0,behavior:'smooth'})};
  const dismissNotification=document.getElementById('dismissNotification');if(dismissNotification)dismissNotification.onclick=()=>{markNotification(state.activeNotificationId);save();render()};
  const openNotificationTargetBtn=document.getElementById('openNotificationTarget');if(openNotificationTargetBtn)openNotificationTargetBtn.onclick=()=>openNotificationTarget(state.notifications.find(x=>x.id===state.activeNotificationId));
  document.querySelectorAll('[data-notification]').forEach(b=>b.onclick=()=>openNotificationTarget(state.notifications.find(x=>x.id===b.dataset.notification)));
@@ -9899,7 +10014,7 @@ if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&
 function projectSlateSmokeChecks(){
  const failures=[],required=[
   ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],
-  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
+  ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
  if(!app)failures.push('#app missing');
@@ -9907,7 +10022,8 @@ function projectSlateSmokeChecks(){
  try{if(pickerControls('Actor').includes('Project fit'))failures.push('actor fit sort leaked');if(soundtrackShortlistSize()<5)failures.push('music shortlist too small');const qs=(state.talent||[]).filter(t=>t.type==='Actor').map(t=>{ensureTalentMarketEconomy(t);return t.fee});if(qs.length&&Math.max(...qs)<7)failures.push('actor salary range compressed');if(qs.length&&Math.min(...qs)>3.2)failures.push('low-cost actor market missing')}catch(e){failures.push('casting economy smoke failed')}
  try{if(AGENCIES.length<4)failures.push('agency roster missing');const t=(state.talent||[]).find(x=>!x.retired);if(t){const x=agencyMarketLeverage(t);if(!Number.isFinite(x.pressure)||!x.label||!x.relationship)failures.push('agency leverage invalid')}}catch(e){failures.push('agency depth smoke failed')}
  try{const e=executivePersonaSnapshot(),m=industryMoodSnapshot();if(!e.primary?.label||e.signals.length<6)failures.push('executive persona invalid');if(!m.label||!m.financing||!m.talent)failures.push('industry mood invalid');if(Object.keys(PRESS_PERSONALITIES).length<5)failures.push('press personality roster incomplete')}catch(e){failures.push('v3.12 systems smoke failed')}
- try{if(queueStudioMoment.toString().includes('campaignMomentDeskEntry(f,type'))failures.push('campaign moments still duplicated to Desk');if(!talentProfile.toString().includes('talentBackToTop'))failures.push('talent top control missing');if(!resolveOpportunityDeskChoice.toString().includes("templateId==='rights-offer'"))failures.push('actionable rights flow missing')}catch(e){failures.push('v3.12.1 polish smoke failed')}
+ try{if(queueStudioMoment.toString().includes('campaignMomentDeskEntry(f,type'))failures.push('campaign moments still duplicated to Desk');if(!resolveOpportunityDeskChoice.toString().includes("templateId==='rights-offer'"))failures.push('actionable rights flow missing')}catch(e){failures.push('v3.12.1 polish smoke failed')}
+ try{const rv=(state.rivals||[])[0];if(rv){const x=rivalrySnapshot(rv);if(!x.label||!Array.isArray(x.events))failures.push('rivalry snapshot invalid')}if(!nav.toString().includes('globalBackToTop'))failures.push('global back-to-top missing')}catch(e){failures.push('v3.13 systems smoke failed')}
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
   const unique=new Set(probe.scripts.map(x=>x.title.toLowerCase())).size,quantified=probe.scripts.filter(x=>/^(No One|Nobody|Someone|Everyone)\b/i.test(x.title)).length;
