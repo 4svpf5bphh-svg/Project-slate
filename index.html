@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v3.14.2</title>
+<title>Project Slate — Premium Presentation v3.14.3</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='3.14.2';
+const VERSION='3.14.3';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -1073,7 +1073,8 @@ const PRESS_BRANDS={
  'Development Weekly':{abbr:'DW',tone:'#4b9b70',mark:'aperture'},
  'Film Finance':{abbr:'FF',tone:'#5579a6',mark:'monolith'},
  'Rights & Sales':{abbr:'R&S',tone:'#b16b50',mark:'prism'},
- 'First Frame':{abbr:'1F',tone:'#5f8bc7',mark:'aperture'}
+ 'First Frame':{abbr:'1F',tone:'#5f8bc7',mark:'aperture'},
+ 'Aurelia Daily':{abbr:'AD',tone:'#d95f9a',mark:'aperture'}
 };
 const GENRE_ART={
  'Action Thriller':{a:'#1b1d24',b:'#6e1717',c:'#ef5a36',symbol:'//',template:'slash'},
@@ -1593,18 +1594,103 @@ const PRESS_PERSONALITIES={
  'celia-hart':{id:'celia-hart',name:'Celia Hart',publication:'Aurelia Daily',beat:'Culture & campaigns',tone:'Culture reporter',bio:'Tracks how films are sold to audiences, remembers overpromises and notices when a studio lets filmmakers speak for themselves.'}
 };
 
+const PRESS_OUTLET_VOICES={
+ 'Screen Trade':{label:'Measured trade read',style:'trade'},
+ 'The Industry Ledger':{label:'Hard-numbers industry read',style:'finance'},
+ 'Production Bulletin':{label:'Production-floor read',style:'production'},
+ 'Box Office Weekly':{label:'Commercial read',style:'boxoffice'},
+ 'Exhibitor Report':{label:'Exhibitor read',style:'boxoffice'},
+ 'Awards Wire':{label:'Prestige read',style:'awards'},
+ 'Screen Awards':{label:'Awards-season read',style:'awards'},
+ 'The Call Sheet':{label:'Talent-market read',style:'talent'},
+ 'Talent Wire':{label:'Talent-market read',style:'talent'},
+ 'Development Weekly':{label:'Development read',style:'development'},
+ 'Film Finance':{label:'Finance read',style:'finance'},
+ 'Rights & Sales':{label:'Rights-market read',style:'development'},
+ 'First Frame':{label:'Campaign read',style:'culture'},
+ 'Aurelia Daily':{label:'Culture-and-campaign read',style:'culture'}
+};
+function pressOutletVoice(pub){return PRESS_OUTLET_VOICES[pub]||{label:'Industry desk read',style:'trade'}}
+function pressVoicePick(seed,bank){if(!bank?.length)return '';const r=makeRng(hash(String(seed)));return pick(r,bank)}
+function pressVoicePerspective(st,story,kind,publication,journalistId,text,seed){
+ const film=pressMatchFilm(st,text),talent=pressMatchTalent(st,text),rival=pressMatchRival(st,text),outlet=pressOutletVoice(publication),subject=film?.title||talent?.name||rival?.name||st.studio?.name||'the story';
+ let bank=[];
+ if(journalistId==='mara-vance')bank=[
+  `The Lot loves declaring turning points. Most are just Tuesdays. The useful question is whether ${subject} fits a pattern that will still be visible six months from now.`,
+  `Taken alone, this is a headline. Put beside the studio's recent choices and it starts to look more like policy.`,
+  `The announcement matters less for what it says today than for what it suggests the next phone call, greenlight or negotiation will look like.`
+ ];
+ else if(journalistId==='imani-kerr')bank=[
+  `Agents will notice the headline; they will care more about what it does to leverage around ${subject}. On the Lot, momentum is never abstract for long.`,
+  `The interesting part is not the announcement itself. It is who gets a better meeting, a firmer quote or a faster callback because of it.`,
+  `Nobody in representation hears “heat” as a compliment. They hear the opening number in the next negotiation.`
+ ];
+ else if(journalistId==='ruth-bell')bank=[
+  `Prestige is one of Hollywood's easiest words to print and one of its hardest conditions to earn. ${subject} will have to survive contact with the work itself.`,
+  `A serious-film label can open the door. It cannot make the conversation serious once people are inside the room.`,
+  `The industry will be tempted to reduce this to a score, a laurel or a category. The more interesting question is whether the film leaves an argument behind.`
+ ];
+ else if(journalistId==='daniel-mercer')bank=[
+  `Strip away the adjectives and the business question is simple: what did it cost, what can it return, and how much room is left if the answer disappoints?`,
+  `Hollywood is very good at turning confidence into copy. Cash flow remains less impressionable.`,
+  `The release language can be expansive. The maths will be considerably less sentimental.`
+ ];
+ else if(journalistId==='celia-hart')bank=[
+  `A campaign can buy reach. It cannot buy a reason for people to repeat the story to each other, which is the test ${subject} is really facing now.`,
+  `The studio can control the rollout; it cannot control which detail audiences decide belongs to them.`,
+  `Publicity works best when it stops looking like publicity. The next question is whether this moment escapes the media plan and becomes ordinary conversation.`
+ ];
+ else if(outlet.style==='finance')bank=[
+  `The creative headline is easy to repeat. The balance-sheet consequence is the part finance desks will keep open in another tab.`,
+  `Whatever the public framing, the decision ultimately lands in cash, commitments and the amount of room left for the next film.`
+ ];
+ else if(outlet.style==='talent')bank=[
+  `The Call Sheet version of the story is always the same question: whose leverage changed before lunch?`,
+  `Around the agencies, this will be translated quickly from publicity language into availability, quotes and negotiating position.`
+ ];
+ else if(outlet.style==='production')bank=[
+  `Production people are less interested in the announcement than in what it does to tomorrow's call sheet.`,
+  `The practical consequence is the story here: schedule, crew, coverage and the amount of flexibility still left on set.`
+ ];
+ else if(outlet.style==='boxoffice')bank=[
+  `Exhibitors will give the campaign its moment. They will give the hold a much longer memory.`,
+  `Opening attention is useful; repeat business is the part nobody can manufacture from a press release.`
+ ];
+ else if(outlet.style==='awards')bank=[
+  `Awards conversation can be started by a campaign. It still has to be sustained by people wanting to keep talking about the film.`,
+  `The prestige machinery is now in motion. Whether the film deserves to stay inside it remains a separate question.`
+ ];
+ else if(outlet.style==='development')bank=[
+  `Development executives will read this less as a finished story than as evidence about what material, packages and rights may move next.`,
+  `The market consequence is likely to arrive quietly: a faster read, a higher ask or one more studio deciding it does not want to miss the next version of this package.`
+ ];
+ else if(outlet.style==='culture')bank=[
+  `The sell is becoming clearer. That is not the same thing as the audience caring, but it is at least something they can react to.`,
+  `Campaigns are full of messages. Culture tends to remember the one nobody in the room planned.`
+ ];
+ else bank=[
+  `The trade read is less about the announcement than what it changes next.`,
+  `One beat rarely changes the industry. Repeated beats are how a reputation becomes difficult to argue with.`
+ ];
+ return pressVoicePick(`${seed}|${journalistId||publication}|voice`,bank);
+}
+function voicePressStory(st,story,kind,publication,journalistId,text,seed){
+ if(!story)return story;
+ const body=Array.isArray(story.body)?story.body.slice():[story.body].filter(Boolean),line=pressVoicePerspective(st,story,kind,publication,journalistId,text,seed),j=journalistProfileById(journalistId);
+ if(line){const at=body.length>1?1:body.length;body.splice(at,0,line)}
+ return {...story,body:body.slice(0,5),voiceLabel:j?`${j.name} · ${j.tone}`:pressOutletVoice(publication).label};
+}
 function journalistProfileById(id){return PRESS_PERSONALITIES[id]||null}
 function journalistIdFromByline(byline=''){const name=String(byline).split(' · ')[0].trim();return Object.values(PRESS_PERSONALITIES).find(x=>x.name===name)?.id||null}
 function recurringJournalistForKind(kind,r){
  const map={
   'Box Office Alert':'daniel-mercer','Box Office':'daniel-mercer','Trade Finance':'daniel-mercer','Studio Finance':'daniel-mercer',
-  'Awards':'ruth-bell','Press Release':'celia-hart',
-  'Talent Watch':'imani-kerr','Industry Drama':'imani-kerr','Casting':'imani-kerr',
-  'Development':'mara-vance','Market Watch':'mara-vance','Script Market':'mara-vance','Your Studio':'mara-vance','Studio Watch':'mara-vance','Industry':'mara-vance'
+  'Awards':'ruth-bell','Press Release':'celia-hart','Release Calendar':'celia-hart',
+  'Talent Watch':'imani-kerr','Industry Drama':'imani-kerr','Casting':'imani-kerr','Production':'imani-kerr',
+  'Development':'mara-vance','Market Watch':'mara-vance','Script Market':'mara-vance','Your Studio':'mara-vance','Studio Watch':'mara-vance','Industry':'mara-vance','Trade Report':'mara-vance','Industry Alert':'mara-vance','Rights':'mara-vance','Franchise':'mara-vance','Library':'mara-vance'
  };
- const id=map[kind];return id&&r()<.76?PRESS_PERSONALITIES[id]:null;
+ const id=map[kind];return id&&r()<.82?PRESS_PERSONALITIES[id]:null;
 }
-
 function ensurePressMemory(st=state){st.pressMemory=st.pressMemory||{};return st.pressMemory}
 function pressMemoryEntry(st,id){
  const mem=ensurePressMemory(st),x=mem[id]||(mem[id]={stories:0,playerMentions:0,lastWeek:0,lastPlayerWeek:0,lastPlayerHeadline:null});
@@ -2090,8 +2176,8 @@ function realisticPressStory(st,text,kind,r){
 }
 function buildNewsItem(st,text,kind='Industry'){
  st.ids=st.ids||{};st.ids.news=(st.ids.news||0)+1;
- const id='NEWS'+st.ids.news,r=makeRng(hash((st.seed||1)+'|news-v3140|'+id+'|'+text)),story=realisticPressStory(st,text,kind,r),initialPublication=pressPublication(kind,r),byline=pressByline(kind,r),journalistId=journalistIdFromByline(byline),publication=journalistProfileById(journalistId)?.publication||initialPublication;
- return {id,pressVersion:3140,week:st.week,day:Number.isFinite(st.calendarDay)?st.calendarDay:null,text,headline:story.headline,kind,publication,byline,journalistId,deck:story.deck,body:story.body};
+ const id='NEWS'+st.ids.news,r=makeRng(hash((st.seed||1)+'|news-v3143|'+id+'|'+text)),baseStory=realisticPressStory(st,text,kind,r),initialPublication=pressPublication(kind,r),byline=pressByline(kind,r),journalistId=journalistIdFromByline(byline),publication=journalistProfileById(journalistId)?.publication||initialPublication,story=voicePressStory(st,baseStory,kind,publication,journalistId,text,id);
+ return {id,pressVersion:3143,week:st.week,day:Number.isFinite(st.calendarDay)?st.calendarDay:null,text,headline:story.headline,kind,publication,byline,journalistId,voiceLabel:story.voiceLabel,deck:story.deck,body:story.body};
 }
 function normalizeNewsItem(st,n){
  if((n?.pressVersion===291||n?.pressVersion===364||n?.pressVersion===3140)&&n?.id&&n?.publication&&n?.body){if(!n.journalistId)n.journalistId=journalistIdFromByline(n.byline||'');return n;}
@@ -2881,6 +2967,71 @@ function campaignSocialDelta(type,result){
  };
  const v=table[type]?.[result];return v?{volume:v[0],sentiment:v[1],fandom:v[2],controversy:v[3],topic:v[4]}:null;
 }
+function campaignMomentVoice(f,type,data={}){
+ const result=data.result||'',banks={
+  trailer:{
+   viral:[`The paid campaign has lost custody of the trailer. People are passing it around because they want to, which is the bit a media budget cannot simply order.`],
+   strong:[`The trailer has done the useful thing: made the film feel like something people may choose, not merely something they have now heard of.`],
+   mixed:[`The trailer is being seen and politely discussed. Nobody is panicking; nobody is cancelling plans to watch it again either.`],
+   soft:[`The trailer is in circulation. Desire has not followed it there. The campaign now has to create a reason to care rather than another reason to recognise the title.`]
+  },
+  festivalDecision:{
+   accepted:[`The film now has a room full of critics and industry people willing to take it seriously. That is an opportunity, not a compliment.`],
+   rejected:[`No laurels, no early prestige halo — and, conveniently, no early prestige autopsy either. The campaign gets its clean commercial runway back.`]
+  },
+  festivalScreening:{
+   strong:[`A screening became a narrative. The campaign can now sell something it did not manufacture itself: other people's enthusiasm.`],
+   mixed:[`The film has found the dangerous middle ground where everybody has an opinion and almost nobody agrees. That split is now part of the release.`],
+   poor:[`The prestige launch has done the commercial campaign the discourtesy of producing actual negative opinions before release.`]
+  },
+  publicity:{
+   excellent:[`The interviews have stopped feeling like obligations and started producing moments people quote back. That is where publicity becomes useful.`],
+   viral:[`One piece of the campaign has escaped into ordinary conversation. The studio can amplify it, but it no longer fully owns it.`],
+   solid:[`Nobody is calling the week historic. That is fine. The film is clearer, more familiar and easier to talk about than it was seven days ago.`],
+   awkward:[`Attention is up. Unfortunately, one awkward clip is doing most of the lifting. The tour has become a story about the tour.`],
+   flat:[`The bookings happened, the clips were posted and the conversation largely carried on without them.`]
+  },
+  gala:{
+   hot:[`For one night, the carpet was not just decoration; the film looked like somewhere people wanted to be.`],
+   solid:[`The premiere created a sense of occasion without pretending a red carpet can do the movie's job for it.`],
+   flat:[`The photographs are immaculate. The conversation is not. The event looked expensive and travelled lightly.`]
+  }
+ };
+ const bank=banks[type]?.[result];
+ if(!bank?.length)return data;
+ return {...data,summary:pressVoicePick(`campaign-moment|${f.id}|${type}|${result}|${state.week}`,bank)};
+}
+function campaignSocialChatter(f,type,result){
+ const banks={
+  trailer:{viral:[`I was not remotely sold on ${f.title} yesterday. I have now watched that trailer four times.`,`The fan edits started before the studio account finished posting the official clips. That feels significant.`],strong:[`Okay, that trailer actually makes ${f.title} look like a movie rather than a release date.`,`I finally understand what ${f.title} is selling. That helped.`],mixed:[`The ${f.title} trailer is fine. I am aware this is not the word the marketing team wanted trending.`,`I watched the trailer, nodded once and returned to my life. Make of that what you will.`],soft:[`That trailer successfully informed me that ${f.title} exists. The case for leaving the house remains pending.`,`I have seen the ${f.title} trailer twice and somehow know less about why I should care.`]},
+  festivalDecision:{accepted:[`${f.title} got into the festival. Suddenly everyone who called it “commercial” is using the word “interesting.”`],rejected:[`No festival slot for ${f.title}. The discourse has bravely agreed to wait until there is a film to argue about.`]},
+  festivalScreening:{strong:[`Apparently ${f.title} is the one everyone is trying to get into tonight.`,`The “have you seen ${f.title} yet?” messages have begun.`],mixed:[`Half my feed thinks ${f.title} is brilliant. The other half thinks the first half has lost its mind.`,`Nothing sells a festival movie quite like two critics having completely incompatible experiences.`],poor:[`The first ${f.title} reactions are rough enough that the embargo suddenly feels like a character in the story.`,`You can tell the studio wanted festival heat. Technically, there is heat.`]},
+  publicity:{excellent:[`That ${f.title} interview was actually charming. Disturbing development for my cynicism.`,`The cast finally said something about ${f.title} that did not sound approved by six people.`],viral:[`The ${f.title} clip has escaped containment. My non-film friends are sending it to me now.`,`Marketing meeting somewhere: “great news, the internet has taken over.”`],solid:[`${f.title} is doing the rounds and, for once, nobody appears to be actively making things worse.`],awkward:[`The interview clip is doing numbers. Unfortunately not for the reason the studio wanted.`,`I would like to formally thank the ${f.title} press tour for giving everyone the same awkward twelve seconds to discuss.`],flat:[`I have now seen three ${f.title} interviews and cannot remember a sentence from any of them.`,`The press tour is technically happening. Emotionally, the internet appears to be elsewhere.`]},
+  gala:{hot:[`Okay, the ${f.title} premiere actually looks like an event.`,`Everyone suddenly owns a ticket to the ${f.title} conversation.`],solid:[`Nice carpet, good crowd, film still has to be good tomorrow. Seems fair.`],flat:[`The ${f.title} carpet looks great. Has anyone said anything about the movie?`,`A lot of flashbulbs for surprisingly little conversation.`]}
+ };
+ return pressVoicePick(`campaign-social|${f.id}|${type}|${result}|${state.week}`,banks[type]?.[result]||[]);
+}
+function lotDeskVoice(item){
+ if(!item||item.voiceVersion>=3143)return item;
+ let bank=[];
+ if(item.type==='gossip')bank=[
+  `Lotline's usual warning applies: two whispers can make a story long before they make a fact.`,
+  `The detail is plausible enough to travel and thin enough to evaporate by lunch.`,
+  `Nobody is confirming it. That has never stopped The Lot from scheduling the conversation.`
+ ];
+ else if(item.type==='industry'&&!item.requiresAction)bank=[
+  `On The Lot, this is the sort of development that quietly changes who returns whose call first.`,
+  `The practical consequence may show up before the public one: meetings get easier for somebody and harder for somebody else.`,
+  `Nobody will call this a power shift yet. People will still behave as though it might be one.`
+ ];
+ else if(item.type==='talent'&&!item.requiresAction)bank=[
+  `Representation will translate the story into leverage before the congratulations are finished.`,
+  `The next meeting is where this becomes real: role, quote, billing and who gets to say no first.`
+ ];
+ if(!bank.length)return {...item,voiceVersion:3143};
+ const tail=pressVoicePick(`desk-voice|${item.templateId||item.type}|${item.subject||''}|${item.week||state.week}|${item.id||0}`,bank);
+ return {...item,body:`${item.body||''}${tail?` ${tail}`:''}`,voiceVersion:3143};
+}
 function campaignMomentDeskEntry(f,type,data){
  if(!f||!['trailer','festivalDecision','festivalScreening','publicity','gala'].includes(type))return null;
  const m=ensureMarketingState(f);m.deskMomentKeys=m.deskMomentKeys||[];const key=`${type}:${data.day??state.calendarDay??state.week}`;
@@ -2894,8 +3045,9 @@ function queueStudioMoment(f,type,data={}){
  const q=ensureStudioMoments(),day=typeof currentCalendarDay==='function'?currentCalendarDay():null,entityId=f?.id||'studio',id=`${entityId}:${type}:${day??state.week}:${q.length}`;
  if(q.some(x=>x.id===id))return;
  if(['trailer','festivalDecision','festivalScreening','publicity','gala'].includes(type)){
+  data=campaignMomentVoice(f,type,data);
   const p=ensureFilmSocial(f),before={volume:p.volume,sentiment:p.sentiment,fandom:p.fandom,controversy:p.controversy},delta=campaignSocialDelta(type,data.result);
-  if(delta){applyPulseDelta(f,delta,`${data.kicker||marketingMilestoneLabel(type)} · ${momentResultLabel(data.result)}`);addSocialFeed(f,`${data.kicker||marketingMilestoneLabel(type)}: ${data.summary||momentResultLabel(data.result)}`,data.tone==='great'?'good':data.tone==='bad'||data.tone==='warn'?'warn':'neutral')}
+  if(delta){applyPulseDelta(f,delta,`${data.kicker||marketingMilestoneLabel(type)} · ${momentResultLabel(data.result)}`);addSocialFeed(f,campaignSocialChatter(f,type,data.result)||`${data.kicker||marketingMilestoneLabel(type)}: ${data.summary||momentResultLabel(data.result)}`,data.tone==='great'?'good':data.tone==='bad'||data.tone==='warn'?'warn':'neutral')}
   const after=ensureFilmSocial(f),socialStats=[];
   if(after.volume!==before.volume)socialStats.push(['Social conversation',`${after.volume} (${after.volume-before.volume>=0?'+':''}${after.volume-before.volume})`]);
   if(after.sentiment!==before.sentiment)socialStats.push(['Social sentiment',`${after.sentiment} (${after.sentiment-before.sentiment>=0?'+':''}${after.sentiment-before.sentiment})`]);
@@ -4972,12 +5124,12 @@ function filmWrapVerdictHeadline(f,l=ensureLegacyState(f)){
 function filmWrapVerdictCopy(f,l=ensureLegacyState(f)){
  const t=filmWrapTone(f,l),track=typeof trackingVsActual==='function'?trackingVsActual(f,l.opening):null,crit=f.review?.critics||0,aud=f.review?.audience||0;
  let first='';
- if(t.id==='disaster')first=`${f.title} closed at ${money(f.finalGross)} worldwide, leaving ${state.studio.name} with a ${money(Math.abs(l.profit))} loss. What was meant to be a release became a reference point the next greenlight will have to answer.`;
- else if(t.id==='complicated')first=`${f.title} never quite converted its campaign into a clean commercial win. It finished at ${money(f.finalGross)} worldwide and left the studio ${l.profit>=0?'just above water':'in the red'}, but the response was more complicated than the ledger alone.`;
- else if(t.id==='prestige')first=`${f.title} finished with ${money(f.finalGross)} worldwide, but its clearest victory is the ${crit}% critical score. It gives ${state.studio.name} a film the trade can cite when the next ambitious filmmaker asks what kind of work the studio protects.`;
- else if(t.id==='audience')first=`${f.title} became an audience story. A ${aud}% audience score kept conversation alive after opening weekend and gave the film a longer life than the campaign could buy on its own.`;
- else if(t.id==='triumph')first=`${f.title} closed at ${money(f.finalGross)} worldwide and returned ${money(l.profit)} to the studio. The result changes the next conversation: talent, rivals and financiers now have a fresh hit to measure ${state.studio.name} against.`;
- else first=`${f.title} ends its theatrical run at ${money(f.finalGross)} worldwide, with ${l.profit>=0?'a '+money(l.profit)+' studio profit':'a '+money(Math.abs(l.profit))+' studio loss'}. It is not a mythic result, but it is now part of what this studio has actually done.`;
+ if(t.id==='disaster')first=`The red number is not subtle. ${f.title} closed at ${money(f.finalGross)} worldwide and left ${state.studio.name} with a ${money(Math.abs(l.profit))} loss. What was meant to be a release is now a reference point the next greenlight will have to answer.`;
+ else if(t.id==='complicated')first=`This is the annoying kind of result that refuses a clean headline. ${f.title} finished at ${money(f.finalGross)} worldwide and left the studio ${l.profit>=0?'just above water':'in the red'}, while the response remained more interesting than the ledger.`;
+ else if(t.id==='prestige')first=`The accountants will eventually stop staring at the gross. Filmmakers may not. ${f.title} finished with ${money(f.finalGross)} worldwide and a ${crit}% critical score, giving ${state.studio.name} a film ambitious people can point to when they ask what the studio actually protects.`;
+ else if(t.id==='audience')first=`Critics can keep arguing. Audiences did something more commercially useful: they kept recommending the film. A ${aud}% audience score gave ${f.title} a longer life than the campaign could buy on its own.`;
+ else if(t.id==='triumph')first=`After a hit, everybody on The Lot suddenly remembers your phone number. ${f.title} closed at ${money(f.finalGross)} worldwide and returned ${money(l.profit)} to the studio, giving talent, rivals and financiers a fresh result to measure ${state.studio.name} against.`;
+ else first=`Not every release becomes lore. Some become evidence. ${f.title} ends at ${money(f.finalGross)} worldwide with ${l.profit>=0?'a '+money(l.profit)+' studio profit':'a '+money(Math.abs(l.profit))+' studio loss'}, and it is now part of what this studio can actually point to rather than promise.`;
  if(track)first+=` ${track.text}`;
  if(l.bestHold!==null&&l.bestHold<.18)first+=` The strongest hold — ${l.bestHold<0?Math.round(Math.abs(l.bestHold)*100)+'% growth':Math.round(l.bestHold*100)+'% down'} — turned staying power into part of the film's identity.`;
  return first;
@@ -5056,6 +5208,16 @@ function filmWrapPreferredJournalist(defaultId){
  return rows[0].score>=7?rows[0].id:defaultId;
 }
 
+function filmWrapVoicePolish(id,f,l,quote){
+ const banks={
+  'daniel-mercer':l.outcomeClass==='bad'?[`Hits make everyone a philosopher; misses make them accountants.`,`The most expensive word in Hollywood is “almost.” The ledger does not recognise it.`]:[`A hit can make any strategy look inevitable after the fact.`,`Nobody banks identity, but a recognisable hit makes the next cheque easier to explain.`],
+  'ruth-bell':[`A percentage is a useful summary and a terrible memory.`,`Awards campaigns love consensus. Interesting films are not always so cooperative.`],
+  'imani-kerr':[`Agents do not frame grosses on the wall. They frame leverage.`,`The useful career question is not who got praised. It is who gets to say no more often now.`],
+  'mara-vance':[`Studios love calling every release a chapter. Most are footnotes. This one at least changes the next sentence.`,`The Lot has a short memory for slogans and a long one for patterns.`]
+ };
+ const opener=pressVoicePick(`wrap-voice|${f.id}|${id}|${l.outcomeClass}`,banks[id]||banks['mara-vance']);
+ return opener?`${opener} ${quote}`:quote;
+}
 function filmWrapTradeVerdict(f,l=ensureLegacyState(f)){
  const critics=f.review?.critics||0,audience=f.review?.audience||0,studioIdentity=typeof studioIdentityPrimary==='function'?studioIdentityPrimary():null,filmId=ensureFilmIdentity(f);
  let id='mara-vance';
@@ -5096,6 +5258,7 @@ function filmWrapTradeVerdict(f,l=ensureLegacyState(f)){
  if(pm?.playerMentions>=3&&Math.abs(hash(f.id+'|press-memory|'+id))%3===0){
   quote=variationPick(f,'wrap-memory-prefix-'+id,[`I've covered ${state.studio.name} often enough to know this will not be read in isolation. `,`This studio now has enough history that every result arrives with context. `,`There is a pattern behind this release, and the trade will remember it. `])+quote;
  }
+ quote=filmWrapVoicePolish(id,f,l,quote);
  return {journalist:j||{name:'Mara Vance',publication:'Screen Trade',beat:'Studios & strategy',tone:'Trade analyst'},quote};
 }
 
@@ -8901,7 +9064,7 @@ function newsArticleScreen(id){
  const n=state.news.find(x=>x.id===id);if(!n)return industryScreen();
  return topbar(n.publication||newsKindLabel(n.kind),`${newsKindLabel(n.kind)} · Week ${n.week}`)+`<main class="screen articlepage"><button class="back articleback" id="backBtn">← Back to news</button>
  <article class="newsarticle"><div class="newsmast"><div class="news-mast-brand">${pressLogoHTML(n.publication||'Screen Trade','lg',true)}</div><div class="newstimestamp">${n.day&&typeof calendarDateLabel==='function'?calendarDateLabel(n.day):'Week '+n.week}</div></div>
- <div class="newssection">${newsKindLabel(n.kind)}</div><h1 class="newsheadline">${n.headline}</h1>${n.deck?`<div class="newsdeck">${n.deck}</div>`:''}<div class="newsbyline">By ${n.byline||'Trade desk'}</div>${journalistProfileCard(n)}
+ <div class="newssection">${newsKindLabel(n.kind)}</div><h1 class="newsheadline">${n.headline}</h1>${n.deck?`<div class="newsdeck">${n.deck}</div>`:''}<div class="newsbyline">By ${n.byline||'Trade desk'}</div>${n.voiceLabel?`<div class="small" style="margin:-3px 0 11px">${n.voiceLabel}</div>`:''}${journalistProfileCard(n)}
  <div class="articlebody">${(n.body||[n.text]).map(p=>`<p>${p}</p>`).join('')}</div></article>
  </main>${nav()}`;
 }
@@ -9017,24 +9180,27 @@ function addSocialFeed(f,text,tone='neutral'){
  p.feed=p.feed||[];p.feed.unshift({week:state.week,day:typeof currentCalendarDay==='function'?currentCalendarDay():null,text,tone});p.feed=p.feed.slice(0,6);
 }
 function organicSocialSignal(f,p,r){
- if(r()>.36)return;
- const actors=(f.cast||[]).map(talentById).filter(Boolean),face=actors.sort((a,b)=>(b.star||0)-(a.star||0))[0];
+ if(r()>.40)return;
+ const actors=(f.cast||[]).map(talentById).filter(Boolean),face=actors.sort((a,b)=>(b.star||0)-(a.star||0))[0],topic=(p.topics||[])[0];
  const positive=p.sentiment>=65,heated=p.controversy>=28,highFan=p.fandom>=62;
  const bank=heated?[
-  `The loudest posts about ${f.title} are arguing with each other more than discussing the actual film.`,
-  `Quote-posts around ${f.title} are travelling faster than the original campaign material.`,
-  `A debate around ${f.title} has escaped film accounts and reached general-interest feeds.`
+  `I opened the replies to see what people thought about ${f.title}. Mistake.`,
+  `At this point the argument around ${f.title} is bigger than the clip everyone is arguing about.`,
+  `${topic?`People are fighting about #${topic}. `:''}I am increasingly unsure anyone remembers how this started.`,
+  `Every post about ${f.title} now comes with a second, angrier post explaining why the first post is wrong.`
  ]:positive?[
-  `${face?face.name+' clips':'Clips from '+f.title} are being reposted with noticeably warmer comments than the paid ads.`,
-  `Fan edits are giving ${f.title} a second stream of organic reach this week.`,
-  `Recommendation posts for ${f.title} are outperforming generic awareness posts.`,
-  `A small cluster of creators is treating ${f.title} as something worth discovering rather than just another release.`
+  `${face?`${face.name} is ridiculously watchable in this.`:`Okay, ${f.title} has me.`}`,
+  `I keep seeing people say “just go see ${f.title}” and, annoyingly, it is working on me.`,
+  `The fan edits have officially become better marketing than the marketing.`,
+  `${topic?`#${topic} is the bit people keep coming back to, and I get it.`:`Recommendation posts for ${f.title} are starting to feel genuinely organic.`}`
  ]:highFan?[
-  `The audience around ${f.title} is not huge, but the same accounts keep returning to it.`,
-  `A small fan community is producing more of the conversation than the campaign itself.`
+  `There may only be twelve of us talking about ${f.title}, but apparently none of us sleep.`,
+  `${f.title} has entered the “small audience, alarming commitment” phase.`,
+  `The same accounts keep posting about ${f.title}. I respect the stamina.`
  ]:[
-  `Most ${f.title} chatter is still reacting to official material rather than creating its own momentum.`,
-  `Conversation around ${f.title} is broad but shallow this week.`
+  `I have now seen ${f.title} everywhere and still could not tell you what it actually feels like.`,
+  `People know the title. I am not convinced they know why they care yet.`,
+  `${f.title} chatter currently has strong “yes, that is indeed a movie” energy.`
  ];
  addSocialFeed(f,pick(r,bank),heated?'warn':positive?'good':'neutral');
 }
@@ -9072,7 +9238,8 @@ function updateSocialPulseWeek(){
  state.pulse.lastWeek=state.week;state.pulse.history.unshift({week:state.week,rows});state.pulse.history=state.pulse.history.slice(0,26);
 }
 function pushDeskItem(x){
- const d=ensureDesk(),id=d.nextId++;const item={id,week:state.week,day:typeof currentCalendarDay==='function'?currentCalendarDay():null,read:false,expanded:true,resolved:false,archived:false,urgency:'normal',type:'industry',source:'The Lot',choices:[],...x};
+ const d=ensureDesk(),id=d.nextId++;let item={id,week:state.week,day:typeof currentCalendarDay==='function'?currentCalendarDay():null,read:false,expanded:true,resolved:false,archived:false,urgency:'normal',type:'industry',source:'The Lot',choices:[],...x};
+ item=lotDeskVoice(item);
  d.items.unshift(item);d.items=d.items.slice(0,90);
  if(item.requiresAction&&typeof notify==='function'){
   const deadline=item.expiresWeek?` Respond before the end of Week ${item.expiresWeek}.`:'';
@@ -10569,6 +10736,13 @@ function projectSlateSmokeChecks(){
  try{const rv=(state.rivals||[])[0];if(rv){const x=rivalrySnapshot(rv);if(!x.label||!Array.isArray(x.events))failures.push('rivalry snapshot invalid')}if(!nav.toString().includes('globalBackToTop'))failures.push('global back-to-top missing')}catch(e){failures.push('v3.13 systems smoke failed')}
  try{const f=(state.films||[]).find(x=>x.owner==='player');if(f){const id=ensureFilmIdentity(f);if(!id?.archetype||!id?.texture)failures.push('film identity invalid')}if(makeReview.toString().includes('Strong moments, mixed results'))failures.push('legacy repetitive review generator active');if(soundtrackOffers.toString().indexOf('usedTracks')<0)failures.push('music freshness missing')}catch(e){failures.push('v3.14 variation smoke failed')}
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
+ try{
+  if(!buildNewsItem.toString().includes('voicePressStory'))failures.push('press voice pass missing');
+  if(!queueStudioMoment.toString().includes('campaignSocialChatter'))failures.push('campaign social voice missing');
+  if(!organicSocialSignal.toString().includes('alarming commitment'))failures.push('Pulse voice bank missing');
+  if(!pushDeskItem.toString().includes('lotDeskVoice'))failures.push('Desk voice pass missing');
+  if(!filmWrapTradeVerdict.toString().includes('filmWrapVoicePolish'))failures.push('Wrap voice pass missing');
+ }catch(e){failures.push('v3.14.3 voice smoke failed')}
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
   const unique=new Set(probe.scripts.map(x=>x.title.toLowerCase())).size,quantified=probe.scripts.filter(x=>/^(No One|Nobody|Someone|Everyone)\b/i.test(x.title)).length;
