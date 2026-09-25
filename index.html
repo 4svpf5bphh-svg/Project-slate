@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0a.2</title>
+<title>Project Slate — Premium Presentation v4.0a.3</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0a.2';
+const VERSION='4.0a.3';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -681,6 +681,7 @@ const titleA=['Silent','Broken','Golden','Last','Black','Neon','Cold','Burning',
 const titleB=['Sky','Witness','Road','House','Harvest','Kingdom','Signal','Empire','Summer','Orbit','Crown','Water','City','Night'];
 
 let state;
+let simulationBenchmarkActive=false;
 
 
 // PRIVATE PLAYTEST ROSTER.
@@ -2862,8 +2863,8 @@ function generateBoxOfficeWeekPress(){
 
 // v4.0a — Simulation Audit. Observational only: no function in this block changes game outcomes.
 function ensureSimulationAudit(st=state){
- const a=st.simulationAudit||(st.simulationAudit={schema:1,enabled:true,firstWeek:null,lastWeek:0,weekly:[],quarterly:[],flags:[],captures:0});
- a.schema=1;a.enabled=a.enabled!==false;a.weekly=Array.isArray(a.weekly)?a.weekly:[];a.quarterly=Array.isArray(a.quarterly)?a.quarterly:[];a.flags=Array.isArray(a.flags)?a.flags:[];a.captures=a.captures||0;return a;
+ const a=st.simulationAudit||(st.simulationAudit={schema:2,enabled:true,firstWeek:null,lastWeek:0,weekly:[],quarterly:[],flags:[],captures:0,benchmarks:[]});
+ a.schema=2;a.enabled=a.enabled!==false;a.weekly=Array.isArray(a.weekly)?a.weekly:[];a.quarterly=Array.isArray(a.quarterly)?a.quarterly:[];a.flags=Array.isArray(a.flags)?a.flags:[];a.benchmarks=Array.isArray(a.benchmarks)?a.benchmarks:[];a.captures=a.captures||0;return a;
 }
 function auditRound(v,d=2){if(!Number.isFinite(v))return null;const p=10**d;return Math.round(v*p)/p}
 function auditQuantile(values,q=.5){
@@ -2875,11 +2876,40 @@ function auditFilmProfit(f){
  if(Number.isFinite(f.finalGross)&&Number.isFinite(f.investment))return f.finalGross*.43-f.investment;return 0;
 }
 function auditCompletedFilms(st=state,owner=null){return (st.films||[]).filter(f=>f.stage==='complete'&&(owner===null||f.owner===owner))}
+function auditReleaseProbability(f){
+ const p=f?.releaseProfile||{},b=clamp(Number.isFinite(p.bombChance)?p.bombChance:.055,0,.45),br=clamp(Number.isFinite(p.breakoutChance)?p.breakoutChance:.015,0,.35),survive=Math.max(0,1-b-br),aud=f?.review?.audience??65;
+ const sleeper=aud>=84?survive*.11:0,frontloaded=aud<60?survive*.25:0;return {bomb:b,breakout:br,sleeper,frontloaded,nonStandard:clamp(b+br+sleeper+frontloaded,0,1)};
+}
+function auditPoissonBinomialLowerTail(probabilities,observed){
+ const ps=(probabilities||[]).filter(Number.isFinite).map(x=>clamp(x,0,1));if(!ps.length)return 1;const dp=Array(ps.length+1).fill(0);dp[0]=1;
+ ps.forEach(p=>{for(let k=ps.length;k>=0;k--){const stay=dp[k]*(1-p),rise=k?dp[k-1]*p:0;dp[k]=stay+rise}});
+ let sum=0;for(let k=0;k<=Math.min(observed,ps.length);k++)sum+=dp[k];return clamp(sum,0,1);
+}
+function simulationAuditReleaseVariance(st=state){
+ const films=(st.films||[]).filter(f=>f.stage==='complete'&&f.releaseProfile),probs=films.map(f=>auditReleaseProbability(f).nonStandard),observed=films.filter(f=>(f.releaseProfile?.type||'standard')!=='standard').length;
+ const expected=probs.reduce((a,b)=>a+b,0),lowTail=auditPoissonBinomialLowerTail(probs,observed);return {films:films.length,observedNonStandard:observed,expectedNonStandard:auditRound(expected),lowTailProbability:auditRound(lowTail,4)};
+}
+function simulationAuditFilmLedger(st=state){
+ const talent=new Map((st.talent||[]).map(t=>[t.id,t]));
+ return (st.films||[]).filter(f=>f.stage==='complete').map(f=>{const sc=(st.scripts||[]).find(x=>x.id===f.scriptId),ai=f.owner!=='player',ids=[f.directorId,...(f.cast||[])].filter(Boolean),currentTalent=ids.reduce((n,id)=>n+(+talent.get(id)?.fee||0),0),legacyFinish=ai&&f.aiFinishingFunded&&!Number.isFinite(f.aiFinishingCost)?+(1.75+(f.budget||0)*.20+(f.marketing||0)*.07).toFixed(2):null,finish=Number.isFinite(f.aiFinishingCost)?f.aiFinishingCost:legacyFinish,prob=auditReleaseProbability(f);
+  return {id:f.id,title:f.title,owner:f.owner,studio:f.studio,genre:f.genre,scriptSource:sc?.source||null,turnaround:!!sc?.turnaround||sc?.source==='Turnaround',budget:auditRound(f.budget||0),naturalBudget:auditRound(sc?.naturalBudget||0),marketing:auditRound(f.marketing||0),scriptCost:auditRound(f.scriptCost||0),talentMarketValue:auditRound(f.aiTalentMarketValue??currentTalent),finishingCost:auditRound(finish),finishModel:f.aiFinishModel||(legacyFinish!==null?'legacy-ai-surcharge':ai?'unknown':'player'),releaseOps:auditRound(f.releaseOps||0),publicity:auditRound(f.aiPublicity||0),investment:auditRound(f.investment||0),gross:auditRound(f.finalGross||0),studioRevenue:auditRound(f.studioRevenue||0),profit:auditRound(auditFilmProfit(f)),grossToInvestment:auditRound((f.investment||0)>0?(f.finalGross||0)/f.investment:null),distribution:f.distributionDeal?.id||f.distributionStrategy||null,critics:f.review?.critics??null,audience:f.review?.audience??null,releaseProfile:f.releaseProfile?.type||'standard',expectedNonStandard:auditRound(prob.nonStandard,4),completeWeek:f.completeWeek||null};
+ });
+}
+function simulationAuditScreenplayLedger(st=state){
+ const scripts=new Map((st.scripts||[]).map(x=>[x.id,x])),deals=(st.screenplayEconomy?.history||[]).map(h=>{const sc=scripts.get(h.scriptId);return {...h,naturalBudget:auditRound(sc?.naturalBudget||0),source:sc?.source||null,turnaround:!!h.turnaround||!!sc?.turnaround||sc?.source==='Turnaround'}});
+ const stats=rows=>{const prices=rows.map(x=>+x.price||0),budgets=rows.map(x=>+x.naturalBudget||0),ratios=rows.map(x=>x.naturalBudget>0?x.price/x.naturalBudget:null).filter(Number.isFinite);return {deals:rows.length,priceMedian:auditRound(auditQuantile(prices,.5)),budgetMedian:auditRound(auditQuantile(budgets,.5)),priceToBudgetMedian:auditRound(auditQuantile(ratios,.5),4)};};
+ const turnaround=deals.filter(x=>x.turnaround),standard=deals.filter(x=>!x.turnaround);return {deals:deals.slice(0,80),turnaround:stats(turnaround),standard:stats(standard)};
+}
+function simulationAuditAISummary(ledger){
+ const rows=(ledger||[]).filter(x=>x.owner!=='player'),profits=rows.map(x=>x.profit).filter(Number.isFinite),investments=rows.map(x=>x.investment).filter(Number.isFinite),grosses=rows.map(x=>x.gross).filter(Number.isFinite),finishes=rows.map(x=>x.finishingCost).filter(Number.isFinite),talent=rows.map(x=>x.talentMarketValue).filter(Number.isFinite);
+ return {completed:rows.length,totalProfit:auditRound(profits.reduce((a,b)=>a+b,0)),avgProfit:auditRound(profits.length?profits.reduce((a,b)=>a+b,0)/profits.length:null),medianProfit:auditRound(auditQuantile(profits,.5)),profitable:profits.filter(x=>x>.5).length,profitableRate:auditRound(profits.length?profits.filter(x=>x>.5).length/profits.length:null,4),avgInvestment:auditRound(investments.length?investments.reduce((a,b)=>a+b,0)/investments.length:null),avgGross:auditRound(grosses.length?grosses.reduce((a,b)=>a+b,0)/grosses.length:null),avgFinishingCost:auditRound(finishes.length?finishes.reduce((a,b)=>a+b,0)/finishes.length:null),avgTalentMarketValue:auditRound(talent.length?talent.reduce((a,b)=>a+b,0)/talent.length:null),legacyFinishFilms:rows.filter(x=>x.finishModel==='legacy-ai-surcharge').length,parityFinishFilms:rows.filter(x=>x.finishModel==='parity-v4003').length};
+}
 function simulationAuditSnapshot(st=state,compact=false){
  const pf=(st.films||[]).filter(f=>f.owner==='player'),done=pf.filter(f=>f.stage==='complete'),active=pf.filter(f=>!['complete','shelved'].includes(f.stage)),allDone=(st.films||[]).filter(f=>f.stage==='complete');
  const filmProfits=done.map(auditFilmProfit),grosses=done.map(f=>f.finalGross||0),budgets=done.map(f=>f.budget||0),marketing=done.map(f=>f.marketing||0),critics=done.map(f=>f.review?.critics).filter(Number.isFinite),audiences=done.map(f=>f.review?.audience).filter(Number.isFinite);
  const actors=(st.talent||[]).filter(t=>t.type==='Actor'&&!t.retired),directors=(st.talent||[]).filter(t=>t.type==='Director'&&!t.retired),actorFees=actors.map(t=>+t.fee||0),directorFees=directors.map(t=>+t.fee||0);
- const marketScripts=(st.market||[]).map(id=>(st.scripts||[]).find(s=>s.id===id)).filter(s=>s&&s.available!==false),scriptPrices=marketScripts.map(s=>+s.price||0),naturalBudgets=marketScripts.map(s=>+s.naturalBudget||0);
+ const marketScripts=(st.market||[]).map(id=>(st.scripts||[]).find(s=>s.id===id)).filter(s=>s&&s.available!==false),scriptPrices=marketScripts.map(s=>+s.price||0),naturalBudgets=marketScripts.map(s=>+s.naturalBudget||0),scriptLedger=simulationAuditScreenplayLedger(st);
+ const ledger=simulationAuditFilmLedger(st),aiEconomy=simulationAuditAISummary(ledger),releaseVariance=simulationAuditReleaseVariance(st);
  const rivals=(st.rivals||[]).map(rv=>{const films=(st.films||[]).filter(f=>f.owner===rv.id&&f.stage==='complete'),pnl=films.reduce((n,f)=>n+auditFilmProfit(f),0);return {id:rv.id,name:rv.name,cash:auditRound(rv.cash||0),debt:auditRound(rv.debt||0),pnl:auditRound(pnl),completed:films.length,restructures:rv.restructures||0,status:typeof aiFinancialHealth==='function'?aiFinancialHealth(rv):'Unknown',recognition:auditRound(rv.recognition??rv.reputation??0)};});
  const distressed=rivals.filter(r=>/distress|strained/i.test(r.status)).length,rivalCash=rivals.map(r=>r.cash).filter(Number.isFinite),rivalPnl=rivals.map(r=>r.pnl).filter(Number.isFinite);
  const profiles={standard:0,bomb:0,breakout:0,sleeper:0,frontloaded:0,other:0};allDone.forEach(f=>{const k=f.releaseProfile?.type||'standard';profiles[k]===undefined?profiles.other++:profiles[k]++});
@@ -2887,23 +2917,25 @@ function simulationAuditSnapshot(st=state,compact=false){
  let rank=null;try{rank=st.studio&&typeof playerStudioStanding==='function'?playerStudioStanding().rank:null}catch(e){}
  const player={cash:auditRound(st.cash||0),debt:auditRound(st.finance?.bridgeDebt||0),interest:auditRound(st.finance?.totalInterest||0),overhead:auditRound(overhead,3),catalogue:auditRound(catalogue,3),runwayWeeks:Number.isFinite(runway?.weeks)?auditRound(runway.weeks):null,active:active.length,completed:done.length,gross:auditRound(grosses.reduce((a,b)=>a+b,0)),profit:auditRound(filmProfits.reduce((a,b)=>a+b,0)),profitable:filmProfits.filter(x=>x>.5).length,losses:filmProfits.filter(x=>x<-.5).length,avgBudget:auditRound(done.length?budgets.reduce((a,b)=>a+b,0)/done.length:0),avgMarketing:auditRound(done.length?marketing.reduce((a,b)=>a+b,0)/done.length:0),avgCritics:auditRound(critics.length?critics.reduce((a,b)=>a+b,0)/critics.length:null),avgAudience:auditRound(audiences.length?audiences.reduce((a,b)=>a+b,0)/audiences.length:null),recognition:auditRound(st.studioGrowth?.recognition||0),fans:auditRound(st.studioGrowth?.fans||0),rank};
  const talent={actors:actors.length,directors:directors.length,retired:(st.talent||[]).filter(t=>t.retired).length,actorFeeP10:auditRound(auditQuantile(actorFees,.1)),actorFeeMedian:auditRound(auditQuantile(actorFees,.5)),actorFeeP90:auditRound(auditQuantile(actorFees,.9)),actorFeeMax:auditRound(actorFees.length?Math.max(...actorFees):null),actorsUnder1_5:actors.filter(t=>(+t.fee||0)<=1.5).length,actorsUnder3:actors.filter(t=>(+t.fee||0)<=3).length,directorFeeMedian:auditRound(auditQuantile(directorFees,.5))};
- const scripts={market:marketScripts.length,priceMedian:auditRound(auditQuantile(scriptPrices,.5)),priceP90:auditRound(auditQuantile(scriptPrices,.9)),naturalBudgetMedian:auditRound(auditQuantile(naturalBudgets,.5)),turnarounds:st.screenplayEconomy?.turnarounds||0};
+ const scripts={market:marketScripts.length,priceMedian:auditRound(auditQuantile(scriptPrices,.5)),priceP90:auditRound(auditQuantile(scriptPrices,.9)),naturalBudgetMedian:auditRound(auditQuantile(naturalBudgets,.5)),turnarounds:st.screenplayEconomy?.turnarounds||0,turnaroundDeals:scriptLedger.turnaround.deals,turnaroundPriceMedian:scriptLedger.turnaround.priceMedian,turnaroundBudgetMedian:scriptLedger.turnaround.budgetMedian,turnaroundPriceToBudgetMedian:scriptLedger.turnaround.priceToBudgetMedian,standardDeals:scriptLedger.standard.deals,standardPriceMedian:scriptLedger.standard.priceMedian,standardBudgetMedian:scriptLedger.standard.budgetMedian,standardPriceToBudgetMedian:scriptLedger.standard.priceToBudgetMedian};
  const rivalSummary={count:rivals.length,distressed,medianCash:auditRound(auditQuantile(rivalCash,.5)),medianPnl:auditRound(auditQuantile(rivalPnl,.5)),restructures:rivals.reduce((a,r)=>a+r.restructures,0)};
- const base={week:st.week,year:Math.ceil((st.week||1)/52),day:st.calendarDay||null,player,rivalSummary,talent,scripts,releases:profiles};
+ const base={week:st.week,year:Math.ceil((st.week||1)/52),day:st.calendarDay||null,player,rivalSummary,aiEconomy,talent,scripts,releases:profiles,releaseVariance};
  if(compact)return base;
- return {...base,rivals,career:{allCompleted:allDone.length,marketGross:auditRound(allDone.reduce((a,f)=>a+(f.finalGross||0),0)),marketProfit:auditRound(allDone.reduce((a,f)=>a+auditFilmProfit(f),0)),playerBudgetP10:auditRound(auditQuantile(budgets,.1)),playerBudgetP90:auditRound(auditQuantile(budgets,.9)),playerProfitMedian:auditRound(auditQuantile(filmProfits,.5))}};
+ return {...base,rivals,filmLedger:ledger,screenplayLedger:scriptLedger,career:{allCompleted:allDone.length,marketGross:auditRound(allDone.reduce((a,f)=>a+(f.finalGross||0),0)),marketProfit:auditRound(allDone.reduce((a,f)=>a+auditFilmProfit(f),0)),playerBudgetP10:auditRound(auditQuantile(budgets,.1)),playerBudgetP90:auditRound(auditQuantile(budgets,.9)),playerProfitMedian:auditRound(auditQuantile(filmProfits,.5))}};
 }
 function simulationAuditEvaluate(st=state,snapshot=simulationAuditSnapshot(st,false)){
  const flags=[],add=(key,severity,label,detail)=>flags.push({key,severity,label,detail});
- const p=snapshot.player,t=snapshot.talent,rs=snapshot.rivalSummary,rel=snapshot.releases,totalReleases=Object.values(rel).reduce((a,b)=>a+b,0);
+ const p=snapshot.player,t=snapshot.talent,rs=snapshot.rivalSummary,rel=snapshot.releases,totalReleases=Object.values(rel).reduce((a,b)=>a+b,0),ai=snapshot.aiEconomy||{},variance=snapshot.releaseVariance||{};
  if(p.debt>=80)add('player-debt-high','warn','Bridge debt is becoming structural',`${money(p.debt)} outstanding by Year ${snapshot.year}.`);
  if(p.runwayWeeks!==null&&p.runwayWeeks<1.25)add('player-runway-critical','bad','Player cash runway is under 1.25 weeks',`Current recurring burn leaves about ${p.runwayWeeks} weeks of cash.`);
  if(t.actors>=10&&t.actorsUnder3<4)add('cheap-actor-scarcity','warn','Low-cost actor market is thin',`Only ${t.actorsUnder3} active actors are asking $3m or less.`);
  if(t.actorFeeMedian!==null&&t.actorFeeMedian>8)add('actor-fee-inflation','warn','Actor fee median looks inflated',`Median active actor asking price is ${money(t.actorFeeMedian)}.`);
  if(snapshot.rivals.length>=3){const eligible=snapshot.rivals.filter(r=>r.completed>=3);if(eligible.length>=3&&eligible.every(r=>r.pnl>8))add('rivals-uniformly-profitable','warn','AI studio profits are unusually uniform',`${eligible.length} established rivals are all more than $8m profitable.`)}
+ if(ai.completed>=12&&ai.avgProfit!==null&&ai.avgProfit<-5&&(ai.profitableRate??1)<.30)add('ai-economy-loss-skew','bad','AI film economics are structurally loss-skewed',`${ai.completed} completed rival films average ${money(ai.avgProfit)} P&L with only ${Math.round((ai.profitableRate||0)*100)}% recording a profit.`);
  if(rs.count&&rs.distressed>=Math.ceil(rs.count*.6))add('rival-distress-cluster','bad','Most rival studios are financially strained',`${rs.distressed} of ${rs.count} rivals are currently strained or distressed.`);
- if(totalReleases>=20){const standard=(rel.standard||0)/totalReleases,bombs=(rel.bomb||0)/totalReleases,breakouts=(rel.breakout||0)/totalReleases;if(standard>.86)add('release-variance-low','warn','Release outcomes are clustering too tightly',`${Math.round(standard*100)}% of completed releases are standard outcomes.`);if(bombs>.30)add('bomb-rate-high','warn','Bomb rate is unusually high',`${Math.round(bombs*100)}% of completed releases are bombs.`);if(breakouts>.20)add('breakout-rate-high','warn','Breakout rate is unusually high',`${Math.round(breakouts*100)}% of completed releases are breakouts.`)}
+ if(totalReleases>=20){const bombs=(rel.bomb||0)/totalReleases,breakouts=(rel.breakout||0)/totalReleases;if((variance.expectedNonStandard||0)>=2&&variance.observedNonStandard<=Math.floor(variance.expectedNonStandard*.45)&&(variance.lowTailProbability??1)<.08)add('release-variance-low','warn','Release outcomes are clustering more tightly than this portfolio predicts',`${variance.observedNonStandard} non-standard outcomes occurred versus ${variance.expectedNonStandard} expected; lower-tail probability ${Math.round((variance.lowTailProbability||0)*100)}%.`);if(bombs>.30)add('bomb-rate-high','warn','Bomb rate is unusually high',`${Math.round(bombs*100)}% of completed releases are bombs.`);if(breakouts>.20)add('breakout-rate-high','warn','Breakout rate is unusually high',`${Math.round(breakouts*100)}% of completed releases are breakouts.`)}
  if(snapshot.scripts.market>=5&&snapshot.scripts.priceMedian!==null&&snapshot.scripts.naturalBudgetMedian!==null&&snapshot.scripts.priceMedian>snapshot.scripts.naturalBudgetMedian*.28)add('script-price-pressure','warn','Script acquisition prices are eating heavily into production scale',`Median market price ${money(snapshot.scripts.priceMedian)} vs median natural production budget ${money(snapshot.scripts.naturalBudgetMedian)}.`);
+ if(snapshot.scripts.turnaroundDeals>=3&&snapshot.scripts.turnaroundPriceToBudgetMedian!==null&&snapshot.scripts.standardPriceToBudgetMedian!==null&&snapshot.scripts.turnaroundPriceToBudgetMedian>snapshot.scripts.standardPriceToBudgetMedian*1.65)add('turnaround-price-premium','warn','Turnaround rights carry a large relative premium',`Median turnaround rights equal ${Math.round(snapshot.scripts.turnaroundPriceToBudgetMedian*100)}% of natural budget versus ${Math.round(snapshot.scripts.standardPriceToBudgetMedian*100)}% for standard deals.`);
  return flags;
 }
 function recordSimulationAudit(reason='weekly',st=state){
@@ -2914,7 +2946,30 @@ function recordSimulationAudit(reason='weekly',st=state){
  return snap;
 }
 function simulationAuditReport(st=state){
- const a=ensureSimulationAudit(st),current=simulationAuditSnapshot(st,false),flags=simulationAuditEvaluate(st,current);return {build:VERSION,auditSchema:a.schema,seed:st.seed,difficulty:st.difficulty,week:st.week,year:current.year,current,flags,history:{firstWeek:a.firstWeek,lastWeek:a.lastWeek,weeklySamples:a.weekly.length,quarterlySamples:a.quarterly.length,captures:a.captures,recentQuarterly:a.quarterly.slice(-12),flagHistory:a.flags.slice(0,30)}};
+ const a=ensureSimulationAudit(st),current=simulationAuditSnapshot(st,false),flags=simulationAuditEvaluate(st,current),first=a.quarterly[0]||null;
+ const trends={actorFeeMedianChange:first?.talent?.actorFeeMedian&&current.talent.actorFeeMedian!==null?auditRound(current.talent.actorFeeMedian-first.talent.actorFeeMedian):null,actorsUnder3Change:first?.talent?.actorsUnder3!==undefined?current.talent.actorsUnder3-first.talent.actorsUnder3:null};
+ return {build:VERSION,auditSchema:a.schema,seed:st.seed,difficulty:st.difficulty,week:st.week,year:current.year,current,trends,flags,latestBenchmark:a.benchmarks[0]||null,history:{firstWeek:a.firstWeek,lastWeek:a.lastWeek,weeklySamples:a.weekly.length,quarterlySamples:a.quarterly.length,captures:a.captures,recentQuarterly:a.quarterly.slice(-12),flagHistory:a.flags.slice(0,30),benchmarks:a.benchmarks.slice(0,3)}};
+}
+function simulationBenchmarkIndustrySnapshot(st=state){
+ const ledger=simulationAuditFilmLedger(st).filter(x=>x.owner!=='player'),profits=ledger.map(x=>x.profit).filter(Number.isFinite),invest=ledger.map(x=>x.investment).filter(Number.isFinite),gross=ledger.map(x=>x.gross).filter(Number.isFinite),profiles={standard:0,bomb:0,breakout:0,sleeper:0,frontloaded:0,other:0};ledger.forEach(x=>profiles[x.releaseProfile]===undefined?profiles.other++:profiles[x.releaseProfile]++);
+ const actors=(st.talent||[]).filter(t=>t.type==='Actor'&&!t.retired),fees=actors.map(t=>+t.fee||0),rivals=(st.rivals||[]).map(rv=>({status:aiFinancialHealth(rv),cash:rv.cash||0,debt:rv.debt||0,restructures:rv.restructures||0}));
+ return {week:st.week,year:Math.ceil(st.week/52),films:ledger.length,totalProfit:auditRound(profits.reduce((a,b)=>a+b,0)),avgProfit:auditRound(profits.length?profits.reduce((a,b)=>a+b,0)/profits.length:null),profitable:profits.filter(x=>x>.5).length,profitableRate:auditRound(profits.length?profits.filter(x=>x>.5).length/profits.length:null,4),avgInvestment:auditRound(invest.length?invest.reduce((a,b)=>a+b,0)/invest.length:null),avgGross:auditRound(gross.length?gross.reduce((a,b)=>a+b,0)/gross.length:null),profiles,distressed:rivals.filter(r=>/distress|pressure/i.test(r.status)).length,medianCash:auditRound(auditQuantile(rivals.map(r=>r.cash),.5)),medianDebt:auditRound(auditQuantile(rivals.map(r=>r.debt),.5)),restructures:rivals.reduce((a,r)=>a+r.restructures,0),actorFeeMedian:auditRound(auditQuantile(fees,.5)),actorsUnder3:actors.filter(t=>(+t.fee||0)<=3).length};
+}
+function simulationBenchmarkOne(years=5,seed=40031){
+ const bench=initialState();bench.seed=hash(`audit-benchmark-v4003|${seed}`);bench.studio={name:'Audit Lab',brand:normalizeBrand({theme:'violet',mark:'aperture',wordmark:'modern'},'Audit Lab')};bench.careerStarted=true;bench.cash=1000;bench.screen='studio';bench.difficulty='normal';bench.simulationAudit={schema:2,enabled:false,firstWeek:null,lastWeek:0,weekly:[],quarterly:[],flags:[],captures:0,benchmarks:[]};
+ state=bench;state.talent.forEach(ensureTalentMarketEconomy);aiStartProjects();const yearly=[],endDay=Math.max(364,Math.floor(years)*364);
+ for(let day=2;day<=endDay;day++){state.calendarDay=day;const week=calendarWeekForDay(day);state.week=week;if(calendarWeekdayIndex(day)===0&&week>state.lastWeeklyHeartbeatWeek)runWeeklyHeartbeat(week);processReleaseDay(day);if(calendarWeekdayIndex(day)===6){processBoxOfficeSunday(day);if(week%52===0)yearly.push(simulationBenchmarkIndustrySnapshot(state));}}
+ return {seed,years:Math.floor(years),yearly,final:simulationBenchmarkIndustrySnapshot(state)};
+}
+function simulationBenchmarkAggregate(runs){
+ const finals=(runs||[]).map(r=>r.final),films=finals.reduce((a,x)=>a+(x.films||0),0),profit=finals.reduce((a,x)=>a+(x.totalProfit||0),0),profitable=finals.reduce((a,x)=>a+(x.profitable||0),0),profiles={standard:0,bomb:0,breakout:0,sleeper:0,frontloaded:0,other:0};finals.forEach(x=>Object.keys(profiles).forEach(k=>profiles[k]+=x.profiles?.[k]||0));
+ const weighted=(key)=>films?finals.reduce((a,x)=>a+(x[key]||0)*(x.films||0),0)/films:null;return {runs:finals.length,films,totalProfit:auditRound(profit),avgProfit:auditRound(films?profit/films:null),profitableRate:auditRound(films?profitable/films:null,4),avgInvestment:auditRound(weighted('avgInvestment')),avgGross:auditRound(weighted('avgGross')),profiles,standardRate:auditRound(films?(profiles.standard||0)/films:null,4),avgDistressedAtEnd:auditRound(finals.length?finals.reduce((a,x)=>a+(x.distressed||0),0)/finals.length:null),avgMedianCash:auditRound(finals.length?finals.reduce((a,x)=>a+(x.medianCash||0),0)/finals.length:null),avgMedianDebt:auditRound(finals.length?finals.reduce((a,x)=>a+(x.medianDebt||0),0)/finals.length:null),avgActorFeeMedian:auditRound(finals.length?finals.reduce((a,x)=>a+(x.actorFeeMedian||0),0)/finals.length:null),avgActorsUnder3:auditRound(finals.length?finals.reduce((a,x)=>a+(x.actorsUnder3||0),0)/finals.length:null)};
+}
+function runSimulationBenchmarkSuite(){
+ if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0a.3-parity',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
+ const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
 function simulationAuditAccess(){
  try{return new URLSearchParams(location.search).get('audit')==='1'||localStorage.getItem('projectSlateAuditMode')==='1'}catch(e){return false}
@@ -2923,20 +2978,20 @@ function simulationAuditExport(){
  const report=simulationAuditReport(),json=JSON.stringify(report,null,2),blob=new Blob([json],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`project-slate-audit-${VERSION}-week-${state.week}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 function simulationAuditBody(){
- const report=simulationAuditReport(),x=report.current,p=x.player,t=x.talent,scr=x.scripts,rel=x.releases,a=ensureSimulationAudit(),flags=report.flags;
+ const report=simulationAuditReport(),x=report.current,p=x.player,t=x.talent,scr=x.scripts,rel=x.releases,a=ensureSimulationAudit(),flags=report.flags,ai=x.aiEconomy||{},variance=x.releaseVariance||{},bench=report.latestBenchmark?.aggregate;
  const rivalRows=x.rivals.map(r=>`<div class="listrow"><span><strong>${r.name}</strong><br><small>${r.status} · ${r.completed} completed</small></span><strong>${money(r.cash)} cash · ${money(r.debt)} debt · ${r.pnl>=0?'+':''}${money(r.pnl)} P&L</strong></div>`).join('');
  const releaseTotal=Object.values(rel).reduce((n,v)=>n+v,0);
- return `<div class="card"><div class="row"><div><div class="badge">INTERNAL DIAGNOSTICS</div><h2 style="margin:7px 0 3px">Simulation Audit · v4.0a</h2><div class="small">Observation only. These metrics do not alter balance, rolls, AI decisions or career outcomes.</div></div><span class="pill">${a.weekly.length} weekly samples</span></div><div class="row" style="margin-top:12px;gap:8px"><button id="captureSimulationAudit" class="btn">Capture now</button><button id="exportSimulationAudit" class="btn primary">Export JSON</button></div></div>
+ return `<div class="card"><div class="row"><div><div class="badge">INTERNAL DIAGNOSTICS</div><h2 style="margin:7px 0 3px">Simulation Audit · v4.0a</h2><div class="small">The live career is observed without changing outcomes. The benchmark lab below uses a temporary isolated state and restores this career afterwards.</div></div><span class="pill">${a.weekly.length} weekly samples</span></div><div class="row" style="margin-top:12px;gap:8px"><button id="captureSimulationAudit" class="btn">Capture now</button><button id="exportSimulationAudit" class="btn primary">Export JSON</button></div></div>
+ <div class="section-title"><h2>Benchmark lab</h2><span class="small">Real engine · 3 seeds × 5 years · AI industry only</span></div><div class="card"><div class="body">Runs the actual weekly AI finance, production, release and box-office engine in an isolated temporary career. Your current save is restored when the benchmark finishes.</div><button id="runSimulationBenchmark" class="btn primary block" style="margin-top:10px">Run 3 × 5-year benchmark</button>${bench?`<div class="hr"></div><div class="listrow"><span>Completed rival films</span><strong>${bench.films}</strong></div><div class="listrow"><span>Average film P&L</span><strong class="${bench.avgProfit>=0?'goodtext':'badtext'}">${bench.avgProfit>=0?'+':''}${money(bench.avgProfit||0)}</strong></div><div class="listrow"><span>Profitable films</span><strong>${Math.round((bench.profitableRate||0)*100)}%</strong></div><div class="listrow"><span>Standard outcomes</span><strong>${Math.round((bench.standardRate||0)*100)}%</strong></div><div class="listrow"><span>Average distressed rivals at Year 5</span><strong>${bench.avgDistressedAtEnd}</strong></div>`:`<div class="small" style="margin-top:9px">No benchmark has been run on this build yet.</div>`}</div>
  <div class="section-title"><h2>Player economy</h2><span class="small">Career health, not a score</span></div><div class="grid cols4"><div class="card"><div class="badge">Cash</div><div class="kpi">${money(p.cash)}</div></div><div class="card ${p.debt>=80?'dangerline':''}"><div class="badge">Bridge debt</div><div class="kpi">${money(p.debt)}</div></div><div class="card"><div class="badge">Film P&L</div><div class="kpi ${p.profit>=0?'goodtext':'badtext'}">${p.profit>=0?'+':''}${money(p.profit)}</div></div><div class="card"><div class="badge">Runway</div><div class="kpi" style="font-size:18px">${p.runwayWeeks===null?'Self-funding':p.runwayWeeks+' wks'}</div></div></div>
  <div class="card"><div class="listrow"><span>Completed / active films</span><strong>${p.completed} / ${p.active}</strong></div><div class="listrow"><span>Lifetime film gross</span><strong>${money(p.gross)}</strong></div><div class="listrow"><span>Average production budget</span><strong>${money(p.avgBudget)}</strong></div><div class="listrow"><span>Average marketing</span><strong>${money(p.avgMarketing)}</strong></div><div class="listrow"><span>Weekly overhead / catalogue</span><strong>${moneyFine(p.overhead)} / ${moneyFine(p.catalogue)}</strong></div><div class="listrow"><span>Profitable / loss-making films</span><strong>${p.profitable} / ${p.losses}</strong></div></div>
- <div class="section-title"><h2>Rival economy</h2><span class="small">Looking for both runaway success and systemic collapse</span></div><div class="card">${rivalRows||'<div class="body">No rival data.</div>'}</div>
+ <div class="section-title"><h2>Rival economy</h2><span class="small">${ai.completed} completed AI films · average ${ai.avgProfit>=0?'+':''}${money(ai.avgProfit||0)} P&L</span></div><div class="grid cols4"><div class="card"><div class="badge">AI profitable rate</div><div class="kpi">${Math.round((ai.profitableRate||0)*100)}%</div></div><div class="card"><div class="badge">Avg investment</div><div class="kpi" style="font-size:18px">${money(ai.avgInvestment||0)}</div></div><div class="card"><div class="badge">Avg gross</div><div class="kpi" style="font-size:18px">${money(ai.avgGross||0)}</div></div><div class="card"><div class="badge">Legacy finish films</div><div class="kpi">${ai.legacyFinishFilms||0}</div></div></div><div class="card">${rivalRows||'<div class="body">No rival data.</div>'}</div>
  <div class="section-title"><h2>Talent market</h2></div><div class="grid cols4"><div class="card"><div class="badge">Active actors</div><div class="kpi">${t.actors}</div></div><div class="card"><div class="badge">≤ $3m actors</div><div class="kpi">${t.actorsUnder3}</div></div><div class="card"><div class="badge">Median actor fee</div><div class="kpi" style="font-size:18px">${money(t.actorFeeMedian||0)}</div></div><div class="card"><div class="badge">90th percentile</div><div class="kpi" style="font-size:18px">${money(t.actorFeeP90||0)}</div></div></div>
- <div class="section-title"><h2>Release variance</h2><span class="small">${releaseTotal} completed films across the market</span></div><div class="card"><div class="listrow"><span>Standard</span><strong>${rel.standard}</strong></div><div class="listrow"><span>Bombs</span><strong>${rel.bomb}</strong></div><div class="listrow"><span>Breakouts</span><strong>${rel.breakout}</strong></div><div class="listrow"><span>Sleepers</span><strong>${rel.sleeper}</strong></div><div class="listrow"><span>Front-loaded</span><strong>${rel.frontloaded}</strong></div></div>
- <div class="section-title"><h2>Screenplay market</h2></div><div class="card"><div class="listrow"><span>Live market scripts</span><strong>${scr.market}</strong></div><div class="listrow"><span>Median rights price</span><strong>${money(scr.priceMedian||0)}</strong></div><div class="listrow"><span>90th percentile rights price</span><strong>${money(scr.priceP90||0)}</strong></div><div class="listrow"><span>Median natural production budget</span><strong>${money(scr.naturalBudgetMedian||0)}</strong></div><div class="listrow"><span>Turnarounds recorded</span><strong>${scr.turnarounds}</strong></div></div>
+ <div class="section-title"><h2>Release variance</h2><span class="small">${releaseTotal} completed films · ${variance.observedNonStandard||0} non-standard vs ${variance.expectedNonStandard||0} expected</span></div><div class="card"><div class="listrow"><span>Standard</span><strong>${rel.standard}</strong></div><div class="listrow"><span>Bombs</span><strong>${rel.bomb}</strong></div><div class="listrow"><span>Breakouts</span><strong>${rel.breakout}</strong></div><div class="listrow"><span>Sleepers</span><strong>${rel.sleeper}</strong></div><div class="listrow"><span>Front-loaded</span><strong>${rel.frontloaded}</strong></div><div class="listrow"><span>Chance of this few-or-fewer non-standard outcomes</span><strong>${Math.round((variance.lowTailProbability??1)*100)}%</strong></div></div>
+ <div class="section-title"><h2>Screenplay market</h2></div><div class="card"><div class="listrow"><span>Live market scripts</span><strong>${scr.market}</strong></div><div class="listrow"><span>Median rights price</span><strong>${money(scr.priceMedian||0)}</strong></div><div class="listrow"><span>Turnaround deals / median price</span><strong>${scr.turnaroundDeals} / ${scr.turnaroundPriceMedian===null?'—':money(scr.turnaroundPriceMedian)}</strong></div><div class="listrow"><span>Turnaround median natural budget</span><strong>${scr.turnaroundBudgetMedian===null?'—':money(scr.turnaroundBudgetMedian)}</strong></div><div class="listrow"><span>Standard deals / median price</span><strong>${scr.standardDeals} / ${scr.standardPriceMedian===null?'—':money(scr.standardPriceMedian)}</strong></div><div class="listrow"><span>Standard median natural budget</span><strong>${scr.standardBudgetMedian===null?'—':money(scr.standardBudgetMedian)}</strong></div></div>
  <div class="section-title"><h2>Diagnostic flags</h2><span class="small">Thresholds identify places to investigate; they are not automatic balance verdicts.</span></div><div class="grid">${flags.length?flags.map(f=>`<div class="card ${f.severity==='bad'?'dangerline':'attention'}"><div class="badge">${f.severity==='bad'?'HIGH':'WATCH'}</div><strong>${f.label}</strong><div class="small" style="margin-top:6px">${f.detail}</div></div>`).join(''):'<div class="card goodline"><div class="body">No audit thresholds are currently firing.</div></div>'}</div>
- <div class="section-title"><h2>Sampling</h2></div><div class="card"><div class="listrow"><span>Detailed rolling window</span><strong>${a.weekly.length} / 156 weeks</strong></div><div class="listrow"><span>Quarterly career snapshots</span><strong>${a.quarterly.length} / 100</strong></div><div class="listrow"><span>Audit captures</span><strong>${a.captures}</strong></div><div class="small" style="margin-top:8px">Weekly samples intentionally roll off after three years; quarterly snapshots preserve roughly 25 years of long-run history without bloating the save.</div></div>`;
+ <div class="section-title"><h2>Sampling</h2></div><div class="card"><div class="listrow"><span>Detailed rolling window</span><strong>${a.weekly.length} / 156 weeks</strong></div><div class="listrow"><span>Quarterly career snapshots</span><strong>${a.quarterly.length} / 100</strong></div><div class="listrow"><span>Audit captures</span><strong>${a.captures}</strong></div><div class="listrow"><span>Stored benchmarks</span><strong>${a.benchmarks.length} / 5</strong></div><div class="small" style="margin-top:8px">Weekly samples roll off after three years; quarterly snapshots preserve roughly 25 years of long-run history.</div></div>`;
 }
-
 function ensureEconomyState(st=state){
  if(!st.economy)st.economy={lifetimeOverhead:0,lifetimeCatalogue:0,lifetimeAncillary:0,lastWeeklyOverhead:0,lastCatalogueReceipts:0};
  return st.economy;
@@ -3763,7 +3818,7 @@ function migrateState(x){
  const fromVersion=x.version||'legacy';
  x.version=VERSION;
  x.difficulty=x.difficulty||'normal';x.uiDifficultyDraft=x.uiDifficultyDraft||x.difficulty||'normal';x.developmentUnlocks=x.developmentUnlocks||{commissionNotified:false,originalNotified:false};x.screenplayEconomy=x.screenplayEconomy||{history:[],lastWeek:0,turnarounds:0,lastTurnaroundWeek:0};x.challengerState=x.challengerState||{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null};x.industryOpportunities=x.industryOpportunities||{lastOfferWeek:0,history:[],accepted:0};x.emergingTalentState=x.emergingTalentState||{lastIntroductionWeek:0,history:[]};x.corporateState=x.corporateState||{status:'private',founderOwnership:100,investorConfidence:62,ipoDeclinedUntil:0,ipoWeek:null,ipoProceeds:0,lastReviewWeek:0,lastOfferWeek:0,lastFundamental:null,lastMarketCap:null,lastSharePrice:null,history:[],quarterly:[],boardPressure:false};
- x.calendarDay=Number.isFinite(x.calendarDay)?x.calendarDay:Math.max(1,((x.week||1)-1)*7+1);x.lastWeeklyHeartbeatWeek=x.lastWeeklyHeartbeatWeek||x.week||1;x.simulationAudit=x.simulationAudit||{schema:1,enabled:true,firstWeek:null,lastWeek:0,weekly:[],quarterly:[],flags:[],captures:0};
+ x.calendarDay=Number.isFinite(x.calendarDay)?x.calendarDay:Math.max(1,((x.week||1)-1)*7+1);x.lastWeeklyHeartbeatWeek=x.lastWeeklyHeartbeatWeek||x.week||1;x.simulationAudit=x.simulationAudit||{schema:2,enabled:true,firstWeek:null,lastWeek:0,weekly:[],quarterly:[],flags:[],captures:0,benchmarks:[]};x.simulationAudit.benchmarks=Array.isArray(x.simulationAudit.benchmarks)?x.simulationAudit.benchmarks:[];
  x.agencyWindows=x.agencyWindows||{};x.collaborations=x.collaborations||{};x.careerThreads=x.careerThreads||{active:[],history:[],nextId:1,lastUpdatedWeek:0};x.pressMemory=x.pressMemory||{};x.executivePersona=x.executivePersona||{history:[],lastPrimary:null,lastEvaluatedWeek:0};x.industryMood=x.industryMood||{history:[],lastQuarter:0};x.reputation=x.reputation||{};if(x.reputation.press===undefined)x.reputation.press=50;x.fastForward=x.fastForward||{uses:0,lastFromDay:null,lastToDay:null};x.legends=x.legends||{unlocked:{},history:[],pending:[],initialized:false};x.legends.unlocked=x.legends.unlocked||{};x.legends.history=x.legends.history||[];x.legends.pending=x.legends.pending||[];x.activeLegendUnlockId=x.activeLegendUnlockId||null;syncPrivateRealRoster(x);ensureBaseFictionalRoster(x);ensureAudienceMarket(x);x.lastAwardsSeasonResolved=x.lastAwardsSeasonResolved||0;x.portraitCache=x.portraitCache||{};Object.keys(x.portraitCache).forEach(k=>{const v=x.portraitCache[k];if(v==='__none__')delete x.portraitCache[k];else if(typeof v==='string')x.portraitCache[k]=normalizePortraitSource(v)||v});x.talentWatchlist=x.talentWatchlist||[];x.yearbooks=x.yearbooks||[];x.awardsArchive=x.awardsArchive||[];x.awardsNominationsArchive=x.awardsNominationsArchive||[];x.pendingAwardsNominations=x.pendingAwardsNominations||null;x.awardsCeremonyStep=Number.isFinite(x.awardsCeremonyStep)?x.awardsCeremonyStep:0;x.pendingCeremony=x.pendingCeremony||null;x.availabilityWatches=x.availabilityWatches||[];x.studioIdentity=x.studioIdentity||{history:[],lastPrimary:null,lastEvaluatedWeek:0};ensureStudioIdentity(x);x.pendingFilmWraps=x.pendingFilmWraps||[];x.activeFilmWrapId=x.activeFilmWrapId||null;x.uiFilmWrapStep=Number.isFinite(x.uiFilmWrapStep)?clamp(x.uiFilmWrapStep,0,4):0;x.studioMomentQueue=x.studioMomentQueue||[];x.activeStudioMoment=x.activeStudioMoment||null;x.boxOfficeMemory=x.boxOfficeMemory||{leaderId:null,streak:0,lastWeek:0};ensureEconomyState(x);(x.films||[]).forEach(f=>{
   ensureProductionDepth(f);ensureDistributionState(f);
   const fs=(x.scripts||[]).find(s=>s.id===f.scriptId);
@@ -3834,7 +3889,7 @@ function initialState(){
    commission:{genre:'Psychological Horror',audience:'Mainstream Adults',brief:'balanced',scale:'mid',writerId:null},
    search:'',sort:'fit'
   },
-  simulationAudit:{schema:1,enabled:true,firstWeek:null,lastWeek:0,weekly:[],quarterly:[],flags:[],captures:0},
+  simulationAudit:{schema:2,enabled:true,firstWeek:null,lastWeek:0,weekly:[],quarterly:[],flags:[],captures:0,benchmarks:[]},
   productionCapacity:2,lastRotation:1,lastAwardsSeasonResolved:0,careerStarted:false
  };
  buildWorld(st);
@@ -3861,7 +3916,7 @@ function load(){
 state=load();
 // Lifecycle bootstrap that depends on later-declared module constants is deferred
 // until all modules have initialized (see 80_ui_moments_bind_render.js).
-function save(){state.version=VERSION;state.saveSchema=SAVE_SCHEMA_VERSION;localStorage.setItem(KEY,JSON.stringify(state))}
+function save(){if(simulationBenchmarkActive)return;state.version=VERSION;state.saveSchema=SAVE_SCHEMA_VERSION;localStorage.setItem(KEY,JSON.stringify(state))}
 function resetGame(){localStorage.removeItem(KEY);state=initialState();save();render()}
 function addNews(st,text,kind='Industry'){const item=buildNewsItem(st,text,kind);applyJournalistCallback(st,item);recordJournalistCoverage(st,item);st.news.unshift(item);st.news=st.news.slice(0,140);return item}
 function playerFilms(){return state.films.filter(f=>f.owner==='player')}
@@ -7668,7 +7723,7 @@ function aiStartProjects(){
   const f={id:uid('film',state),owner:rv.id,studio:rv.name,title:s.title,genre:s.genre,scriptId:s.id,directorId:d.id,cast:[a1.id,a2.id],ipParentId:s.ipParentFilmId||null,franchiseMode:s.franchiseMode||null,franchiseRootId:s.franchiseRootId||null,sequelInstallment:s.sequelInstallment||null,
    stage:'production',creative,budget,marketing:marketing,campaign:rv.profile.campaign,releaseOps,productionStart:state.week,
    releaseWeek:null,productionEnd:null,aiQuality:0,aiStar:0,aiFit:null,metrics:null,releaseFunded:false,cinemaWeek:0,weeklyPlan:[],weeklyResults:[],
-   studioRevenue:0,investment:productionCommit+sunkRightsCost,review:null,finalGross:0,estimatedProfit:0,scriptCost:scriptCost+sunkRightsCost,aiFinancialFinalized:false};
+   studioRevenue:0,investment:productionCommit+sunkRightsCost,review:null,finalGross:0,estimatedProfit:0,scriptCost:scriptCost+sunkRightsCost,aiTalentMarketValue:+(d.fee+a1.fee+a2.fee).toFixed(2),aiGreenlightCost:productionCommit,aiFinanceModel:'v4.0a.3',aiFinancialFinalized:false};
   f.distributionStrategy=aiDistributionStrategy(rv,f);if(f.distributionStrategy==='partner')f.distributorName=distributionPartnerName(f);
 
   const dFit=directorProjectFit(d,f),aFits=[actorProjectFit(a1,f),actorProjectFit(a2,f)],fitAvg=(dFit+aFits[0]+aFits[1])/3;
@@ -7704,10 +7759,18 @@ function aiStartProjects(){
   addNews(state,`${rv.name} greenlit ${f.title} with ${d.name} directing and ${a1.name} starring.`,'Press Release');
  });
 }
+function aiPublicityCost(f){
+ // Match the scale of equivalent player publicity + launch choices rather than charging an AI-only percentage of production budget.
+ if(f?.campaign==='event')return 1.25;
+ if(f?.campaign==='authentic')return .70;
+ if(f?.campaign==='mystery')return .35;
+ return .55;
+}
+
 function aiFundRelease(f,rv){
  if(f.releaseFunded)return true;
  const p=rv.profile||aiStudioProfile(rv.style),confidence=clamp((f.aiQuality||60)*.58+(f.aiFit?.average||60)*.24+(scriptById(f.scriptId).hook||60)*.18,20,96);
- ensureDistributionState(f);let marketing=f.marketing||0;f.marketing=marketing;let plan=distributionPlan(f,rv),ops=plan.opsCost,publicity=+(.75+f.budget*.05).toFixed(2),total=marketing+ops+publicity;
+ ensureDistributionState(f);let marketing=f.marketing||0;f.marketing=marketing;let plan=distributionPlan(f,rv),ops=plan.opsCost,publicity=aiPublicityCost(f),total=marketing+ops+publicity;
  const reserve=Math.max(4,aiStudioOverhead(rv)*6);
  if(rv.cash-total<reserve){
   const affordable=Math.max(.6,rv.cash-reserve-Math.max(1,f.budget*.045));
@@ -7718,7 +7781,7 @@ function aiFundRelease(f,rv){
   if(confidence>=p.borrowQuality-4&&short<=room){rv.cash+=short;rv.debt+=short*1.12}
  }
  if(rv.cash<total){
-  marketing=.6;f.marketing=marketing;plan=distributionPlan(f,rv);ops=plan.opsCost;publicity=+(.40+f.budget*.03).toFixed(2);total=marketing+ops+publicity;
+  marketing=.6;f.marketing=marketing;plan=distributionPlan(f,rv);ops=plan.opsCost;publicity=+Math.max(.25,aiPublicityCost(f)*.55).toFixed(2);total=marketing+ops+publicity;
  }
  if(rv.cash<total)return false;
  rv.cash-=total;f.marketing=marketing;f.releaseOps=ops;f.distributionDeal={...plan,committedWeek:state.week};f.aiPublicity=publicity;f.investment+=total;f.releaseFunded=true;
@@ -7728,6 +7791,11 @@ function aiFundRelease(f,rv){
  const rr=makeRng(hash(state.seed+'|aireleaseplan|'+f.id));f.releaseWeek=state.week+lead+Math.floor(rr()*3);
  return true;
 }
+function aiFinishingCost(f){
+ // Player picture lock requires music/finishing spend, but not the previous AI-only 20%-of-budget surcharge.
+ return +(.55+Math.min(1.15,(f?.budget||0)*.024)).toFixed(2);
+}
+
 function advanceAI(){
  const r=makeRng(hash(state.seed+'|aitick|'+state.week));
  state.films.filter(f=>f.owner!=='player').forEach(f=>{
@@ -7748,7 +7816,7 @@ function advanceAI(){
     f.aiOverrunFinalized=true;
    }
    if(!f.aiFinishingFunded){
-    const finishCost=+(1.75+f.budget*.20+(f.marketing||0)*.07).toFixed(2);if(rv.cash>=finishCost)rv.cash-=finishCost;else{const short=finishCost-rv.cash;rv.cash=0;rv.debt+=short*1.10}f.investment+=finishCost;f.aiFinishingFunded=true;
+    const finishCost=aiFinishingCost(f);if(rv.cash>=finishCost)rv.cash-=finishCost;else{const short=finishCost-rv.cash;rv.cash=0;rv.debt+=short*1.10}f.investment+=finishCost;f.aiFinishingCost=finishCost;f.aiFinishModel='parity-v4003';f.aiFinishingFunded=true;
    }
    if(f.metrics){
     const swing=(r()-.5)*12;f.metrics.direction=clamp(f.metrics.direction+swing*.35,20,98);f.metrics.performances=clamp(f.metrics.performances+swing*.45,20,98);f.metrics.technical=clamp(f.metrics.technical+swing*.30,20,98);
@@ -7784,7 +7852,7 @@ function releaseAIFilm(f){
  if(f.campaign==='event'&&campaignStrength>.55&&audience<72)audience-=Math.min(11,(72-audience)*.43*campaignStrength);
  awareness+=audienceContext.openingLift+franchiseContext.awarenessLift+distributionAwarenessLift(f);
  const pressure=boxPressureForWeek(f.releaseWeek,f.genre,f.id)*distributionPressureMultiplier(f),ratio=f.budget/s.naturalBudget,scale=.72+Math.sqrt(Math.max(.48,ratio))*.27;
- let opening=clamp((awareness*.34+s.hook*.08+effectiveStar*.028-9.6)*scale*(1-pressure)*distributionOpeningMultiplier(f),.08,88);
+ let opening=clamp((awareness*.34+s.hook*.08+effectiveStar*.028-9.6)*scale*(1-pressure)*(1+releaseWindowOpeningModifier(f))*distributionOpeningMultiplier(f),.08,88);
  const intlMult=f.genre.includes('Action')||f.genre.includes('Science')||f.genre.includes('Fantasy')?1.38:f.genre.includes('Horror')?1.0:f.genre.includes('Family')?1.13:.72;
  const releaseProfile=releaseOutcomeProfile(f,audience,awareness,r);releaseProfile.legsBias+=distributionLegsBias(f);const run=buildTheatricalRun(f,opening,audience,audienceContext,r,intlMult,releaseProfile);
  f.releaseProfile=run.profile;f.weeklyPlan=run.plan;f.review={critics:Math.round(critics),audience:Math.round(audience)};
@@ -10580,6 +10648,7 @@ function bind(){
  const openFinance=document.getElementById('openFinance');if(openFinance)openFinance.onclick=()=>push('studio',{type:'finance'});
  const captureSimulationAudit=document.getElementById('captureSimulationAudit');if(captureSimulationAudit)captureSimulationAudit.onclick=()=>{recordSimulationAudit('manual');save();render()};
  const exportSimulationAudit=document.getElementById('exportSimulationAudit');if(exportSimulationAudit)exportSimulationAudit.onclick=simulationAuditExport;
+ const runSimulationBenchmark=document.getElementById('runSimulationBenchmark');if(runSimulationBenchmark)runSimulationBenchmark.onclick=()=>{runSimulationBenchmark.disabled=true;runSimulationBenchmark.textContent='Running 15 simulated industry-years…';setTimeout(()=>runSimulationBenchmarkSuite(),30)};
  document.querySelectorAll('[data-finance-quote]').forEach(b=>b.onclick=()=>{ensureFinance();state.finance.quote=+b.dataset.financeQuote;save();render()});
  const cancelFinanceQuote=document.getElementById('cancelFinanceQuote');if(cancelFinanceQuote)cancelFinanceQuote.onclick=()=>{state.finance.quote=0;save();render()};
  const confirmFinanceQuote=document.getElementById('confirmFinanceQuote');if(confirmFinanceQuote)confirmFinanceQuote.onclick=()=>{const q=state.finance.quote||0;state.finance.quote=0;if(q)takeBridge(q)};
@@ -10835,6 +10904,10 @@ function projectSlateSmokeChecks(){
   if(recordSimulationAudit.toString().indexOf('slice(-156)')<0)failures.push('audit weekly retention missing');
   if(simulationAuditReport.toString().indexOf('quarterlySamples')<0)failures.push('audit report incomplete');
   if(!window.ProjectSlate?.audit)failures.push('audit API missing');
+  if(typeof runSimulationBenchmarkSuite!=='function'||typeof simulationAuditFilmLedger!=='function')failures.push('benchmark audit functions missing');
+  if(!advanceAI.toString().includes('aiFinishingCost'))failures.push('AI finishing parity missing');
+  if(!aiFundRelease.toString().includes('aiPublicityCost'))failures.push('AI publicity parity missing');
+  if(!releaseAIFilm.toString().includes('releaseWindowOpeningModifier'))failures.push('AI release-window parity missing');
  }catch(e){failures.push('v4.0a simulation audit smoke failed'+(e?.message?': '+e.message:''))}
  try{
   const probe={scripts:[]},r=makeRng(hash('v3.9.7-title-smoke'));for(let i=0;i<32;i++){const genre=genres[i%genres.length],title=uniqueScriptTitle(probe,r,genre);probe.scripts.push({title})}
@@ -10853,7 +10926,7 @@ function projectSlateBootFailure(check,error){
  const details=[...(check?.failures||[]),error?.message||''].filter(Boolean);
  app.innerHTML=`<main class="screen"><div class="card dangerline"><div class="badge">PROJECT SLATE · BUILD ${VERSION}</div><h2 style="margin:8px 0">The build could not start.</h2><div class="body">A boot check caught the problem before the app fell to a blank screen.</div><div class="small" style="margin-top:10px">${details.join(' · ')||'Unknown boot error'}</div></div></main>`;
 }
-window.ProjectSlate={reset:resetGame,state:()=>deep(state),smokeTest:projectSlateSmokeChecks,audit:()=>simulationAuditReport(),auditJSON:()=>JSON.stringify(simulationAuditReport(),null,2),captureAudit:()=>{const x=recordSimulationAudit('manual');save();return x},openAudit:()=>{localStorage.setItem('projectSlateAuditMode','1');state.screen='studio';state.detail=null;state.uiStudioTab='audit';save();render()},closeAudit:()=>{localStorage.removeItem('projectSlateAuditMode');if(state.uiStudioTab==='audit')state.uiStudioTab='overview';save();render()},exportAudit:simulationAuditExport};
+window.ProjectSlate={reset:resetGame,state:()=>deep(state),smokeTest:projectSlateSmokeChecks,audit:()=>simulationAuditReport(),auditJSON:()=>JSON.stringify(simulationAuditReport(),null,2),captureAudit:()=>{const x=recordSimulationAudit('manual');save();return x},openAudit:()=>{localStorage.setItem('projectSlateAuditMode','1');state.screen='studio';state.detail=null;state.uiStudioTab='audit';save();render()},closeAudit:()=>{localStorage.removeItem('projectSlateAuditMode');if(state.uiStudioTab==='audit')state.uiStudioTab='overview';save();render()},exportAudit:simulationAuditExport,runBenchmark:runSimulationBenchmarkSuite};
 if(state.screen!=='setup')enforceActiveSignatureRoute();
 if(state.screen!=='setup'&&!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.studioMomentQueue?.length)surfacePendingStudioMoment();
 const bootCheck=projectSlateSmokeChecks();
