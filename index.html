@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0a.7</title>
+<title>Project Slate — Premium Presentation v4.0b.1</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0a.7';
+const VERSION='4.0b.1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -2187,11 +2187,11 @@ function normalizeNewsItem(st,n){
 
 
 const STUDIO_UPGRADES={
- production:[{name:'Expanded Production Office',cost:5,overhead:.025,recognition:28,desc:'Adds one concurrent production slot.'},{name:'Full Production Unit',cost:11,overhead:.055,recognition:58,desc:'Adds a second additional production slot.'}],
- casting:[{name:'Agency Relationships',cost:2.5,overhead:.012,recognition:20,desc:'Adds an audition slot and sharpens scouting.'},{name:'In-house Casting Team',cost:5.5,overhead:.026,recognition:48,desc:'Adds another audition slot and makes extra rounds cheaper.'}],
- publicity:[{name:'Awards & Publicity Desk',cost:3,overhead:.015,recognition:24,desc:'Reduces awards-campaign cost and improves festival execution.'},{name:'Full Publicity Department',cost:7,overhead:.034,recognition:55,desc:'Further improves publicity execution and awards efficiency.'}],
- development:[{name:'Story Department',cost:4.5,overhead:.020,recognition:32,desc:'Keeps one additional screenplay live on your market board and modestly improves First Look access.'},{name:'Rights & Packaging Unit',cost:9,overhead:.042,recognition:62,desc:'Keeps a second additional screenplay live and extends exclusive First Look windows.'}],
- post:[{name:'In-house Editorial Suite',cost:4,overhead:.019,recognition:34,desc:'Surfaces one additional editorial option in post and expands the music-supervisor shortlist.'},{name:'Post & Music Campus',cost:8.5,overhead:.038,recognition:64,desc:'Surfaces two additional editorial options and expands licensed-song shortlists to seven choices.'}]
+ production:[{name:'Expanded Production Office',cost:5,overhead:.018,recognition:26,desc:'Adds one concurrent production slot with a leaner operating footprint.'},{name:'Full Production Unit',cost:11,overhead:.038,recognition:54,desc:'Adds a second additional production slot and brings the department to full studio scale.'}],
+ casting:[{name:'Agency Relationships',cost:2.5,overhead:.009,recognition:20,desc:'Adds an audition slot and materially sharpens scouting.'},{name:'In-house Casting Team',cost:5.5,overhead:.019,recognition:44,desc:'Expands to six audition slots, improves scouting again and makes extra rounds cheaper.'}],
+ publicity:[{name:'Awards & Publicity Desk',cost:3,overhead:.011,recognition:24,desc:'Cuts awards-campaign cost by 25% and strengthens campaign execution.'},{name:'Full Publicity Department',cost:7,overhead:.024,recognition:50,desc:'Cuts awards-campaign cost by 45% and gives publicity a major execution lift.'}],
+ development:[{name:'Story Department',cost:4.5,overhead:.014,recognition:30,desc:'Keeps one additional screenplay live and adds two weeks to departmental First Look access.'},{name:'Rights & Packaging Unit',cost:9,overhead:.030,recognition:56,desc:'Keeps three additional scripts live versus launch and adds four weeks to First Look access.'}],
+ post:[{name:'In-house Editorial Suite',cost:4,overhead:.013,recognition:32,desc:'Surfaces one additional editorial option and expands music-supervisor choice.'},{name:'Post & Music Campus',cost:8.5,overhead:.027,recognition:58,desc:'Surfaces three additional editorial options and expands licensed-song shortlists to eight.'}]
 };
 function ensureStudioGrowth(t=state){
  if(!t.studioGrowth)t.studioGrowth={fans:.04,recognition:12,upgrades:{},history:[]};
@@ -2203,20 +2203,21 @@ function studioUpgradeLevel(k){return ensureStudioGrowth().upgrades[k]||0}
 function nextStudioUpgrade(k){return STUDIO_UPGRADES[k]?.[studioUpgradeLevel(k)]||null}
 function studioUpgradeOverhead(){const u=ensureStudioGrowth().upgrades;return Object.keys(STUDIO_UPGRADES).reduce((sum,k)=>sum+STUDIO_UPGRADES[k].slice(0,u[k]||0).reduce((a,x)=>a+x.overhead,0),0)}
 function playerProductionCapacity(){return 2+studioUpgradeLevel('production')}
-function auditionSlotLimit(){return 3+studioUpgradeLevel('casting')}
-function scoutingPrecisionMultiplier(){return studioUpgradeLevel('casting')===0?1:studioUpgradeLevel('casting')===1?.88:.74}
-function extraAuditionCost(){return studioUpgradeLevel('casting')>=2?.10:.15}
-function awardsCampaignDiscount(){return studioUpgradeLevel('publicity')===0?0:studioUpgradeLevel('publicity')===1?.18:.34}
-function publicityExecutionBonus(){return studioUpgradeLevel('publicity')===0?0:studioUpgradeLevel('publicity')===1?1.5:3}
-function screenplayMarketCapacity(){return 9+studioUpgradeLevel('development')}
-function firstLookDepartmentWeeks(){return studioUpgradeLevel('development')}
-function postOptionLimit(){return 4+studioUpgradeLevel('post')}
-function soundtrackShortlistSize(){return 5+studioUpgradeLevel('post')}
+function auditionSlotLimit(){return [3,4,6][Math.min(2,studioUpgradeLevel('casting'))]}
+function scoutingPrecisionMultiplier(){return [1,.82,.64][Math.min(2,studioUpgradeLevel('casting'))]}
+function extraAuditionCost(){return [.15,.11,.07][Math.min(2,studioUpgradeLevel('casting'))]}
+function awardsCampaignDiscount(){return [0,.25,.45][Math.min(2,studioUpgradeLevel('publicity'))]}
+function publicityExecutionBonus(){return [0,2.5,5][Math.min(2,studioUpgradeLevel('publicity'))]}
+function screenplayMarketCapacity(){return [9,10,12][Math.min(2,studioUpgradeLevel('development'))]}
+function firstLookDepartmentWeeks(){return [0,2,4][Math.min(2,studioUpgradeLevel('development'))]}
+function postOptionLimit(){return [4,5,7][Math.min(2,studioUpgradeLevel('post'))]}
+function soundtrackShortlistSize(){return [5,6,8][Math.min(2,studioUpgradeLevel('post'))]}
+function totalStudioUpgradeLevels(){const u=ensureStudioGrowth().upgrades;return Object.keys(STUDIO_UPGRADES).reduce((n,k)=>n+(u[k]||0),0)}
 function studioUpgradeBenefitLabel(k){
  if(k==='production')return `${playerProductionCapacity()} production slots`;
- if(k==='casting')return `${auditionSlotLimit()} audition slots`;
- if(k==='publicity')return `${Math.round(awardsCampaignDiscount()*100)}% awards saving`;
- if(k==='development')return `${screenplayMarketCapacity()} live market scripts`;
+ if(k==='casting')return `${auditionSlotLimit()} audition slots · ${Math.round((1-scoutingPrecisionMultiplier())*100)}% clearer scouting`;
+ if(k==='publicity')return `${Math.round(awardsCampaignDiscount()*100)}% awards saving · +${publicityExecutionBonus()} execution`;
+ if(k==='development')return `${screenplayMarketCapacity()} live scripts · +${firstLookDepartmentWeeks()} First Look weeks`;
  if(k==='post')return `${postOptionLimit()} edit options · ${soundtrackShortlistSize()} songs`;
  return 'Department capability';
 }
@@ -2228,8 +2229,37 @@ function rivalStudioEntity(rv){const done=state.films.filter(f=>f.owner===rv.id&
 function studioRankingScore(e){return (e.recognition||0)*.58+Math.min(24,Math.sqrt(Math.max(0,e.fans||0))*6.2)+Math.max(-10,Math.min(16,(e.recentProfit||0)*.18))+Math.min(12,(e.awards||0)*1.8)+(e.reputation||50)*.12}
 function studioStandings(){return [playerStudioEntity(),...state.rivals.map(rivalStudioEntity)].map(x=>({...x,score:studioRankingScore(x)})).sort((a,b)=>b.score-a.score).map((x,i)=>({...x,rank:i+1}))}
 function playerStudioStanding(){return studioStandings().find(x=>x.player)}
-function registerStudioFilmImpact(f,profit){const aud=f.review?.audience||60,crit=f.review?.critics||60,gross=f.finalGross||0;if(f.owner==='player'){const g=ensureStudioGrowth();g.fans=Math.max(.02,+(g.fans+Math.max(-.10,gross*.0035*(aud/70)+(aud-70)*.004+(profit>0?.05:-.03))).toFixed(3));g.recognition=clamp(g.recognition+gross*.018+(crit-65)*.025+(profit>5?1.2:profit<-8?-1.2:0),5,100);updateStudioIdentityHistory()}else{const rv=rivalById(f.owner);if(rv){rv.fans=Math.max(.1,+((rv.fans||1)+gross*.0027*(aud/70)+(aud-70)*.003).toFixed(3));rv.recognition=clamp((rv.recognition??rv.reputation??50)+gross*.013+(crit-65)*.018+(profit>5?.8:profit<-8?-.8:0),15,100)}}}
-function registerStudioAwardImpact(f,wins,noms){if(!wins&&!noms)return;if(f.owner==='player'){const g=ensureStudioGrowth();g.recognition=clamp(g.recognition+wins*2.4+noms*.55,5,100);g.fans=+(g.fans+wins*.08+noms*.015).toFixed(3)}else{const rv=rivalById(f.owner);if(rv){rv.recognition=clamp((rv.recognition??rv.reputation??50)+wins*1.8+noms*.4,15,100);rv.fans=+((rv.fans||1)+wins*.05+noms*.01).toFixed(3)}}}
+function playerRecognitionGainMultiplier(rec){
+ rec=Number.isFinite(rec)?rec:ensureStudioGrowth().recognition;
+ if(rec>=90)return .18;
+ if(rec>=82)return .32;
+ if(rec>=70)return .50;
+ if(rec>=55)return .72;
+ return 1;
+}
+function playerRecognitionDelta(base,rec){return base>0?base*playerRecognitionGainMultiplier(rec):base}
+
+function registerStudioFilmImpact(f,profit){
+ const aud=f.review?.audience||60,crit=f.review?.critics||60,gross=f.finalGross||0;
+ if(f.owner==='player'){
+  const g=ensureStudioGrowth(),baseRecognition=gross*.014+(crit-65)*.020+(profit>5?1:profit<-8?-1.2:0);
+  g.fans=Math.max(.02,+(g.fans+Math.max(-.10,gross*.0035*(aud/70)+(aud-70)*.004+(profit>0?.05:-.03))).toFixed(3));
+  g.recognition=clamp(g.recognition+playerRecognitionDelta(baseRecognition,g.recognition),5,100);
+  updateStudioIdentityHistory();
+ }else{
+  const rv=rivalById(f.owner);if(rv){rv.fans=Math.max(.1,+((rv.fans||1)+gross*.0027*(aud/70)+(aud-70)*.003).toFixed(3));rv.recognition=clamp((rv.recognition??rv.reputation??50)+gross*.013+(crit-65)*.018+(profit>5?.8:profit<-8?-.8:0),15,100)}
+ }
+}
+function registerStudioAwardImpact(f,wins,noms){
+ if(!wins&&!noms)return;
+ if(f.owner==='player'){
+  const g=ensureStudioGrowth(),baseRecognition=wins*2+noms*.40;
+  g.recognition=clamp(g.recognition+playerRecognitionDelta(baseRecognition,g.recognition),5,100);
+  g.fans=+(g.fans+wins*.08+noms*.015).toFixed(3);
+ }else{
+  const rv=rivalById(f.owner);if(rv){rv.recognition=clamp((rv.recognition??rv.reputation??50)+wins*1.8+noms*.4,15,100);rv.fans=+((rv.fans||1)+wins*.05+noms*.01).toFixed(3)}
+ }
+}
 
 
 const DISTRIBUTORS=['Meridian Releasing','Atlas Distribution','Crownline Releasing','Northlight Pictures','Beacon International','Harbour Releasing'];
@@ -2987,7 +3017,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0a.7-audit-resolution',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0b.1-player-progression',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -5527,6 +5557,16 @@ const STUDIO_MILESTONES=[
  {id:'hidden_clean_sweep',category:'Hidden',hidden:true,title:'They Kept Calling Our Name',desc:'Win six awards at a single Awards Night.',points:35,target:6,value:()=>bestPlayerAwardsNight(),format:v=>`${Math.min(v,6)}/6 wins in one night`},
  {id:'hidden_auteur',category:'Hidden',hidden:true,title:'An Auteur Home',desc:'Release three films with the same director averaging 80%+ with critics.',points:25,target:1,value:()=>hasAuteurTrilogy()?1:0},
  {id:'hidden_star_maker',category:'Hidden',hidden:true,title:'From Breakout to Podium',desc:'Help a performer break out in one of your films and later win a performance award with your studio.',points:30,target:1,value:()=>hasBreakoutToAwardStory()?1:0}
+ // v4.0b.1 — LONG CAREER & INFRASTRUCTURE
+ ,{id:'thirty_five_films',category:'Studio',title:'Catalogue Company',desc:'Release thirty-five films.',points:25,target:35,value:()=>completedPlayerFilms().length,format:v=>Math.min(v,35)+'/35 releases'},
+ {id:'fifty_films',category:'Studio',title:'Studio Era',desc:'Release fifty films.',points:40,target:50,value:()=>completedPlayerFilms().length,format:v=>Math.min(v,50)+'/50 releases'},
+ {id:'twenty_five_profitable',category:'Studio',title:'Repeatable Business',desc:'Produce twenty-five profitable releases.',points:30,target:25,value:()=>profitablePlayerFilms(),format:v=>Math.min(v,25)+'/25 profitable releases'},
+ {id:'lifetime_5b',category:'Box Office',title:'Five-Billion Library',desc:'Reach $5bn in lifetime worldwide box office.',points:35,target:5000,value:()=>lifetimePlayerGross(),format:v=>money(Math.min(v,5000))+' / $5.0bn'},
+ {id:'lifetime_10b',category:'Box Office',title:'Global Institution',desc:'Reach $10bn in lifetime worldwide box office.',points:50,target:10000,value:()=>lifetimePlayerGross(),format:v=>money(Math.min(v,10000))+' / $10.0bn'},
+ {id:'first_upgrade',category:'Studio',title:'Build the Company',desc:'Open the studio’s first permanent department upgrade.',points:5,target:1,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,1)+'/1 department level'},
+ {id:'five_upgrades',category:'Studio',title:'Working Studio',desc:'Own five permanent department levels across the lot.',points:20,target:5,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,5)+'/5 department levels'},
+ {id:'all_upgrades',category:'Studio',title:'Full-Service Studio',desc:'Fully build every permanent studio department.',points:40,target:10,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,10)+'/10 department levels'},
+
 ];
 
 function careerYears(){return Math.floor((state.week-1)/52)}
@@ -5577,6 +5617,14 @@ function ensureLegendsArchive(st=state){
 function legendUnlocked(id){return !!ensureLegendsArchive().unlocked[id]}
 function legendGenreFilms(genres){return completedPlayerFilms().filter(f=>genres.includes(f.genre))}
 function legendStrongFilm(f,crit=80,aud=80){return !!f&&(f.review?.critics||0)>=crit&&(f.review?.audience||0)>=aud}
+function legendArchiveGate(entry){
+ const tier=legendTier(entry).key,unlocked=Object.keys(ensureLegendsArchive().unlocked||{}).length;
+ const base={accessible:{films:3,recognition:28},challenging:{films:6,recognition:45},storied:{films:10,recognition:60},mythic:{films:15,recognition:72}}[tier]||{films:6,recognition:45};
+ const films=completedPlayerFilms().length,recognition=ensureStudioGrowth().recognition,requiredFilms=Math.max(base.films,3+unlocked*2);
+ const done=films>=requiredFilms&&recognition>=base.recognition,pct=Math.min(100,Math.min(films/requiredFilms,recognition/base.recognition)*100);
+ return {done,pct,text:Math.min(films,requiredFilms)+'/'+requiredFilms+' career releases · recognition '+Math.round(recognition)+'/'+base.recognition};
+}
+
 function legendRequirementProgress(entry){
  const films=completedPlayerFilms(),profit=f=>studioFilmProfit(f),wins=cat=>playerAwardWinsByCategory(cat),perfWins=playerAwardWinsByCategories(['lead','support']);
  let done=false,pct=0,text='Career signal not yet established';
@@ -5602,6 +5650,9 @@ function legendRequirementProgress(entry){
   case 'leone':{const fs=legendGenreFilms(['Crime Thriller','Action Thriller']).filter(f=>profit(f)>0),ones=fs.filter(f=>boxRunStats(f).weeksAtOne>0).length;done=fs.length>=3&&ones>=2;pct=Math.min(100,Math.min(fs.length/3,ones/2)*100);text=`Profitable crime/action films ${Math.min(fs.length,3)}/3 · #1 releases ${Math.min(ones,2)}/2`;break}
   case 'kurosawa':{const d=wins('director'),p=wins('picture');done=d>=2&&p>=1;pct=Math.min(100,Math.min(d/2,p/1)*100);text=`Best Director wins ${Math.min(d,2)}/2 · Best Picture ${Math.min(p,1)}/1`;break}
  }
+ const achievementDone=done,achievementPct=pct,achievementText=text,gate=legendArchiveGate(entry);
+ done=achievementDone&&gate.done;pct=Math.min(achievementPct,gate.pct);
+ if(!gate.done)text=achievementText+' · Archive standing: '+gate.text;
  return {done,pct:clamp(pct,0,100),text};
 }
 function unlockLegend(entry,retroactive=false){
