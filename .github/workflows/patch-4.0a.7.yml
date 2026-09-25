@@ -1,0 +1,49 @@
+name: one-shot v4.0a.7 audit resolution
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply v4.0a.7 audit patch
+        run: python .github/patches/patch_4_0a_7.py
+
+      - name: JavaScript syntax check
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("index.html").read_text(encoding="utf-8")
+          start=s.index("<script>")+len("<script>")
+          end=s.rindex("</script>")
+          Path("/tmp/project-slate.js").write_text(s[start:end],encoding="utf-8")
+          PY
+          node --check /tmp/project-slate.js
+
+      - name: Audit-only smoke checks
+        run: |
+          grep -q "const VERSION='4.0a.7';" index.html
+          grep -q "v4.0a.7-audit-resolution" index.html
+          grep -q "avgFinancialDistressAtEnd" index.html
+          grep -q "expectedProfiles" index.html
+          grep -q "avgSystemNet" index.html
+          grep -q "audit-benchmark-v4005" index.html
+          grep -q "const interest=rv.debt\*\.0025" index.html
+          grep -q "let frontloadChance=0" index.html
+          ! grep -q "audit-benchmark-v4007" index.html
+          git diff --check
+
+      - name: Commit update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "v4.0a.7 resolve audit health metrics"
+          git push
