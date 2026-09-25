@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 p=Path("index.html")
 s=p.read_text(encoding="utf-8")
@@ -54,15 +55,14 @@ rep("else{const short=finishCost-rv.cash;rv.cash=0;rv.debt+=short*1.10}",
     "else{const short=finishCost-rv.cash;rv.cash=0;rv.debt+=short*1.05}",
     "finishing financing premium")
 
-rep("""if(rv.cash>t.reserve+10){
-     const repay=Math.min(rv.debt,Math.max(0,(rv.cash-(t.reserve+8))*.18));
-     rv.cash-=repay;rv.debt-=repay;
-    }""",
-    """if(rv.cash>t.reserve+6){
+pat=r"if\(rv\.cash>t\.reserve\+10\)\{\s+const repay=Math\.min\(rv\.debt,Math\.max\(0,\(rv\.cash-\(t\.reserve\+8\)\)\*\.18\)\);\s+rv\.cash-=repay;rv\.debt-=repay;\s+\}"
+replacement="""if(rv.cash>t.reserve+6){
      const repay=Math.min(rv.debt,Math.max(0,(rv.cash-(t.reserve+5))*.40));
      rv.cash-=repay;rv.debt-=repay;
-    }""",
-    "release settlement deleveraging")
+    }"""
+s,n=re.subn(pat,replacement,s,count=1)
+if n!=1:
+    raise SystemExit(f"release settlement deleveraging: expected 1 regex match, found {n}")
 
 rep('<div class="listrow"><span>Average 5-year rival overhead</span><strong>${money(bench.avgOverhead||0)}</strong></div><div class="listrow"><span>Turnaround / standard benchmark deals</span>',
     '<div class="listrow"><span>Average 5-year rival overhead</span><strong>${money(bench.avgOverhead||0)}</strong></div><div class="listrow"><span>Average 5-year rival interest</span><strong>${money(bench.avgInterest||0)}</strong></div><div class="listrow"><span>Turnaround / standard benchmark deals</span>',
