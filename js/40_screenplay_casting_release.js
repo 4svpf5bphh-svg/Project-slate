@@ -238,6 +238,14 @@ function auditionForRole(f,tid,roleId=null){
  return f.auditions?.[auditionKey(tid,rid)]||f.auditions?.[tid]||null;
 }
 function castingRoleAssignment(f,roleId){ensureFilmRoles(f);return f.roleAssignments?.[roleId]||null}
+function principalCastingRows(f){
+ ensureFilmRoles(f);
+ return ['lead1','lead2'].map(roleId=>{
+  const role=roleById(f,roleId),tid=f.roleAssignments?.[roleId]||null,talent=tid?talentById(tid):null,audition=talent?auditionForRole(f,tid,roleId):null;
+  return {roleId,role,tid,talent,audition,tested:!!audition};
+ });
+}
+function untestedPrincipalRoles(f){return principalCastingRows(f).filter(x=>x.talent&&!x.tested)}
 function syncRoleAssignments(f){
  ensureFilmRoles(f);
  const l1=f.roleAssignments.lead1||null,l2=f.roleAssignments.lead2||null;
@@ -320,11 +328,12 @@ function greenlightReviewData(f){
  const natural=s.naturalBudget||f.budget,ratio=f.budget/Math.max(1,natural),depth=productionDepthCost(f),talent=agreedUpfront(f),commitment=f.budget+talent+depth,cashAfter=state.cash-commitment;
  const roleRows=rolePackageSummary(f).filter(x=>x.role.type==='lead'||x.tid).map(x=>({role:x.role,talent:x.talent,evidence:x.talent?castingEvidenceFor(x.talent,f,x.role.id):null}));
  const attached=[d,...roleRows.map(x=>x.talent)].filter(Boolean),unavailable=attached.filter(t=>talentUnavailableForFilm(t,f));
+ const hostile=typeof lotHostilePackage==='function'?lotHostilePackage(f):null,untested=untestedPrincipalRoles(f);
  const strengths=[],risks=[];
  if(cov.readiness==='Packaging-ready')strengths.push('The screenplay is entering production from a strong development position.');
  else if(cov.readiness==='Needs development')risks.push('Coverage still sees unresolved screenplay risk going into production.');
  if(castingEvidence.cls==='good')strengths.push('Both principal roles produced strong screen-test evidence.');
- else if(castingEvidence.tested<2)risks.push('At least one principal role is being greenlit without a screen test. The market profile is known; the role fit is not.');
+ else if(untested.length)risks.push(untested.map(x=>x.role.name).join(' and ')+' '+(untested.length===1?'is':'are')+' cast without a screen test. You know the market reputation, but not the role-specific evidence.');
  else if(castingEvidence.cls==='warn'||castingEvidence.cls==='bad')risks.push('The principal cast produced mixed role-specific evidence before greenlight.');
  if(ratio<.80)risks.push(`The production budget is materially below the screenplay's natural ${money(natural)} scale.`);
  else if(ratio>=.95&&ratio<=1.18)strengths.push('Production funding is close to the screenplay’s natural scale.');
@@ -336,10 +345,12 @@ function greenlightReviewData(f){
  if(req.required&&req.complete)strengths.push(`${req.label} casting is complete for the current production scale.`);
  const lotSignal=typeof lotPackageSignal==='function'?lotPackageSignal(f):null;
  if(lotSignal?.tone==='good')strengths.push(lotSignal.text);else if(lotSignal?.tone==='bad')risks.push(lotSignal.text);
- if(unavailable.length)risks.unshift(`${unavailable.map(t=>t.name).join(', ')} ${unavailable.length===1?'is':'are'} currently unavailable, so greenlight is blocked until the package is repaired.`);
- return {script:s,coverage:cov,director:d,fit,castingEvidence,requirement:req,natural,ratio,depth,talent,commitment,cashAfter,roleRows,unavailable,strengths:strengths.slice(0,4),risks:risks.slice(0,5)};
+ if(hostile)risks.unshift('HOSTILE PACKAGE: '+hostile.a.name+' and '+hostile.b.name+' currently have a hostile relationship. Greenlight remains your decision, but chemistry, morale and set stability carry elevated people-risk.');
+ if(unavailable.length)risks.unshift(unavailable.map(t=>t.name).join(', ')+' '+(unavailable.length===1?'is':'are')+' currently unavailable, so greenlight is blocked until the package is repaired.');
+ return {script:s,coverage:cov,director:d,fit,castingEvidence,requirement:req,natural,ratio,depth,talent,commitment,cashAfter,roleRows,unavailable,hostile,untested,strengths:strengths.slice(0,4),risks:risks.slice(0,5)};
 }
 function greenlightRiskLabel(data){
+ if(data.hostile)return {label:'Hostile package',cls:'bad'};
  const n=data.risks.length;
  return n>=4?{label:'High execution exposure',cls:'bad'}:n>=2?{label:'Meaningful execution risk',cls:'warn'}:n===1?{label:'Manageable risk',cls:'blue'}:{label:'Well-aligned package',cls:'good'};
 }
