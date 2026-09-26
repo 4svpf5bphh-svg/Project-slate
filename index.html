@@ -703,6 +703,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .talent-available-toggle{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
 @media(max-width:520px){.talent-filter-grid{grid-template-columns:1fr 1fr}.talent-filter-grid .select{font-size:12px;padding-left:9px;padding-right:24px}}
 
+
+/* v4.0d.3.1 — Slate Rhythm */
+.slate-rhythm-card{margin:12px 0;border-left:3px solid var(--blue)}
+.slate-rhythm-good{border-left-color:var(--good)}.slate-rhythm-warn{border-left-color:var(--warn)}
+.slate-rhythm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.slate-rhythm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:11px}
+.slate-rhythm-stats>div{border:1px solid var(--border);background:rgba(255,255,255,.022);border-radius:10px;padding:8px;min-width:0}
+.slate-rhythm-stats strong,.slate-rhythm-stats span{display:block}.slate-rhythm-stats strong{font-size:14px}.slate-rhythm-stats span{font-size:9px;text-transform:uppercase;letter-spacing:.55px;color:var(--muted);margin-top:2px}
+.slate-rhythm-note{margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+.slate-rhythm-impact{margin-top:10px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.025)}
+.slate-rhythm-impact strong,.slate-rhythm-impact span{display:block}.slate-rhythm-impact span{font-size:10px;color:var(--muted);margin-top:3px}
+@media(max-width:520px){.slate-rhythm-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 </style>
 </head>
 <body>
@@ -2466,7 +2479,7 @@ function studioIdentityAwarenessLift(f){
 function studioIdentityCriticLift(f){return identityHas('critical')&&f.creative?.positioning==='prestige'?1.2:0}
 function maybeGrantFirstLook(s){
  const snap=studioIdentitySnapshot(),g=ensureStudioGrowth();if(snap.done.length<3||g.recognition<30)return false;
- const dev=studioUpgradeLevel('development');let chance=.05+Math.min(.14,g.recognition*.0015)+dev*.04;
+ const dev=studioUpgradeLevel('development');let chance=.05+Math.min(.14,g.recognition*.0015)+dev*.04+(typeof slateFirstLookChanceLift==='function'?slateFirstLookChanceLift():0);
  if(snap.topGenre?.genre===s.genre&&snap.topGenre.share>=.40)chance+=.16;
  if(identityHas('critical')&&s.originality>=78)chance+=.06;
  const r=makeRng(hash(state.seed+'|first-look|'+s.id+'|'+state.week));if(r()>chance)return false;
@@ -4627,6 +4640,7 @@ function talentProjectInterest(t,f,roleRef=null,mode='select'){
  if(mode==='select'&&audition)return {accept:true,score:Math.max(76,fit),reason:`Having screen-tested for ${role.name}, the performer remains open to the role.`,fit,roleId:role.id};
  let score=48+(fit-62)*.58+studioRel*.22;
  score+=agencyInterestModifier(t,f);
+ score+=typeof slateTalentInterestLift==='function'?slateTalentInterestLift():0;
  if(agencyWindow(t,f))score+=12;
  if((t.discoveryWindowUntil||0)>=state.week&&t.emerging)score+=10;
  score+=(f.creative?.positioning==='prestige'&&t.acting>=88)?5:0;
@@ -4751,7 +4765,7 @@ function preReleaseTracking(f){
  const pulse=typeof ensureFilmSocial==='function'?ensureFilmSocial(f):null;
  let awareness=1+star*.058+(s?.hook||65)*.062+mEff*28+(m.buzz||0)+(m.sentiment||0)*.35+(pulse?pulse.volume*.07+pulse.controversy*.02:0);
  if(f.campaign==='event')awareness+=4;if(f.campaign==='mystery')awareness+=1.5;
- awareness+=(typeof studioIdentityAwarenessLift==='function'?studioIdentityAwarenessLift(f):0)+(typeof distributionAwarenessLift==='function'?distributionAwarenessLift(f):0)+(typeof soundtrackReleaseModifiers==='function'?soundtrackReleaseModifiers(f).awareness:0);
+ awareness+=(typeof studioIdentityAwarenessLift==='function'?studioIdentityAwarenessLift(f):0)+(typeof distributionAwarenessLift==='function'?distributionAwarenessLift(f):0)+(typeof soundtrackReleaseModifiers==='function'?soundtrackReleaseModifiers(f).awareness:0)+(typeof slateRhythmReleaseEffect==='function'?slateRhythmReleaseEffect(f).net:0);
  const ratio=f.budget/Math.max(1,s?.naturalBudget||f.budget),scale=.72+Math.sqrt(Math.max(.48,ratio))*.27;
  const seasonal=1+intel.season,distribution=typeof distributionOpeningMultiplier==='function'?distributionOpeningMultiplier(f):1;
  let center=(awareness*.335+(s?.hook||65)*.078+star*.025-9.1)*scale*(1-intel.pressure)*seasonal*distribution;
@@ -7219,8 +7233,8 @@ function releaseFilm(f){
  const campaignStrength=clamp(f.marketing/Math.max(1,rec),0,1.25);
  if(f.campaign==='event')awareness+=5*Math.min(1,campaignStrength);
  if(f.campaign==='mystery')awareness+=(1+(r()-.5)*5)*Math.min(1,campaignStrength+.15);
- awareness+=publicCampaign.buzz+pulse.volume*.075+pulse.controversy*.025+audienceContext.openingLift+franchiseContext.awarenessLift+studioIdentityAwarenessLift(f)+distributionAwarenessLift(f)+music.awareness;
- const competitorPressure=boxPressureForWeek(f.releaseWeek,f.genre)*distributionPressureMultiplier(f);
+ awareness+=publicCampaign.buzz+pulse.volume*.075+pulse.controversy*.025+audienceContext.openingLift+franchiseContext.awarenessLift+studioIdentityAwarenessLift(f)+distributionAwarenessLift(f)+music.awareness+(typeof slateRhythmReleaseEffect==='function'?slateRhythmReleaseEffect(f).net:0);
+ const competitorPressure=boxPressureForWeek(f.releaseWeek,f.genre,f.id)*distributionPressureMultiplier(f);
  const ratio=f.budget/s.naturalBudget,scale=.72+Math.sqrt(Math.max(.48,ratio))*.27;
  let opening=clamp((awareness*.34+s.hook*.08+effectiveStar*.028-9.6)*scale*(1-competitorPressure)*(1+releaseWindowOpeningModifier(f))*distributionOpeningMultiplier(f),.08,88);
  const intlMult=f.genre.includes('Action')||f.genre.includes('Science')||f.genre.includes('Fantasy')?1.38:f.genre.includes('Horror')?1.0:f.genre.includes('Family')?1.13:.72;
@@ -9989,6 +10003,60 @@ function deskSignalBand(item){
  const score=deskSignalScore(item);
  return score>=76?'major':score>=62?'signal':'brief';
 }
+function slateRhythmSnapshot(targetFilm=null){
+ const targetWeek=targetFilm?.releaseWeek||state.week;
+ const active=playerFilms().filter(f=>!['complete','shelved'].includes(f.stage));
+ const production=active.filter(f=>f.stage==='production'),capacity=playerProductionCapacity();
+ const released=playerFilms().filter(f=>['cinema','complete'].includes(f.stage)&&Number.isFinite(f.releaseWeek)&&f.releaseWeek<=targetWeek);
+ const recent52=released.filter(f=>targetWeek-f.releaseWeek<=52),recent26=released.filter(f=>targetWeek-f.releaseWeek<=26);
+ const lastRelease=playerFilms().filter(f=>['cinema','complete'].includes(f.stage)&&Number.isFinite(f.releaseWeek)&&f.releaseWeek<=state.week).sort((a,b)=>b.releaseWeek-a.releaseWeek)[0]||null;
+ const weeksSinceRelease=lastRelease?state.week-lastRelease.releaseWeek:null;
+ const stageDepth=new Set(active.filter(f=>!f.paused).map(f=>f.stage)).size;
+ const nextRelease=active.filter(f=>['scheduled','cinema'].includes(f.stage)&&Number.isFinite(f.releaseWeek)&&f.releaseWeek>=state.week).sort((a,b)=>a.releaseWeek-b.releaseWeek)[0]||null;
+ const campaigns=active.filter(f=>['marketing','scheduled'].includes(f.stage)),publicityCapacity=1+studioUpgradeLevel('publicity'),campaignOverload=Math.max(0,campaigns.length-publicityCapacity);
+ const overhead=studioOverheadBreakdown(),idleSlots=Math.max(0,capacity-production.length),runway=studioCashRunway();
+ let score=Math.min(34,active.length*8)+Math.min(24,recent26.length*10)+Math.min(24,(production.length/Math.max(1,capacity))*24)+Math.min(18,stageDepth*5);
+ let id='building',label='Building the slate',tone='blue',desc='The studio is still assembling enough overlapping work for a continuous release rhythm.';
+ if(active.length<=1&&weeksSinceRelease!==null&&weeksSinceRelease>=26){id='quiet';label='Quiet slate';tone='warn';desc='The studio has little overlap between films, so release heat is fading while permanent infrastructure keeps costing money.'}
+ else if(campaignOverload>0){id='stretched';label='Campaign capacity stretched';tone='warn';desc='The slate is active, but more films are in campaign mode than the current publicity operation can comfortably support.'}
+ else if(score>=72){id='rolling';label='Rolling slate';tone='good';desc='Multiple films are moving through different stages, keeping talent, press and release momentum connected.'}
+ else if(score>=48){id='active';label='Active slate';tone='good';desc='The pipeline has useful overlap without yet operating at full studio rhythm.'}
+ else if(recent52.length>=1){id='measured';label='Measured cadence';tone='blue';desc='The studio is releasing selectively, with room to build more overlap if it wants to use more of its infrastructure.'}
+ return {id,label,tone,desc,active,production,capacity,idleSlots,recent26,recent52,weeksSinceRelease,lastRelease,nextRelease,stageDepth,campaigns,publicityCapacity,campaignOverload,overhead,runway,score:Math.round(clamp(score,0,100))};
+}
+function slateRhythmReleaseEffect(f){
+ const targetWeek=f?.releaseWeek||state.week;
+ const released=playerFilms().filter(x=>x.id!==f?.id&&['cinema','complete'].includes(x.stage)&&Number.isFinite(x.releaseWeek)&&x.releaseWeek<targetWeek&&targetWeek-x.releaseWeek<=26);
+ let heat=0;
+ released.forEach(x=>{
+  const gap=Math.max(1,targetWeek-x.releaseWeek),decay=clamp((26-gap)/26,0,1),profit=x.stage==='complete'?studioFilmProfit(x):0,aud=x.review?.audience||60;
+  const success=profit>=10?.75:profit>=2?.40:profit<=-8?-.20:0;
+  heat+=decay*(.35+success+Math.max(0,aud-70)*.018);
+ });
+ heat=clamp(heat,0,2.8);
+ const active=playerFilms().filter(x=>x.id!==f?.id&&!['complete','shelved'].includes(x.stage)&&!x.paused);
+ const pipeline=Math.min(.55,new Set(active.map(x=>x.stage)).size*.14);
+ const near=playerFilms().filter(x=>x.id!==f?.id&&Number.isFinite(x.releaseWeek)&&x.stage!=='shelved'&&Math.abs(x.releaseWeek-targetWeek)<=4);
+ let cannibal=0;
+ near.forEach(x=>{const gap=Math.abs(x.releaseWeek-targetWeek);cannibal+=gap<=1?2.2:gap<=2?1.5:gap<=4?.75:0});
+ const campaigns=playerFilms().filter(x=>x.id!==f?.id&&['marketing','scheduled'].includes(x.stage)&&Number.isFinite(x.releaseWeek)&&Math.abs(x.releaseWeek-targetWeek)<=10).length+1;
+ const publicityCapacity=1+studioUpgradeLevel('publicity'),overload=Math.max(0,campaigns-publicityCapacity),campaignPenalty=Math.min(1.8,overload*.65);
+ const net=clamp(heat+pipeline-cannibal-campaignPenalty,-3.5,3.3);
+ return {net:+net.toFixed(2),heat:+heat.toFixed(2),pipeline:+pipeline.toFixed(2),cannibal:+cannibal.toFixed(2),campaignPenalty:+campaignPenalty.toFixed(2),near,campaigns,publicityCapacity};
+}
+function slateTalentInterestLift(){
+ const snap=slateRhythmSnapshot(),recentHit=snap.recent26.some(f=>f.stage==='complete'&&studioFilmProfit(f)>=8),recentLoved=snap.recent26.some(f=>(f.review?.audience||0)>=78);
+ let lift=0;if(snap.active.length>=2)lift+=1;if(snap.stageDepth>=3)lift+=1;if(recentHit)lift+=1;if(recentLoved)lift+=.5;if(snap.campaignOverload>0)lift-=.5;
+ return clamp(lift,0,3.5);
+}
+function slateFirstLookChanceLift(){
+ const snap=slateRhythmSnapshot(),strong=snap.recent26.filter(f=>f.stage==='complete'&&(studioFilmProfit(f)>=8||(f.review?.critics||0)>=80)).length;
+ return clamp(strong*.012+(snap.stageDepth>=3?.012:0),0,.05);
+}
+function slateRhythmCard(){
+ const x=slateRhythmSnapshot(),tone=x.tone==='good'?'good':x.tone==='warn'?'warn':'blue',effect=x.nextRelease?slateRhythmReleaseEffect(x.nextRelease):null;
+ return `<div class="card slate-rhythm-card slate-rhythm-${x.tone}"><div class="slate-rhythm-head"><div><div class="badge">SLATE RHYTHM</div><div class="kpi">${x.label}</div></div><span class="pill ${tone}">${x.score}/100</span></div><div class="body">${x.desc}</div><div class="slate-rhythm-stats"><div><strong>${x.production.length}/${x.capacity}</strong><span>production slots</span></div><div><strong>${x.active.length}</strong><span>active films</span></div><div><strong>${x.recent52.length}</strong><span>releases · 52w</span></div><div><strong>${moneyFine(x.overhead.corporate+x.overhead.departments+x.overhead.assets)}/w</strong><span>fixed operation</span></div></div>${x.idleSlots?`<div class="small slate-rhythm-note">${x.idleSlots} production slot${x.idleSlots===1?' is':'s are'} currently idle while the permanent operation continues to run.</div>`:''}${x.nextRelease&&effect?`<div class="slate-rhythm-impact"><strong>${x.nextRelease.title}</strong><span>${effect.net>0?'+':''}${effect.net.toFixed(1)} awareness from current studio rhythm${effect.cannibal>0?' · own-release overlap is reducing it':''}${effect.campaignPenalty>0?' · publicity capacity is stretched':''}</span></div>`:`<div class="small slate-rhythm-note">No release is currently dated. Studio heat can only carry into a film that is actually moving toward market.</div>`}</div>`;
+}
 function studioUpcomingEvents(limit=4,horizonDays=35){
  ensureCalendarState();
  const now=state.calendarDay,end=now+horizonDays,out=[],seen=new Set();
@@ -10484,7 +10552,7 @@ function deskBriefingBody(){
  const d=ensureDesk();expireDeskItems();syncOperationalDeskItems();
  const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0)),open=ranked.filter(x=>!x.resolved&&x.requiresAction),signals=ranked.filter(x=>!open.includes(x)&&deskSignalScore(x)>=62),unread=d.items.filter(x=>!x.read),archivable=d.items.filter(x=>x.read&&x.resolved).length,upcoming=studioUpcomingEvents(4,35),active=activePlayerFilms(),standing=playerStudioStanding(),growth=ensureStudioGrowth();
  return `<div class="studio-brand-hero desk-brand-hero"><div>${playerStudioLogoHTML('lg',true)}<div class="small" style="margin-top:10px">Studio command centre · ${studioIdentityPrimary().label}</div></div><div class="grid cols4 studio-brand-stats"><div><div class="kpi">#${standing.rank}</div><div class="small">Industry rank</div></div><div><div class="kpi">${Math.round(growth.recognition)}</div><div class="small">Recognition</div></div><div><div class="kpi">${active.length}</div><div class="small">Active projects</div></div><div><div class="kpi">${money(state.cash)}</div><div class="small">Cash</div></div></div></div>
- ${careerArcCard()}<div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} response${open.length===1?'':'s'} waiting`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'These are the decisions currently waiting on you. Background information will not block the calendar.':'No player response is currently required. You can move the calendar without clearing routine traffic.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${signals.filter(x=>!x.read).length}</strong></div><div><span>Unread total</span><strong>${unread.length}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
+ ${careerArcCard()}${slateRhythmCard()}<div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} response${open.length===1?'':'s'} waiting`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'These are the decisions currently waiting on you. Background information will not block the calendar.':'No player response is currently required. You can move the calendar without clearing routine traffic.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${signals.filter(x=>!x.read).length}</strong></div><div><span>Unread total</span><strong>${unread.length}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
  <div class="section-title"><h2>Up next</h2><span class="small">Major studio checkpoints · next five weeks</span></div>${deskUpcomingHTML(upcoming)}
  <div class="section-title"><h2>Needs a response</h2><span class="small">Urgent crises and lifecycle blockers interrupt Continue; optional calls wait here</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>No response is waiting.</strong><div class="small" style="margin-top:5px">Keep building, releasing or advancing time.</div></div>`}</div>
  <div class="section-title desk-section"><h2>Signals worth knowing</h2><span class="small">Higher-consequence information only</span></div><div class="desk-stack">${signals.length?signals.slice(0,8).map(deskItemHTML).join(''):`<div class="card body">No major signal is competing for your attention right now.</div>`}</div>`;
@@ -10784,7 +10852,7 @@ function slateScreen(){
  const card=f=>`<div class="card click ${f.pendingEvent||f.marketingState?.pending?'attention':''}" data-film="${f.id}"><div class="film-card-layout">${filmKeyArtHTML(f,'thumb')}<div class="film-card-copy"><div class="row"><div><strong>${f.title}</strong><div class="small">${f.genre} · ${fmtStage(f.stage)}</div></div>${stagePill(f)}</div><div class="body" style="margin-top:8px">${filmSummary(f)}</div></div></div></div>`;
  let body='';
  if(tab==='pipeline'){
-  body=groups.map(([id,label,list])=>`<div class="section-title"><h2>${label}</h2><span class="small">${list.length}</span></div>${list.length?`<div class="grid cols2">${list.map(card).join('')}</div>`:`<div class="card body">No films currently at this stage.</div>`}`).join('');
+  body=slateRhythmCard()+groups.map(([id,label,list])=>`<div class="section-title"><h2>${label}</h2><span class="small">${list.length}</span></div>${list.length?`<div class="grid cols2">${list.map(card).join('')}</div>`:`<div class="card body">No films currently at this stage.</div>`}`).join('');
  }else{
   const list=groups.find(x=>x[0]===tab)?.[2]||[];
   body=`<div class="section-title"><h2>${groups.find(x=>x[0]===tab)?.[1]||'Slate'}</h2><span class="small">${list.length} films</span></div><div class="grid cols2">${list.length?list.map(card).join(''):`<div class="card body">Nothing currently in this part of the pipeline.</div>`}</div>`;
