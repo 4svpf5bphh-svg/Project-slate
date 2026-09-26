@@ -98,6 +98,75 @@ function lotPackageSignal(f){
  if(x.tone==='bad')return {tone:'bad',text:`The Lot: ${names} carry a ${label} relationship into this package, creating a real people-risk around chemistry and set stability.`};
  return {tone:'good',text:`The Lot: ${names} bring a ${label} relationship into the package, giving the production some existing trust and chemistry to build on.`};
 }
+
+function lotActiveStoriesForFilm(f){
+ const ids=new Set(lotAttachedTalentIds(f));
+ return ensureLotState().stories.filter(s=>s.active&&s.participants?.length>=2&&s.participants.every(id=>ids.has(id))).sort((a,b)=>(b.heat||0)-(a.heat||0)||(b.intensity||0)-(a.intensity||0));
+}
+function lotHostilePackage(f){
+ const ids=lotAttachedTalentIds(f),pairs=[];
+ for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){
+  const a=talentById(ids[i]),b=talentById(ids[j]);if(!a||!b)continue;
+  const rel=lotRelationship(a,b);
+  if(rel.grudge>=60||rel.tension>=78)pairs.push({a,b,rel,severity:(rel.grudge||0)+(rel.tension||0),label:lotRelationshipLabel(rel)});
+ }
+ return pairs.sort((a,b)=>b.severity-a.severity)[0]||null;
+}
+function lotCandidateCastingSignal(t,f){
+ if(!t||!f)return null;
+ const otherIds=lotAttachedTalentIds(f).filter(id=>id!==t.id),otherSet=new Set(otherIds),lot=ensureLotState();
+ if(!otherIds.length)return null;
+ const story=lot.stories.filter(s=>s.active&&s.participants?.includes(t.id)&&s.participants.some(id=>id!==t.id&&otherSet.has(id))).sort((a,b)=>(b.heat||0)-(a.heat||0))[0];
+ if(story){
+  const otherId=story.participants.find(id=>id!==t.id&&otherSet.has(id)),other=talentById(otherId),friendly=story.type==='friendship';
+  return {tone:friendly?'good':story.intensity>=3?'bad':'warn',label:friendly?'Active friendship':'Active Lot story',text:story.headline,other};
+ }
+ let strongest=null;
+ otherIds.map(talentById).filter(Boolean).forEach(other=>{
+  const rel=lotRelationship(t,other),score=lotRelationshipScore(rel),label=lotRelationshipLabel(rel);
+  if(!strongest||Math.abs(score)>Math.abs(strongest.score))strongest={other,rel,score,label};
+ });
+ if(!strongest||Math.abs(strongest.score)<4)return null;
+ const tone=strongest.score<=-7?'bad':strongest.score<0?'warn':'good';
+ return {tone,label:strongest.label,text:strongest.label+' with '+strongest.other.name,other:strongest.other};
+}
+function lotMediationOffer(f,storyId=null){
+ if(!f||!['development','production'].includes(f.stage))return null;
+ const stories=lotActiveStoriesForFilm(f).filter(s=>s.type!=='friendship'),story=storyId?stories.find(s=>s.id===storyId):stories[0];if(!story)return null;
+ const attempts=(f.lotMediations?.[story.id]||[]),last=attempts.at(-1)||null,cooldownUntil=last?last.week+3:0;
+ const cost=+(.14+(story.intensity||2)*.055+(f.stage==='production'?.04:0)).toFixed(2);
+ return {story,cost,attempts,last,available:attempts.length<2&&state.week>=cooldownUntil,cooldownUntil,exhausted:attempts.length>=2};
+}
+function mediateLotStory(f,storyId){
+ const offer=lotMediationOffer(f,storyId);if(!offer)return showToast('There is no active Lot conflict to mediate on this film.');
+ if(!offer.available){
+  if(offer.exhausted)return showToast('This studio has already used its mediation leverage on this conflict.');
+  return showToast('Mediation can be attempted again in Week '+offer.cooldownUntil+'.');
+ }
+ if(!spend(offer.cost))return false;
+ const story=offer.story,aId=story.participants[0],bId=story.participants[1],a=talentById(aId),b=talentById(bId);if(!a||!b)return false;
+ const pa=ensureLotProfile(a),pb=ensureLotProfile(b),attemptNo=offer.attempts.length+1;
+ const temperament=((pa.traits.professionalism+pb.traits.professionalism+pa.traits.loyalty+pb.traits.loyalty)-(pa.traits.volatility+pb.traits.volatility+pa.traits.grudge+pb.traits.grudge))/400;
+ const studioRel=((a.relationship||0)+(b.relationship||0))/2,chance=clamp(.57+temperament*.18+studioRel*.002-(story.intensity||2)*.045,.30,.82);
+ const rr=makeRng(hash((state.seed||1)+'|lot-mediate|'+f.id+'|'+story.id+'|'+attemptNo)),roll=rr();
+ let outcome,headline,detail,delta,heatDelta,impact;const actorPair=f.directorId!==a.id&&f.directorId!==b.id;
+ if(roll<chance){
+  outcome='cooled';headline=a.name+' and '+b.name+' agree to cool it';detail=state.studio.name+' put both sides in a room and, against the odds, everybody left with the same number of lawyers they arrived with.';delta={affection:4,trust:6,tension:-20,grudge:-10};heatDelta=-22;impact={morale:3,stability:2,chemistry:actorPair?1:0};
+ }else if(roll<chance+.23){
+  outcome='contained';headline=a.name+' and '+b.name+' agree to professional distance';detail='Nobody has reconciled, but schedules, trailers and publicity are being separated enough to keep the film moving.';delta={trust:2,tension:-9,grudge:-3};heatDelta=-9;impact={morale:1,stability:1};
+ }else{
+  outcome='backfired';headline='Mediation makes '+a.name+' vs '+b.name+' worse';detail='The meeting intended to clear the air instead established, with unusual precision, several new reasons for resentment.';delta={trust:-5,tension:11,grudge:7};heatDelta=10;impact={morale:-2,stability:-2,chemistry:actorPair?-1:0};
+ }
+ const mem=lotRemember({type:'mediation',participants:[a.id,b.id],headline,detail,intensity:outcome==='backfired'?2:1,publicEvent:false,filmId:f.id,storyId:story.id});
+ lotAdjustRelationship(a,b,delta,mem.id);story.heat=clamp((story.heat||55)+heatDelta,0,100);story.lastWeek=state.week;story.memoryIds=story.memoryIds||[];story.memoryIds.unshift(mem.id);
+ f.lotMediations=f.lotMediations||{};(f.lotMediations[story.id] ||= []).push({week:state.week,outcome,cost:offer.cost,headline,detail});
+ if(f.stage==='production'&&typeof applyProductionImpact==='function')applyProductionImpact(f,{...impact,note:'The Lot mediation: '+headline});
+ f.history=f.history||[];f.history.push('Week '+state.week+': The Lot mediation — '+headline);
+ if(typeof addNews==='function')addNews(state,state.studio.name+' intervened in the '+a.name+' / '+b.name+' conflict around '+f.title+'. '+headline+'.','The Lot');
+ showToast(outcome==='cooled'?'Mediation worked. The conflict has cooled.':outcome==='contained'?'The conflict is contained, not resolved.':'Mediation backfired. The relationship is worse.');
+ save();render();return true;
+}
+
 function lotApplyIncidentConsequences(a,b,type,intensity,headline){
  if(typeof playerFilms!=='function'||typeof applyProductionImpact!=='function')return;
  const positive=type==='friendship';
