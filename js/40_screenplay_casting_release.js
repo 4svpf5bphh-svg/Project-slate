@@ -414,7 +414,12 @@ function recordTrackingSnapshot(f,reason=null){
  const m=ensureMarketingState(f),snap=preReleaseTracking(f);m.trackingHistory=m.trackingHistory||[];
  const last=m.trackingHistory[0];if(last&&last.phase===snap.phase&&last.day===currentCalendarDay())return last;
  const out={...snap,reason:reason||snap.phase,day:typeof currentCalendarDay==='function'?currentCalendarDay():null,week:state.week};
- m.trackingHistory.unshift(out);m.trackingHistory=m.trackingHistory.slice(0,8);return out;
+ m.trackingHistory.unshift(out);m.trackingHistory=m.trackingHistory.slice(0,8);
+ if(f.owner==='player'&&typeof publishExecutiveIntel==='function'){
+  const trend=last?out.center-last.center:null,trendText=trend===null?'First public range.':Math.abs(trend)<.6?'Broadly flat versus the last read.':trend>0?'Up '+money(Math.abs(trend))+' at the midpoint versus the last read.':'Down '+money(Math.abs(trend))+' at the midpoint versus the last read.';
+  publishExecutiveIntel('tracking:'+f.id+':'+out.day+':'+out.phase,f.title+' tracking: '+money(out.low)+'–'+money(out.high)+' domestic',out.phase+' · midpoint '+money(out.center)+'. '+trendText+' '+(out.intel?.text||''),f.id,{screen:'slate',detail:{type:'film',id:f.id}});
+ }
+ return out;
 }
 function trackingVsActual(f,openingDom){
  const hist=f.marketingState?.trackingHistory||[],t=hist[0];if(!t)return null;
