@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0c.3</title>
+<title>Project Slate — Premium Presentation v4.0d.1</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0c.3';
+const VERSION='4.0d.1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -2772,6 +2772,38 @@ function productionDepthCost(f){
  const p=producerStrategy(f),e=effectsApproach(f);
  return +(p.cost+(f.budget||0)*e.costRate).toFixed(2);
 }
+
+function productionChoiceFeedbackHTML(f){
+ ensureProductionDepth(f);const ratio=(f.budget||0)/Math.max(1,scriptById(f.scriptId)?.naturalBudget||1),rows=[];
+ rows.push(f.producerStrategy==='creative'?['Creative cover','More room for performance and direction; slightly looser cost control.','good']:f.producerStrategy==='commercial'?['Commercial discipline','More pace and clarity for a broad audience; some creative nuance may be traded away.','warn']:['Budget control','Stronger stability and overrun control; limited creative upside.','blue']);
+ rows.push(f.effectsApproach==='digital'&&ratio<.9?['VFX funding risk','The digital ambition is above the budget level the effects plan is comfortable carrying.','bad']:f.effectsApproach==='digital'?['Technical ambition','Higher craft ceiling, with more exposure if schedule or budget slips.','good']:f.effectsApproach==='practical'?['In-camera emphasis','Tangible work can help actors and texture, but puts more pressure on the shooting schedule.','blue']:['Balanced execution','Hybrid effects spread technical risk without chasing the highest ceiling.','blue']);
+ return '<div class="card" style="margin-top:12px"><div class="row"><strong>Executive notes</strong><span class="pill blue">Immediate read</span></div>'+rows.map(x=>'<div class="listrow"><div><strong>'+x[0]+'</strong><div class="small">'+x[1]+'</div></div><span class="pill '+x[2]+'">'+(x[2]==='good'?'Upside':x[2]==='bad'?'Risk':x[2]==='warn'?'Trade-off':'Context')+'</span></div>').join('')+'</div>';
+}
+function filmChoiceCallback(f){
+ const m=f.metrics||{},ratio=(f.budget||0)/Math.max(1,scriptById(f.scriptId)?.naturalBudget||1);
+ if(f.effectsApproach==='digital'&&ratio<.9)return 'The VFX-forward plan became a visible constraint: the ambition survived, but the funding never fully caught up.';
+ if(f.producerStrategy==='creative'&&((m.performances||0)>=78||(m.direction||0)>=78))return 'The Creative Producer choice survived into the finished film as a real performance/directing strength.';
+ if(f.producerStrategy==='commercial'&&((m.pacing||0)>=78||(m.clarity||0)>=78))return 'The Commercial Producer choice shows up in the finished film’s pace and clarity.';
+ if(f.producerStrategy==='lean'&&(m.stability||0)>=76)return 'The Budget-Control Producer delivered the stronger production stability the studio paid for.';
+ return '';
+}
+function filmOutcomeFactorsHTML(f){
+ if(!f?.review)return '';const sc=scriptById(f.scriptId),ratio=(f.budget||0)/Math.max(1,sc?.naturalBudget||1),intel=f.releaseWeek?releaseWindowIntel(f,f.releaseWeek):null,rows=[];
+ if(ratio<.8)rows.push(['Underfunded production','Budget was materially below the screenplay’s natural scale.','bad']);else if(ratio>=.95&&ratio<=1.18)rows.push(['Budget fit','Funding stayed close to the material’s natural scale.','good']);
+ const cb=filmChoiceCallback(f);if(cb)rows.push(['Production strategy',cb,/constraint/i.test(cb)?'bad':'good']);
+ if(intel?.pressure>=.18)rows.push(['Release competition',intel.text,'bad']);else if(intel)rows.push(['Release window',intel.text,'blue']);
+ const mr=(f.marketing||0)/Math.max(1,marketingRecommended(f));if(mr<.5)rows.push(['Campaign reach','Marketing was well below the recommended level for this release.','bad']);else if(mr>=.9)rows.push(['Campaign reach','The campaign had enough paid support to convert awareness.','good']);
+ if(f.review.audience>=84)rows.push(['Audience word of mouth','Strong audience response supported later-week demand.','good']);else if(f.review.audience<58)rows.push(['Audience word of mouth','Weak audience response left the run exposed after opening.','bad']);
+ if(f.releaseProfile?.type==='breakout'||f.releaseProfile?.type==='sleeper')rows.push(['Run shape','Demand expanded beyond the normal opening pattern.','good']);else if(f.releaseProfile?.type==='bomb'||f.releaseProfile?.type==='frontloaded')rows.push(['Run shape','Demand was consumed too quickly for the investment behind the release.','bad']);
+ return '<div class="section-title"><h2>Why it happened</h2><span class="small">Major causal signals · not hidden-score disclosure</span></div><div class="card">'+rows.slice(0,6).map(x=>'<div class="listrow"><div><strong>'+x[0]+'</strong><div class="small">'+x[1]+'</div></div><span class="pill '+x[2]+'">'+(x[2]==='good'?'Helped':x[2]==='bad'?'Hurt':'Context')+'</span></div>').join('')+'</div>';
+}
+function bridgeDebtProjection(q,weeks){return q*1.14*Math.pow(1+(state.finance?.weeklyInterest||0),weeks)}
+function bridgeRecoveryContext(){
+ const fs=playerFilms().filter(f=>!['complete','shelved'].includes(f.stage)),c=fs.find(f=>f.stage==='cinema');if(c)return c.title+' is already generating theatrical receipts, but the remaining run is uncertain.';
+ const d=fs.filter(f=>f.releaseWeek&&f.releaseWeek>=state.week).sort((a,b)=>a.releaseWeek-b.releaseWeek)[0];if(d){const w=d.releaseWeek-state.week;return d.title+' is the nearest dated release, opening in '+w+' week'+(w===1?'':'s')+'.';}
+ const late=fs.find(f=>['post','marketing'].includes(f.stage));return late?late.title+' is nearest to release, but no theatrical cash date is committed yet.':'No near-term player film has a committed theatrical cash event.';
+}
+
 function applyProductionDepthMetrics(f){
  const p=producerStrategy(f),e=effectsApproach(f);
  Object.entries(p.effects).forEach(([k,v])=>f.metrics[k]=clamp((f.metrics[k]||65)+v,20,98));
@@ -3068,7 +3100,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0c.3-awards-competition',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0d.1-causality-clarity',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -4524,7 +4556,9 @@ function talentProjectInterest(t,f,roleRef=null,mode='select'){
   else if(t.star>=88&&f.budget<12)reason='The project is currently too small for the performer’s market position.';
   else if(studioRel<0)reason='The existing relationship with the studio is not strong enough to overcome reservations about the part.';
   else if(mode==='audition'&&t.star>=84)reason='The representatives declined to put the performer through an audition process for this role.';
-  else reason='The representatives passed on the role after reviewing the material and package.';
+  else if(t.momentum>=82&&role.type==='lead')reason='Recent momentum has raised the bar for the performer’s next lead role; the representatives want more obvious career upside.';
+  else if((t.credits||[]).slice(-3).some(c=>c.genre===f.genre))reason='The agent feels this part is too close to the performer’s recent work.';
+  else reason='The representatives passed after weighing the role, package, studio relationship and the performer’s current career position.';
  }
  return {accept,score,reason,fit,roleId:role.id};
 }
@@ -5511,7 +5545,7 @@ function filmWrapVerdictCopy(f,l=ensureLegacyState(f)){
  else first=`Not every release becomes lore. Some become evidence. ${f.title} ends at ${money(f.finalGross)} worldwide with ${l.profit>=0?'a '+money(l.profit)+' studio profit':'a '+money(Math.abs(l.profit))+' studio loss'}, and it is now part of what this studio can actually point to rather than promise.`;
  if(track)first+=` ${track.text}`;
  if(l.bestHold!==null&&l.bestHold<.18)first+=` The strongest hold — ${l.bestHold<0?Math.round(Math.abs(l.bestHold)*100)+'% growth':Math.round(l.bestHold*100)+'% down'} — turned staying power into part of the film's identity.`;
- return first;
+ const choice=filmChoiceCallback(f);if(choice)first+=' '+choice;return first;
 }
 function wrapCapitalise(text=''){const s=String(text||'').trim();return s?s[0].toUpperCase()+s.slice(1):s}
 function filmWrapProductionMoment(f){
@@ -7221,7 +7255,7 @@ function criticCraftParagraph(f,tier,critic){
  let line=variationPick(f,'critic-strength-'+critic.id+'-'+strong,strongPools[strong]||strongPools.direction);
  if(!good&&risk&&risk!==strong)line+=` ${variationPick(f,'critic-risk-'+critic.id+'-'+risk,riskPools[risk]||riskPools.pacing)}`;
  else if(good&&risk&&risk!==strong&&tier!=='rave')line+=` The weak spot is ${risk}: ${variationPick(f,'critic-risk-soft-'+critic.id+'-'+risk,riskPools[risk]||riskPools.pacing).replace(/^The /,'the ')}`;
- return line;
+ const choice=filmChoiceCallback(f);if(choice)line+=' '+choice;return line;
 }
 function criticClosingParagraph(f,tier,critic,critics,audience){
  const sc=scriptById(f.scriptId),id=ensureFilmIdentity(f),dir=f.creativeDirection?.label||null,music=f.soundtrack?.committed?soundtrackSummary(f):null;
@@ -9928,7 +9962,7 @@ function updateSocialPulseWeek(){
 }
 function pushDeskItem(x){
  const d=ensureDesk(),id=d.nextId++;let item={id,week:state.week,day:typeof currentCalendarDay==='function'?currentCalendarDay():null,read:false,expanded:true,resolved:false,archived:false,urgency:'normal',type:'industry',source:'The Lot',choices:[],...x};
- item=lotDeskVoice(item);
+ item=lotDeskVoice(item);item.expanded=!!item.requiresAction;
  d.items.unshift(item);d.items=d.items.slice(0,90);
  if(item.requiresAction&&typeof notify==='function'){
   const deadline=item.expiresWeek?` Respond before the end of Week ${item.expiresWeek}.`:'';
@@ -10227,7 +10261,7 @@ function studioPulseRows(){
 }
 function studioDeskSnapshot(){const d=ensureDesk(),open=d.items.filter(x=>!x.resolved&&x.requiresAction),urgent=open.filter(x=>x.urgency==='urgent'),unread=d.items.filter(x=>!x.read),latest=d.items[0];return `<div class="section-title"><h2>Studio Desk</h2><button class="btn ghost" data-studio-tab="desk">Open Desk${open.length?` · ${open.length}`:''}</button></div><div class="card desk-snapshot ${urgent.length?'attention':''}"><span class="desk-dot ${urgent.length?'urgent':''}"></span><div><strong>${urgent.length?`${urgent.length} urgent ${urgent.length===1?'item':'items'}`:open.length?`${open.length} ${open.length===1?'decision':'decisions'} waiting`:unread.length?`${unread.length} unread ${unread.length===1?'item':'items'}`:'Desk clear'}</strong><div class="small">${latest?latest.headline:'Press, agencies and The Lot will surface here as the career develops.'}</div></div><button class="btn" data-studio-tab="desk">Review</button></div>`}
 function deskItemHTML(x){
- const choices=x.choices||[],expanded=!x.read||x.expanded,status=x.resolved?(x.expired?'Expired':'Resolved'):x.requiresAction?'Response needed':'For awareness',weeks=x.expiresWeek?x.expiresWeek-state.week:null,deadline=!x.resolved&&x.expiresWeek?`<span class="small ${weeks<=1?'badtext':''}">Closes after W${x.expiresWeek}${weeks>=0?` · ${weeks===0?'last chance':weeks+'w left'}`:''}</span>`:'';
+ const choices=x.choices||[],expanded=x.requiresAction?(!x.read||x.expanded):!!x.expanded,status=x.resolved?(x.expired?'Expired':'Resolved'):x.requiresAction?'Response needed':'For awareness',weeks=x.expiresWeek?x.expiresWeek-state.week:null,deadline=!x.resolved&&x.expiresWeek?`<span class="small ${weeks<=1?'badtext':''}">Closes after W${x.expiresWeek}${weeks>=0?` · ${weeks===0?'last chance':weeks+'w left'}`:''}</span>`:'';
  return `<div class="card desk-item ${x.urgency==='urgent'?'urgent':x.requiresAction?'action':'info'} ${x.read?'desk-read':''}"><div class="desk-meta"><span class="desk-source">${x.source}</span><span class="pill ${x.urgency==='urgent'?'bad':x.requiresAction?'warn':'blue'}">${status}</span><span class="small">${x.day&&typeof calendarShortDate==='function'?calendarShortDate(x.day):'W'+x.week}</span>${deadline}</div><div class="desk-headline">${x.headline}</div>${expanded?`<div class="body" style="margin-top:7px">${x.body}</div>${x.type==='gossip'?`<div class="small" style="margin-top:8px">Rumour status: unverified. Lot gossip can be accurate, distorted or wrong.</div>`:''}${!x.resolved&&choices.length?`<div class="desk-choice-grid">${choices.map(c=>`<button class="btn ${x.urgency==='urgent'?'primary':''}" data-desk-choice="${c[0]}" data-desk-id="${x.id}">${c[1]}</button>`).join('')}</div>`:''}${x.outcome?`<div class="desk-outcome"><strong>Outcome</strong><div class="small" style="margin-top:4px">${x.outcome}</div>${x.impact?.length?`<div class="desk-impact">${x.impact.map(v=>`<span>${v}</span>`).join('')}</div>`:''}</div>`:''}`:`<div class="small desk-collapsed-note">Read · ${x.requiresAction&&!x.resolved?'decision still waiting · ':''}details collapsed</div>`}<div class="desk-actions">${!x.read?`<button class="btn ghost" data-desk-read="${x.id}">Mark read</button>`:''}${x.destination&&x.system?`<button class="btn ${x.requiresAction&&!x.resolved?'primary':'ghost'}" data-desk-open="${x.id}">${x.requiresAction&&!x.resolved?'Open action':'Open'}</button>`:''}<button class="btn ghost" data-desk-toggle="${x.id}">${expanded?'Collapse':x.requiresAction&&!x.resolved?'View details':'View'}</button>${x.resolved?`<button class="btn ghost" data-desk-archive="${x.id}">Archive</button>`:''}</div></div>`;
 }
 function pulseMetricRead(kind,value){
@@ -10271,7 +10305,7 @@ function studioDeskBody(){
  return `<div class="desk-hero"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length} response${open.length===1?'':'s'} waiting</div><div class="body" style="margin-top:8px">One inbox for the studio. Lifecycle checkpoints, milestones, finance warnings, agency approaches and industry traffic all live here. Full-screen moments remain full-screen, but once you have seen them they do not leave a second notification behind.</div></div><div class="card"><div class="listrow"><span>Unread</span><strong>${unread.length}</strong></div><div class="listrow"><span>Needs action</span><strong>${open.length}</strong></div><div class="listrow"><span>Archived</span><strong>${d.archive.length}</strong></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
  <div class="section-title"><h2>Needs a response</h2><span class="small">Hard production, rough-cut and release-planning checkpoints also stop Continue</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>No response is waiting.</strong><div class="small" style="margin-top:5px">The Lot is never quiet for long.</div></div>`}</div>
  <div class="section-title desk-section pulse-section-title"><h2>Pulse</h2><span class="small">Audience conversation · tap a film to drill in</span></div><div class="pulse-board">${pulse.length?pulse.map(pulseFilmHTML).join(''):`<div class="card pulse-empty"><span class="pulse-brand">PULSE</span><div class="body" style="margin-top:8px">Audience conversation starts to appear once a film reaches production. It becomes more meaningful as trailers, publicity and real audiences give people something to react to.</div></div>`}</div>
- <div class="section-title desk-section"><h2>Inbox</h2><div style="display:flex;gap:8px;align-items:center"><span class="small">Read items collapse to headlines</span>${unread.length?`<button class="btn ghost" id="deskMarkAllRead2">Mark all read</button>`:''}${archivable?`<button class="btn ghost" id="deskArchiveRead2">Archive read</button>`:''}</div></div><div class="desk-stack">${d.items.length?d.items.filter(x=>!open.includes(x)).slice(0,30).map(deskItemHTML).join(''):`<div class="card body">No Desk traffic yet. Continue the calendar to let the industry move.</div>`}</div>`;
+ <div class="section-title desk-section"><h2>Industry brief</h2><div style="display:flex;gap:8px;align-items:center"><span class="small">Awareness only · collapsed by default</span>${unread.length?`<button class="btn ghost" id="deskMarkAllRead2">Mark all read</button>`:''}${archivable?`<button class="btn ghost" id="deskArchiveRead2">Archive read</button>`:''}</div></div><div class="desk-stack">${d.items.length?d.items.filter(x=>!open.includes(x)).slice(0,30).map(deskItemHTML).join(''):`<div class="card body">No Desk traffic yet. Continue the calendar to let the industry move.</div>`}</div>`;
 }
 
 function legendCardHTML(entry){
@@ -10365,7 +10399,7 @@ function financeScreen(){
    ${capitalAllocationPanel()}
   <div class="section-title"><h2>Emergency bridge finance</h2></div><div class="card dangerline"><div class="body">Bridge finance prevents a cash-flow mistake from ending the career, but it is intentionally expensive. Each draw adds a 14% financing premium and outstanding debt accrues ${(state.finance.weeklyInterest*100).toFixed(1)}% interest every week.</div>
  <div class="grid cols3" style="margin-top:12px">${[2.5,5,10].map(v=>`<button class="btn" data-finance-quote="${v}">Review ${money(v)} draw</button>`).join('')}</div>
- ${q?`<div class="card" style="margin-top:12px"><div class="body"><strong>Confirm borrowing?</strong><br>Receive ${money(q)} cash now. ${money(q*1.14)} will be added to bridge debt before weekly interest.</div><div class="grid cols2" style="margin-top:10px"><button class="btn" id="cancelFinanceQuote">Cancel</button><button class="btn primary" id="confirmFinanceQuote">Confirm ${money(q)} draw</button></div></div>`:''}</div>
+ ${q?`<div class="card" style="margin-top:12px"><div class="body"><strong>Confirm borrowing?</strong><br>Receive ${money(q)} cash now. ${money(q*1.14)} enters bridge debt immediately. With no repayment, that draw alone becomes about <strong>${money(bridgeDebtProjection(q,4))}</strong> after 4 weeks and <strong>${money(bridgeDebtProjection(q,8))}</strong> after 8 weeks.<br><span class="small"><strong>Nearest possible recovery:</strong> ${bridgeRecoveryContext()} Projection assumes the current rate and no repayment; future film revenue is not guaranteed.</span></div><div class="grid cols2" style="margin-top:10px"><button class="btn" id="cancelFinanceQuote">Cancel</button><button class="btn primary" id="confirmFinanceQuote">Confirm ${money(q)} draw</button></div></div>`:''}</div>
  ${state.finance.bridgeDebt>0?`<div class="section-title"><h2>Repayment</h2></div><div class="card"><div class="body">Repay debt when cash allows. Paying it down reduces future weekly interest.</div><div class="grid cols3" style="margin-top:10px">${[1,5,10].map(v=>`<button class="btn" data-repay="${v}" ${state.cash<=0?'disabled':''}>Repay ${money(Math.min(v,state.finance.bridgeDebt))}</button>`).join('')}</div></div>`:''}
  </main>${nav()}`;
 }
@@ -10646,7 +10680,7 @@ function developmentUI(f,s){
  <div class="card"><div class="row"><span>Committed production spend</span><strong id="budgetRead">${money(f.budget)}</strong></div><input id="budgetSlider" class="range" type="range" min="${min}" max="${max}" step="0.5" value="${f.budget}" style="margin-top:14px"><div class="range-labels"><span>${money(min)}</span><span>${money(max)}</span></div><div id="budgetAdvice" class="body" style="margin-top:10px">${budgetAdvice(f.budget,s)}</div><div class="cast-scale-note"><strong>${supportReq.label}</strong><span>${supportReq.required===0?'At this scale a third performer is optional.':supportReq.required===1?'This scale requires one supporting performer in addition to the two leads.':'At event scale the film must carry four principal performers: two leads and two supporting roles.'}</span></div><div id="cashAfter" class="small" style="margin-top:8px">Estimated cash after package + production: ${money(cashAfter)}</div></div>
  <div class="section-title"><h2>Production leadership</h2><span class="small">One producer strategy · explicit trade-off</span></div><div class="grid cols3">${Object.entries(PRODUCER_STRATEGIES).map(([id,p])=>{const selected=f.producerStrategy===id;return `<button class="card selection-card ${selected?'selected-choice':''}" data-producer-strategy="${id}" aria-pressed="${selected?'true':'false'}">${selected?'<div class="selected-choice-badge">✓ Selected</div>':''}<div class="row"><strong>${p.name}</strong><span class="pill">${money(p.cost)}</span></div><div class="small" style="margin-top:7px">${p.desc}</div></button>`}).join('')}</div>
  <div class="section-title"><h2>Effects approach</h2><span class="small">Paid as a percentage of production budget</span></div><div class="grid cols3">${Object.entries(EFFECTS_APPROACHES).map(([id,e])=>{const selected=f.effectsApproach===id;return `<button class="card selection-card ${selected?'selected-choice':''}" data-effects-approach="${id}" aria-pressed="${selected?'true':'false'}">${selected?'<div class="selected-choice-badge">✓ Selected</div>':''}<div class="row"><strong>${e.name}</strong><span class="pill">${Math.round(e.costRate*1000)/10}% · ${money(f.budget*e.costRate)}</span></div><div class="small" style="margin-top:7px">${e.desc}</div></button>`}).join('')}</div>
- <div class="section-title"><h2>Creative brief</h2><span class="small">These choices also change which talent fits the project</span></div>
+   ${productionChoiceFeedbackHTML(f)}\n  <div class="section-title"><h2>Creative brief</h2><span class="small">These choices also change which talent fits the project</span></div>
  <div class="small" style="margin-bottom:6px">Positioning</div><div class="grid cols3">${choice('positioning','commercial','Commercial','Maximise accessibility and momentum.')}${choice('positioning','balanced','Balanced','Protect both craft and broad appeal.')}${choice('positioning','prestige','Prestige','Prioritise creative reputation and nuance.')}</div>
  <div class="small" style="margin:12px 0 6px">Tone</div><div class="grid cols3">${choice('tone','grounded','Grounded','Performance and realism first.')}${choice('tone','balanced','Balanced','Stay close to the screenplay’s centre.')}${choice('tone','heightened','Heightened','Push energy, style and genre elements.')}</div>
  <div class="small" style="margin:12px 0 6px">Audience rating</div><div class="grid cols3">${choice('rating','broad','Broad','Wider audience, some creative limits.')}${choice('rating','mainstream','Mainstream','The default middle ground.')}${choice('rating','mature','Mature','Narrower reach, fewer content compromises.')}</div>
@@ -10832,7 +10866,7 @@ function cinemaUI(f){
  ${milestones.length?`<div class="boxbadges">${milestones.map(x=>`<span class="pill ${x.includes('bomb')?'bad':'good'}">${x}</span>`).join('')}</div>`:''}
  ${trackStory?`<div class="tracking-actual ${trackStory.cls}"><div class="badge">TRACKING VS REALITY</div><strong>${trackStory.label}</strong><span>${trackStory.text}</span></div>`:''}
  <div class="section-title"><h2>Weekend story</h2><span class="small">${settled?pace.text:`The full field settles on ${calendarDateLabel(sundayForWeek(state.week))}. Rankings remain provisional until then.`}</span></div><div class="card ${settled&&pace.cls==='good'?'goodline':settled&&pace.cls==='bad'?'dangerline':''}"><div class="body">${settled?weeklyCinemaText(f,row,{rank}):`${f.title} is in cinemas and the weekend is still being counted. Opening and hold grosses are visible, but no chart position is recorded until every competing film has been processed on Sunday.`}</div></div>
-   ${theatricalInterventionPanel(f)}\n  <div class="section-title"><h2>The box-office race</h2><span class="small">Your run against overlapping releases</span></div>${cinemaComparisonGraph(f)}
+   ${theatricalInterventionPanel(f)}\n  ${filmOutcomeFactorsHTML(f)}\n  <div class="section-title"><h2>The box-office race</h2><span class="small">Your run against overlapping releases</span></div>${cinemaComparisonGraph(f)}
  <div class="section-title"><h2>Press & audience</h2></div><div class="card click" id="reviewCard"><div class="row"><div><div class="badge">${f.review.publication}</div><div class="quote" style="margin-top:8px">“${f.review.quote}”</div></div><div class="reviewscore">${f.review.stars.toFixed(1)}★<span>${f.review.critics}%</span></div></div><div class="small" style="margin-top:8px">Audience ${f.review.audience}% · Tap for the full review and segment response</div></div>
  <div class="section-title"><h2>Run history</h2></div><div class="card">${f.weeklyResults.map(w=>`<div class="listrow"><div><strong>Week ${w.week} · ${w.settledRank?'#'+w.settledRank:'Pending'}</strong><div class="small">${w.drop===null?'Opening':w.drop<0?`${Math.round(Math.abs(w.drop)*100)}% domestic growth`:`${Math.round(w.drop*100)}% domestic drop`} · ${w.worldWeek?calendarShortDate(sundayForWeek(w.worldWeek)):''}</div></div><strong>${w.settledRank?money(w.dom+w.intl)+' WW':'Counting…'}</strong></div>`).join('')}</div>`;
 }
@@ -10856,7 +10890,7 @@ function reviewScreen(f){
  ${roundup.length?`<div class="section-title"><h2>Critical roundup</h2><span class="small">Capsule verdicts</span></div><div class="grid">${roundup.map(r=>`<div class="card"><div class="row">${pressLogoHTML(r.publication,'xs',true)}<span class="pill">${r.stars.toFixed(1)} / 5 ★</span></div>${r.critic?`<div class="small" style="margin-top:7px">${r.critic} · ${r.voice||"Critic"}</div>`:""}<strong style="display:block;margin-top:9px">${r.headline||r.quote||"Review filed"}</strong></div>`).join('')}</div>`:''}
  ${f.audienceSegments?`<div class="section-title"><h2>Audience segments</h2><span class="small">Post-release response</span></div><div class="grid">${Object.entries(f.audienceSegments).sort((a,b)=>b[1]-a[1]).map(([name,score])=>`<div class="card ${score>=80?'goodline':score<50?'dangerline':''}"><div class="row"><strong>${name}</strong><strong>${Math.round(score)}%</strong></div><div class="small" style="margin-top:5px">${score>=82?'Enthusiastic':score>=70?'Strong':score>=58?'Mixed-positive':score>=48?'Mixed':'Weak'}</div></div>`).join('')}</div>`:''}
  <div class="section-title"><h2>Campaign vs reality</h2></div><div class="card"><div class="listrow"><span>Trailer promise</span><strong>${m.trailer||'concept'}-first</strong></div><div class="listrow"><span>Pre-release heat</span><strong>${marketingPublicStatus(f).heat}</strong></div><div class="listrow"><span>Expectation pressure</span><strong>${marketingPublicStatus(f).pressure}</strong></div>${f.soundtrack?.committed?`<div class="listrow"><span>Music</span><strong>${soundtrackSummary(f)}</strong></div>`:''}${m.advancePress?`<div class="listrow"><span>Advance notices</span><strong>${m.advancePress}</strong></div>`:''}</div>
- <div class="section-title"><h2>What the review was responding to</h2></div><div class="card body"><strong>${f.review.sourceContext.title}</strong> · ${f.review.sourceContext.genre}<br><span class="small">${f.review.sourceContext.logline}</span><div class="hr"></div><span class="small"><strong>Finished-film identity:</strong> ${filmIdentityLine(f)}</span></div>
+ ${filmOutcomeFactorsHTML(f)}\n  <div class="section-title"><h2>What the review was responding to</h2></div><div class="card body"><strong>${f.review.sourceContext.title}</strong> · ${f.review.sourceContext.genre}<br><span class="small">${f.review.sourceContext.logline}</span><div class="hr"></div><span class="small"><strong>Finished-film identity:</strong> ${filmIdentityLine(f)}</span></div>
  <div class="grid cols2" style="margin-top:12px"><div class="card"><div class="badge">Critics</div><div class="kpi">${f.review.critics}%</div></div><div class="card"><div class="badge">Audience</div><div class="kpi">${f.review.audience}%</div></div></div>
  </main>${nav()}`;
 }
@@ -10896,7 +10930,7 @@ function wrapUI(f){
  ${legacyReportHTML(f)}
  <div class="grid cols4" style="margin-top:12px"><div class="card"><div class="badge">Domestic</div><div class="kpi">${money(dom)}</div></div><div class="card"><div class="badge">International</div><div class="kpi">${money(intl)}</div></div><div class="card"><div class="badge">Worldwide</div><div class="kpi">${money(f.finalGross)}</div></div><div class="card"><div class="badge">Studio P/L</div><div class="kpi">${profit>=0?'+':''}${money(profit)}</div></div></div>
  <div class="section-title"><h2>Reception</h2></div><div class="card"><div class="listrow"><span>Critics</span><strong>${f.review.critics}%</strong></div><div class="listrow"><span>Audience</span><strong>${f.review.audience}%</strong></div><div class="listrow"><span>Studio investment</span><strong>${money(f.investment)}</strong></div>${f.backendPaid?`<div class="listrow"><span>Talent backend paid</span><strong>${money(f.backendPaid)}</strong></div>`:''}</div>
- <div class="section-title"><h2>Career consequences</h2></div><div class="card body">${careerConsequenceText(f,profit)}</div>
+ ${filmOutcomeFactorsHTML(f)}\n  <div class="section-title"><h2>Career consequences</h2></div><div class="card body">${careerConsequenceText(f,profit)}</div>
  ${franchiseRightsPanel(f)}
  ${typeof streamingRightsPanel==='function'?streamingRightsPanel(f):''}
  ${(()=>{const a=ensureAfterlifeState(f),season=awardsSeasonId(state.week),sameSeason=awardsSeasonId(f.completeWeek||state.week)===season,nom=awardsNominationRecord(season),nominated=(a.nominations||[]).some(x=>x.season===season),canCampaign=sameSeason&&state.lastAwardsSeasonResolved<season&&(!nom||nominated),focused=+(awardsPushCost(f,1)*(1-awardsCampaignDiscount())).toFixed(2),full=+(awardsPushCost(f,2)*(1-awardsCampaignDiscount())).toFixed(2);return `<div class="section-title"><h2>Afterlife & awards</h2><span class="pill">${awardsSummaryForFilm(f)}</span></div><div class="card"><div class="listrow"><span>Post-theatrical revenue</span><strong>${money(a.totalRevenue)}</strong></div><div class="listrow"><span>Current weekly library revenue</span><strong>${money(a.weeklyRevenue)}</strong></div><div class="listrow"><span>Library value</span><strong>${money(a.libraryValue)}</strong></div><div class="listrow"><span>Catalogue status</span><strong>${a.cultStatus?'Cult / long-tail title':'Standard catalogue'}</strong></div>${a.licensingDeals.length?`<div class="small" style="margin-top:7px">${a.licensingDeals.length} licensing deal${a.licensingDeals.length===1?'':'s'} completed.</div>`:''}${!a.awardsPush&&canCampaign?`<div class="awards-campaign-options"><button class="btn" id="awardsPushFocused"><strong>Focused campaign · ${money(focused)}</strong><span>Meaningful support with disciplined spend.</span></button><button class="btn primary" id="awardsPushFull"><strong>Full campaign · ${money(full)}</strong><span>Maximum awards push and the largest financial commitment.</span></button></div>`:a.awardsPush?`<div class="small" style="margin-top:8px">${a.awardsPushLevel===2?'Full-scale':'Focused'} awards campaign active · ${money(a.awardsPushCost)} committed.</div>`:nom&&sameSeason&&!nominated?`<div class="small" style="margin-top:8px">The Year ${season} nominations are locked and this film is outside the final field.</div>`:''}</div>`})()}
