@@ -728,12 +728,17 @@ function agencyInterestModifier(t,f){
  if(a.id==='atlas')modifier+=f.budget>=25?3:-2;
  return Math.round(modifier+(fit>=82?2:fit<50?-3:0));
 }
+function activeAgencyWindow(t){
+ const w=state.agencyWindows?.[t?.id],film=w?filmById(w.filmId):null;
+ return w&&state.week<=w.expiresWeek&&film?.stage==='development'?w:null;
+}
 function agencyWindow(t,f){
- const w=state.agencyWindows?.[t?.id];
- return w&&w.filmId===f?.id&&state.week<=w.expiresWeek&&f.stage==='development'?w:null;
+ const w=activeAgencyWindow(t);
+ return w&&w.filmId===f?.id?w:null;
 }
 function openAgencyWindow(t,f){
  if(!t||!f||f.stage!=='development')return false;
+ const active=activeAgencyWindow(t);if(active&&active.filmId!==f.id)return false;
  state.agencyWindows=state.agencyWindows||{};
  state.agencyWindows[t.id]={filmId:f.id,agencyId:talentAgency(t).id,openedWeek:state.week,expiresWeek:state.week+4};
  return true;
@@ -743,10 +748,10 @@ function ensureAgencyInfluenceState(){
 }
 function agencyInfluenceOffer(t,f){
  if(!t||!f||f.stage!=='development'||talentUnavailableForFilm(t,f)||packageTalentIds(f).includes(t.id))return null;
- const x=agencyMarketLeverage(t,f),st=ensureAgencyInfluenceState(),until=st.cooldowns[x.agency.id]||0,window=agencyWindow(t,f);
- const eligible=x.standing.score>=4,available=eligible&&!window&&state.week>=until;
- return {talent:t,film:f,agency:x.agency,standing:x.standing,eligible,available,window,cooldownUntil:until,
-  reason:window?'Priority conversation already active.':!eligible?x.agency.name+' is not warm enough with your studio to spend relationship capital this way.':state.week<until?'Agency favour available again in Week '+until+'.':'Use the agency relationship to open a four-week priority conversation.'};
+ const x=agencyMarketLeverage(t,f),st=ensureAgencyInfluenceState(),until=st.cooldowns[x.agency.id]||0,window=agencyWindow(t,f),active=activeAgencyWindow(t);
+ const conflict=active&&active.filmId!==f.id,eligible=x.standing.score>=4,available=eligible&&!window&&!conflict&&state.week>=until;
+ return {talent:t,film:f,agency:x.agency,standing:x.standing,eligible,available,window,active,cooldownUntil:until,
+  reason:conflict?'A priority conversation is already active on '+(filmById(active.filmId)?.title||'another project')+'.':window?'Priority conversation already active.':!eligible?x.agency.name+' is not warm enough with your studio to spend relationship capital this way.':state.week<until?'Agency favour available again in Week '+until+'.':'Use the agency relationship to open a four-week priority conversation.'};
 }
 function useAgencyInfluence(t,f){
  const offer=agencyInfluenceOffer(t,f);if(!offer)return showToast('No agency leverage is available on that package.');
