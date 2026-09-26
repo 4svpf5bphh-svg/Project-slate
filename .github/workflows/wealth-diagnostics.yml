@@ -1,0 +1,50 @@
+name: one-shot wealth diagnostics
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect wealth and corporate systems
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path("index.html").read_text(encoding="utf-8")
+          terms=["corporateState","marketCap","sharePrice","investorConfidence","streamingPlatform","lifetimeCatalogue","libraryValue","studioUpgradeOverhead","weekly overhead","catalogue","IPO","cash reserve","spend("]
+          for term in terms:
+              print(f"\n===== TERM {term} =====")
+              hits=list(re.finditer(re.escape(term),s,re.I))
+              print("count",len(hits))
+              for m in hits[:35]:
+                  a=max(0,s.rfind("\n",0,max(0,m.start()-1000)))
+                  b=s.find("\n",min(len(s),m.start()+2200))
+                  print("\n---\n"+s[a:b])
+          print("\n===== FUNCTIONS =====")
+          for m in re.finditer(r"function\s+([A-Za-z0-9_]+)\s*\(",s):
+              name=m.group(1)
+              if re.search(r"(corporate|valuation|marketcap|share|investor|stream|catalog|library|overhead|cash|finance|spend|economy)",name,re.I):
+                  i=m.start(); brace=s.find("{",i); depth=0; quote=None; esc=False; j=brace
+                  while j<len(s):
+                      c=s[j]
+                      if quote:
+                          if esc: esc=False
+                          elif c=="\\": esc=True
+                          elif c==quote: quote=None
+                      else:
+                          if c in ("'", '"', "`"): quote=c
+                          elif c=="{": depth+=1
+                          elif c=="}":
+                              depth-=1
+                              if depth==0:
+                                  j+=1;break
+                      j+=1
+                  print(f"\n=== {name} ===\n"+s[i:j])
+          PY
