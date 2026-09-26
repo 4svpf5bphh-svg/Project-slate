@@ -12,46 +12,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect clarity systems
+      - name: Inspect exact clarity hooks
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
           s=Path("index.html").read_text(encoding="utf-8")
-          terms=[
-            "function filmDetail","function filmScreen","function filmOverview",
-            "function audience","function review","function box",
-            "function studioDeskBody","function syncOperationalDeskItems","function addDesk",
-            "function actorRoleFit","function agencyMarketLeverage","decline",
-            "Passed on","producerStrategy","effectsApproach",
-            "function filmWrap","function buildFilmLegacy","function careerConsequenceText",
-            "function generateTitle","function title","bridgeDebt","Bridge loan"
-          ]
-          for term in terms:
-              print(f"\n===== {term} =====")
-              hits=list(re.finditer(re.escape(term),s,re.I))
-              print("count",len(hits))
-              for m in hits[:30]:
-                  print("\n---\n"+s[max(0,m.start()-2500):m.start()+10000])
-
-          print("\n===== FUNCTIONS =====")
-          for m in re.finditer(r"function\s+([A-Za-z0-9_]+)\s*\(",s):
-              name=m.group(1)
-              if re.search(r"(desk|review|audience|box|declin|casting|legacy|wrap|finance|bridge|title|producer|effect|film)",name,re.I):
-                  i=m.start();brace=s.find("{",i);depth=0;quote=None;esc=False;j=brace
-                  while j<len(s):
-                      c=s[j]
-                      if quote:
-                          if esc: esc=False
-                          elif c=="\\": esc=True
-                          elif c==quote: quote=None
-                      else:
-                          if c in ("'", '"', "`"): quote=c
-                          elif c=="{": depth+=1
-                          elif c=="}":
-                              depth-=1
-                              if depth==0:
-                                  j+=1;break
-                      j+=1
-                  print(f"\n=== {name} ===\n"+s[i:j])
+          for term in [
+            "function talentDeclineForRole(",
+            "function talentProjectInterest(",
+            "function deskItemHTML(",
+            "function addDesk",
+            "function ensureDesk(",
+            "function buildFilmLegacy(",
+            "function filmDetailScreen(",
+            "function filmDetail(",
+            "function filmTimelineEntries(",
+            "function reviewUI(",
+            "function reviewScreen(",
+            "function producerStrategy(",
+            "function effectsApproach(",
+            "function setProducer",
+            "function setEffects",
+            "function generateTitle(",
+            "function createScript"
+          ]:
+              print("\n===== "+term+" =====")
+              i=s.find(term)
+              print("index",i)
+              if i>=0: print(s[max(0,i-1800):i+22000])
           PY
