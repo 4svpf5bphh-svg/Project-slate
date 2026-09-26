@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0b.1.1</title>
+<title>Project Slate — Premium Presentation v4.0b.2</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0b.1.1';
+const VERSION='4.0b.2';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -2202,6 +2202,57 @@ function ensureStudioGrowth(t=state){
 function studioUpgradeLevel(k){return ensureStudioGrowth().upgrades[k]||0}
 function nextStudioUpgrade(k){return STUDIO_UPGRADES[k]?.[studioUpgradeLevel(k)]||null}
 function studioUpgradeOverhead(){const u=ensureStudioGrowth().upgrades;return Object.keys(STUDIO_UPGRADES).reduce((sum,k)=>sum+STUDIO_UPGRADES[k].slice(0,u[k]||0).reduce((a,x)=>a+x.overhead,0),0)}
+const CAPITAL_ASSETS={
+ lot:{id:'lot',name:'Studio Lot & Soundstages',cost:18,recognition:35,upkeep:.012,value:20,effect:'18% lower active-slate carrying overhead',desc:'Own core stages and production space instead of carrying the full cost through outside facilities.'},
+ archive:{id:'archive',name:'Archive & Rights Division',cost:16,recognition:45,upkeep:.010,value:18,effect:'15% stronger recurring catalogue receipts',desc:'Build permanent rights, licensing and archive operations around the films the studio owns.'},
+ distribution:{id:'distribution',name:'Distribution Operations',cost:28,recognition:55,upkeep:.018,value:30,effect:'18% lower self-distribution release-operations cost',desc:'Bring more theatrical release operations in-house without changing the revenue share retained at the box office.'}
+};
+function ensureCapitalAssets(st=state){
+ const c=ensureCorporateState(st);c.capitalAssets=c.capitalAssets||{owned:{},history:[]};c.capitalAssets.owned=c.capitalAssets.owned||{};c.capitalAssets.history=c.capitalAssets.history||[];return c.capitalAssets;
+}
+function capitalAssetOwned(id,st=state){return !!ensureCapitalAssets(st).owned[id]}
+function capitalAssetCount(st=state){return Object.keys(ensureCapitalAssets(st).owned||{}).length}
+function capitalAssetValue(st=state){return Object.keys(ensureCapitalAssets(st).owned||{}).reduce((n,id)=>n+(CAPITAL_ASSETS[id]?.value||0),0)}
+function capitalAssetWeeklyOverhead(st=state){return Object.keys(ensureCapitalAssets(st).owned||{}).reduce((n,id)=>n+(CAPITAL_ASSETS[id]?.upkeep||0),0)}
+function capitalSlateMultiplier(){return capitalAssetOwned('lot')?.82:1}
+function capitalCatalogueMultiplier(){return capitalAssetOwned('archive')?1.15:1}
+function capitalDistributionMultiplier(){return capitalAssetOwned('distribution')?.82:1}
+function capitalReserveTarget(extraUpkeep=0){
+ const b=studioOverheadBreakdown(),weekly=Math.max(.05,(b.total||0)+Math.max(0,extraUpkeep||0));
+ return +Math.max(8,weekly*20+5).toFixed(1);
+}
+function capitalDeployableCash(){return +Math.max(0,state.cash-capitalReserveTarget()).toFixed(1)}
+function capitalAssetEligibility(id){
+ ensureFinance();const a=CAPITAL_ASSETS[id],reasons=[];if(!a)return {ok:false,reasons:['Unknown capital asset.']};
+ if(capitalAssetOwned(id))reasons.push('Already owned.');
+ const recognition=ensureStudioGrowth().recognition||0;if(recognition<a.recognition)reasons.push('Reach '+a.recognition+' Studio Recognition.');
+ if((state.finance.bridgeDebt||0)>.5)reasons.push('Repay emergency bridge debt before making a permanent capital investment.');
+ const reserve=capitalReserveTarget(a.upkeep),required=+(a.cost+reserve).toFixed(1);
+ if(state.cash<required)reasons.push('Hold '+money(required)+' cash so the '+money(a.cost)+' purchase leaves the operating reserve intact.');
+ return {ok:reasons.length===0,reasons,reserve,required,asset:a};
+}
+function buyCapitalAsset(id){
+ const e=capitalAssetEligibility(id);if(!e.ok)return showToast(e.reasons[0]||'That capital investment is not available.');
+ const a=e.asset,ca=ensureCapitalAssets();state.cash-=a.cost;ca.owned[id]={week:state.week,cost:a.cost};ca.history.unshift({id,week:state.week,cost:a.cost});ca.history=ca.history.slice(0,20);
+ state.reputation.financial=clamp((state.reputation.financial||50)+1,15,95);
+ addNews(state,state.studio.name+' acquired '+a.name+' for '+money(a.cost)+'. The asset adds '+moneyFine(a.upkeep)+'/week of fixed operating cost in exchange for '+a.effect+'.','Trade Finance');
+ notify('capital-asset:'+id,'Capital investment complete',a.name+' is now part of the studio infrastructure.',null,false,'milestone',{screen:'studio',detail:{type:'finance'}});
+ if(typeof checkStudioMilestones==='function')checkStudioMilestones();save();render();return true;
+}
+function capitalAllocationPanel(){
+ const recognition=ensureStudioGrowth().recognition||0,count=capitalAssetCount();if(recognition<25&&!count)return '';
+ const reserve=capitalReserveTarget(),deployable=capitalDeployableCash();
+ let html='<div class="section-title"><h2>Capital allocation</h2><span class="small">Permanent business assets</span></div>';
+ html+='<div class="grid cols3"><div class="card"><div class="badge">Operating reserve</div><div class="kpi">'+money(reserve)+'</div><div class="small">Target held back from expansion</div></div><div class="card"><div class="badge">Deployable cash</div><div class="kpi">'+money(deployable)+'</div><div class="small">Cash above the current reserve</div></div><div class="card"><div class="badge">Permanent assets</div><div class="kpi">'+count+'/3</div><div class="small">'+money(capitalAssetValue())+' added studio value</div></div></div>';
+ html+='<div class="grid cols3" style="margin-top:12px">';
+ Object.values(CAPITAL_ASSETS).forEach(a=>{const owned=capitalAssetOwned(a.id),e=capitalAssetEligibility(a.id),reason=e.reasons[0]||'';html+='<div class="card '+(owned?'goodline':'')+'"><div class="row"><strong>'+a.name+'</strong><span class="pill '+(owned?'good':e.ok?'blue':'')+'">'+(owned?'OWNED':money(a.cost))+'</span></div><div class="body" style="margin-top:8px">'+a.desc+'</div><div class="listrow"><span>Effect</span><strong>'+a.effect+'</strong></div><div class="listrow"><span>Maintenance</span><strong>'+moneyFine(a.upkeep)+'/week</strong></div><div class="listrow"><span>Asset value</span><strong>'+money(a.value)+'</strong></div><div class="small" style="margin-top:8px">'+(owned?'This investment is permanent.':e.ok?'The purchase keeps the current operating reserve intact.':reason)+'</div><button class="btn '+(e.ok?'primary':'')+' block" data-capital-asset="'+a.id+'" style="margin-top:10px" '+(e.ok?'':'disabled')+'>'+(owned?'Owned':e.ok?'Acquire for '+money(a.cost):'Not yet available')+'</button></div>'});
+ html+='</div>';return html;
+}
+function capitalAssetsCorporatePanel(){
+ const count=capitalAssetCount();if(!count)return '';
+ return '<div class="section-title"><h2>Permanent studio assets</h2><span class="small">'+count+' of 3 acquired</span></div><div class="card">'+Object.values(CAPITAL_ASSETS).filter(a=>capitalAssetOwned(a.id)).map(a=>'<div class="listrow"><div><strong>'+a.name+'</strong><div class="small">'+a.effect+'</div></div><strong>'+money(a.value)+'</strong></div>').join('')+'<div class="listrow"><span>Total capital-asset value</span><strong>'+money(capitalAssetValue())+'</strong></div></div>';
+}
+
 function playerProductionCapacity(){return 2+studioUpgradeLevel('production')}
 function auditionSlotLimit(){return [3,4,6][Math.min(2,studioUpgradeLevel('casting'))]}
 function scoutingPrecisionMultiplier(){return [1,.82,.64][Math.min(2,studioUpgradeLevel('casting'))]}
@@ -2370,7 +2421,7 @@ function distributionPlan(f,owner='player'){
  let dom=base.domShare,intl=base.intlShare,awareness=base.awareness;
  if(id==='partner'){dom+=strength*.025;intl+=strength*.022;awareness+=strength*1.8}
  if(id==='platform'&&owner==='player'&&identityHas('critical'))awareness+=.5;
- return {...base,id,opsCost:+(opsBase*base.opsMult).toFixed(2),domShare:+dom.toFixed(3),intlShare:+intl.toFixed(3),awareness:+awareness.toFixed(2)};
+ return {...base,id,opsCost:+(opsBase*base.opsMult*(owner==='player'&&id==='self'?capitalDistributionMultiplier():1)).toFixed(2),domShare:+dom.toFixed(3),intlShare:+intl.toFixed(3),awareness:+awareness.toFixed(2)};
 }
 function distributionPartnerName(f){return DISTRIBUTORS[Math.abs(hash(state.seed+'|distributor|'+f.id))%DISTRIBUTORS.length]}
 function setDistributionStrategy(f,id){
@@ -3017,7 +3068,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0b.1.1-trilogy-progress-hotfix',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0b.2-capital-allocation',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -3061,22 +3112,23 @@ function studioOperatingScale(st=state){
 }
 function activeSlateOverhead(){
  const active=activePlayerFilms();
- return active.filter(f=>f.stage==='development'&&!f.paused).length*.025+
+ const base=active.filter(f=>f.stage==='development'&&!f.paused).length*.025+
   active.filter(f=>f.stage==='development'&&f.paused).reduce((a,f)=>a+heldProjectWeeklyCost(f),0)+
   active.filter(f=>f.stage==='production').length*.055+
   active.filter(f=>['post','marketing','scheduled'].includes(f.stage)).length*.03+
   active.filter(f=>f.stage==='cinema').length*.02;
+ return +(base*capitalSlateMultiplier()).toFixed(4);
 }
 function studioOverheadBreakdown(){
- const scale=studioOperatingScale(),departments=studioUpgradeOverhead(),slate=activeSlateOverhead(),market=typeof corporateWeeklyOverhead==='function'?corporateWeeklyOverhead():0;
- return {scale,baseCorporate:scale.weekly,market,corporate:scale.weekly+market,departments,slate,total:scale.weekly+market+departments+slate};
+ const scale=studioOperatingScale(),departments=studioUpgradeOverhead(),assets=capitalAssetWeeklyOverhead(),slate=activeSlateOverhead(),market=typeof corporateWeeklyOverhead==='function'?corporateWeeklyOverhead():0;
+ return {scale,baseCorporate:scale.weekly,market,corporate:scale.weekly+market,departments,assets,slate,total:scale.weekly+market+departments+assets+slate};
 }
 function currentCatalogueReceipts(){
  return playerFilms().filter(f=>f.stage==='complete').reduce((a,f)=>a+(ensureAfterlifeState(f).weeklyRevenue||0),0);
 }
 function currentIdleCarry(){
  const b=studioOverheadBreakdown(),catalogue=currentCatalogueReceipts();
- return {overhead:b.corporate+b.departments,catalogue,net:catalogue-(b.corporate+b.departments)};
+ return {overhead:b.corporate+b.departments+(b.assets||0),catalogue,net:catalogue-(b.corporate+b.departments+(b.assets||0))};
 }
 function recordWeeklyEconomy(overhead,catalogue=0){
  const e=ensureEconomyState();e.lastWeeklyOverhead=overhead;e.lastCatalogueReceipts=catalogue;e.lifetimeOverhead=+(e.lifetimeOverhead+overhead).toFixed(3);e.lifetimeCatalogue=+(e.lifetimeCatalogue+catalogue).toFixed(3);
@@ -4950,7 +5002,8 @@ function afterlifeWeeklyRevenue(f){
  const decay=Math.exp(-age/46),sequel=state.films.some(x=>x.ipParentId===f.id&&!['complete','shelved'].includes(x.stage))?1.18:1;
  const awards=a.wins.length?1.15:a.nominations.length?1.07:1,cult=a.cultStatus?1.12:1;
  const base=+Math.max(.0005,(afterlifeStrength(f)/100)*.055*decay*sequel*awards*cult).toFixed(4);
- return typeof streamingAdjustedWeeklyRevenue==='function'?streamingAdjustedWeeklyRevenue(f,base):base;
+ const adjusted=typeof streamingAdjustedWeeklyRevenue==='function'?streamingAdjustedWeeklyRevenue(f,base):base;
+ return +(adjusted*capitalCatalogueMultiplier()).toFixed(4);
 }
 function refreshAfterlifeValuation(f){
  const a=ensureAfterlifeState(f),rev=afterlifeWeeklyRevenue(f),awardLift=(a.wins?.length||0)*.38+(a.nominations?.length||0)*.06,cultLift=a.cultStatus?.85:0,sequelLift=state.films.some(x=>x.ipParentId===f.id&&!['complete','shelved'].includes(x.stage))?.60:0,ipLift=franchiseAssetValueContribution(f);
@@ -5566,6 +5619,10 @@ const STUDIO_MILESTONES=[
  {id:'first_upgrade',category:'Studio',title:'Build the Company',desc:'Open the studio’s first permanent department upgrade.',points:5,target:1,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,1)+'/1 department level'},
  {id:'five_upgrades',category:'Studio',title:'Working Studio',desc:'Own five permanent department levels across the lot.',points:20,target:5,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,5)+'/5 department levels'},
  {id:'all_upgrades',category:'Studio',title:'Full-Service Studio',desc:'Fully build every permanent studio department.',points:40,target:10,value:()=>totalStudioUpgradeLevels(),format:v=>Math.min(v,10)+'/10 department levels'},
+
+ // v4.0b.2 — CAPITAL ALLOCATION
+ ,{id:'first_capital_asset',category:'Studio',title:'Plant the Flag',desc:'Acquire the studio’s first permanent capital asset.',points:10,target:1,value:()=>capitalAssetCount(),format:v=>Math.min(v,1)+'/1 capital asset'},
+ {id:'all_capital_assets',category:'Studio',title:'Own the Infrastructure',desc:'Acquire all three permanent studio capital assets.',points:25,target:3,value:()=>capitalAssetCount(),format:v=>Math.min(v,3)+'/3 capital assets'},
 
 ];
 
@@ -8982,9 +9039,9 @@ function corporateFundamentals(st=state){
  const c=ensureCorporateState(st),g=ensureStudioGrowth(st),done=(st.films||[]).filter(f=>f.owner==='player'&&f.stage==='complete'),recent=corporateTrailingFilms(st,52);
  const profit=recent.reduce((s,f)=>s+studioFilmProfit(f),0),library=done.reduce((s,f)=>s+(ensureAfterlifeState(f)?.libraryValue||0),0),awards=done.reduce((s,f)=>s+(ensureAfterlifeState(f)?.wins?.length||0),0);
  const strongIP=done.filter(f=>(f.finalGross||0)>=120&&(f.review?.audience||0)>=78).length,recognition=g.recognition||12,fans=g.fans||.04,debt=st.finance?.bridgeDebt||0,financial=st.reputation?.financial||50;
- const streamingAsset=typeof ownedStreamingAssetValue==='function'?ownedStreamingAssetValue(st):0;
- const value=clamp(25+Math.max(0,st.cash||0)*.9+library*1.8+Math.max(-25,profit)*2.8+recognition*.9+Math.sqrt(Math.max(0,fans))*9+awards*2.5+strongIP*5+(financial-50)*.45-debt*1.4+streamingAsset,25,1500);
- return {value:+value.toFixed(1),profit:+profit.toFixed(1),library:+library.toFixed(1),streamingAsset:+streamingAsset.toFixed(1),awards,strongIP,recognition:+recognition.toFixed(1),fans:+fans.toFixed(2),debt:+debt.toFixed(1),released:done.length,recentReleases:recent.length};
+ const streamingAsset=typeof ownedStreamingAssetValue==='function'?ownedStreamingAssetValue(st):0,capitalAssets=capitalAssetValue(st);
+ const value=clamp(25+Math.max(0,st.cash||0)*.9+library*1.8+Math.max(-25,profit)*2.8+recognition*.9+Math.sqrt(Math.max(0,fans))*9+awards*2.5+strongIP*5+(financial-50)*.45-debt*1.4+streamingAsset+capitalAssets,25,1500);
+ return {value:+value.toFixed(1),profit:+profit.toFixed(1),library:+library.toFixed(1),streamingAsset:+streamingAsset.toFixed(1),capitalAssets:+capitalAssets.toFixed(1),awards,strongIP,recognition:+recognition.toFixed(1),fans:+fans.toFixed(2),debt:+debt.toFixed(1),released:done.length,recentReleases:recent.length};
 }
 function corporateMarketSnapshot(st=state){
  const c=ensureCorporateState(st),f=corporateFundamentals(st),mult=c.status==='public'?(.78+clamp(c.investorConfidence,15,90)/100*.44):1,cap=+(f.value*mult).toFixed(1),price=+(cap/5).toFixed(2);
@@ -9065,6 +9122,7 @@ function studioCorporateBody(){
  return `<div class="legacy-hero"><div><div class="badge">${publicCo?'PUBLIC COMPANY':'PRIVATE COMPANY'}</div><div class="legacy-score">${money(publicCo?s.marketCap:s.value)}</div><div class="legacy-label">${publicCo?'market value':'estimated studio value'}</div><div class="body">${publicCo?`The studio is publicly traded. You still control ${s.founderOwnership.toFixed(0)}%, but investors now react to films, debt and how effectively the company converts scale into results.`:`The studio remains founder controlled. Valuation is an industry estimate based on cash, catalogue, recent results, recognition and debt — not spendable money.`}</div></div><div class="legacy-count"><strong>${publicCo?s.confidence+'%':s.released}</strong><span>${publicCo?'investor confidence':'released films'}</span><strong style="margin-top:10px">${publicCo?`$${s.sharePrice.toFixed(2)}`:Math.round(s.recognition)}</strong><span>${publicCo?'indicative share price':'recognition'}</span></div></div>
  <div class="grid cols4" style="margin-top:14px"><div class="card"><div class="badge">Recent film P/L</div><div class="kpi ${s.profit>=0?'goodtext':'badtext'}">${s.profit>=0?'+':''}${money(s.profit)}</div><div class="small">trailing 52 weeks</div></div><div class="card"><div class="badge">Catalogue value</div><div class="kpi">${money(s.library)}</div></div><div class="card"><div class="badge">Bridge debt</div><div class="kpi ${s.debt>10?'badtext':''}">${money(s.debt)}</div></div><div class="card"><div class="badge">Founder control</div><div class="kpi">${s.founderOwnership.toFixed(0)}%</div></div></div>
  ${typeof ownedStreamingCorporatePanel==='function'?ownedStreamingCorporatePanel():''}
+  ${capitalAssetsCorporatePanel()}
  ${publicCo?`<div class="section-title"><h2>Public-market pressure</h2><span class="pill ${c.boardPressure?'bad':s.confidence>=62?'good':'warn'}">${investorConfidenceLabel(s.confidence)}</span></div><div class="card ${c.boardPressure?'dangerline':''}"><div class="body">${c.boardPressure?'The company has entered a period of serious board and investor pressure. There is no forced sale or Game Over, but another run of expensive misses will keep depressing the company’s value.':'Investors are judging the company on underlying value, recent film results, recognition and balance-sheet discipline rather than demanding a film every quarter.'}</div><div class="listrow"><span>Investor confidence</span><strong>${s.confidence}/100</strong></div><div class="listrow"><span>Market capitalisation</span><strong>${money(s.marketCap)}</strong></div><div class="listrow"><span>Indicative share price</span><strong>$${s.sharePrice.toFixed(2)}</strong></div><div class="listrow"><span>Public-company overhead</span><strong>${moneyFine(publicCompanyWeeklyOverhead())}/week</strong></div></div>`:`<div class="section-title"><h2>IPO readiness</h2><span class="small">Outside capital is optional</span></div><div class="card ${elig.ok?'goodline':''}">${elig.ok?`<div class="body"><strong>The studio is IPO-ready.</strong> Advisers can raise roughly ${money(estimatedIPOProceeds())} by selling a 25% public stake. A formal proposal appears through the Studio Desk at a quarterly review.</div>`:`<div class="body">The studio is not yet in a clean position to float. Remaining private carries no penalty.</div><div style="margin-top:8px">${elig.reasons.map(x=>`<div class="small">• ${x}</div>`).join('')}</div>`}</div>`}
  ${quarters.length?`<div class="section-title"><h2>Quarterly market history</h2><span class="small">Public-company reactions, not player objectives</span></div><div class="card">${quarters.slice(0,8).map(q=>`<div class="listrow"><div><strong>Week ${q.week}</strong><div class="small">Confidence ${q.delta>=0?'+':''}${q.delta} · ${q.hits} hit${q.hits===1?'':'s'} · ${q.bombs} major miss${q.bombs===1?'':'es'}</div></div><div style="text-align:right"><strong>$${q.sharePrice.toFixed(2)}</strong><div class="small">${q.capMove>=0?'+':''}${q.capMove}% value</div></div></div>`).join('')}</div>`:''}
  <div class="section-title"><h2>Public studio board</h2><span class="small">Context only — Project Slate is not a stock-trading game</span></div><div class="grid cols2">${rivals.map(x=>`<div class="card"><div class="row"><div><strong>${x.name}</strong><div class="small">${x.head}</div></div><strong>$${x.sharePrice.toFixed(2)}</strong></div><div class="listrow"><span>Market value</span><strong>${money(x.marketCap)}</strong></div><div class="listrow"><span>Market tone</span><strong>${x.sentiment>=68?'Positive':x.sentiment<42?'Under pressure':'Watchful'}</strong></div></div>`).join('')}</div>`;
@@ -9923,8 +9981,9 @@ function financeScreen(){
  ensureFinance();const q=state.finance.quote||0,b=studioOverheadBreakdown(),idle=currentIdleCarry();
  return topbar('Finance','Cash management and emergency funding')+`<main class="screen">${backHead('Studio Finance',`Cash ${money(state.cash)} · ${b.scale.label}`)}
  <div class="grid cols3"><div class="card"><div class="badge">Cash</div><div class="kpi">${money(state.cash)}</div></div><div class="card"><div class="badge">Bridge debt</div><div class="kpi">${money(state.finance.bridgeDebt)}</div></div><div class="card"><div class="badge">Interest accrued</div><div class="kpi">${money(state.finance.totalInterest)}</div></div></div>
- <div class="section-title"><h2>Operating cost base</h2><span class="small">Before new greenlights</span></div><div class="card"><div class="listrow"><span>${b.scale.label}</span><strong>${moneyFine(b.corporate)}/week</strong></div><div class="listrow"><span>Upgraded departments</span><strong>${moneyFine(b.departments)}/week</strong></div><div class="listrow"><span>Active slate</span><strong>${moneyFine(b.slate)}/week</strong></div><div class="listrow"><span>Catalogue receipts</span><strong>+${moneyFine(idle.catalogue)}/week</strong></div><div class="listrow"><span>Idle carry</span><strong class="${idle.net>=0?'goodtext':'badtext'}">${idle.net>=0?'+':''}${moneyFine(idle.net)}/week</strong></div></div>
- <div class="section-title"><h2>Emergency bridge finance</h2></div><div class="card dangerline"><div class="body">Bridge finance prevents a cash-flow mistake from ending the career, but it is intentionally expensive. Each draw adds a 14% financing premium and outstanding debt accrues ${(state.finance.weeklyInterest*100).toFixed(1)}% interest every week.</div>
+ <div class="section-title"><h2>Operating cost base</h2><span class="small">Before new greenlights</span></div><div class="card"><div class="listrow"><span>${b.scale.label}</span><strong>${moneyFine(b.corporate)}/week</strong></div><div class="listrow"><span>Upgraded departments</span><strong>${moneyFine(b.departments)}/week</strong></div>  <div class="listrow"><span>Active slate</span><strong>${moneyFine(b.slate)}/week</strong></div><div class="listrow"><span>Capital assets</span><strong>${moneyFine(b.assets||0)}/week</strong></div><div class="listrow"><span>Catalogue receipts</span><strong>+${moneyFine(idle.catalogue)}/week</strong></div><div class="listrow"><span>Idle carry</span><strong class="${idle.net>=0?'goodtext':'badtext'}">${idle.net>=0?'+':''}${moneyFine(idle.net)}/week</strong></div></div>
+   ${capitalAllocationPanel()}
+  <div class="section-title"><h2>Emergency bridge finance</h2></div><div class="card dangerline"><div class="body">Bridge finance prevents a cash-flow mistake from ending the career, but it is intentionally expensive. Each draw adds a 14% financing premium and outstanding debt accrues ${(state.finance.weeklyInterest*100).toFixed(1)}% interest every week.</div>
  <div class="grid cols3" style="margin-top:12px">${[2.5,5,10].map(v=>`<button class="btn" data-finance-quote="${v}">Review ${money(v)} draw</button>`).join('')}</div>
  ${q?`<div class="card" style="margin-top:12px"><div class="body"><strong>Confirm borrowing?</strong><br>Receive ${money(q)} cash now. ${money(q*1.14)} will be added to bridge debt before weekly interest.</div><div class="grid cols2" style="margin-top:10px"><button class="btn" id="cancelFinanceQuote">Cancel</button><button class="btn primary" id="confirmFinanceQuote">Confirm ${money(q)} draw</button></div></div>`:''}</div>
  ${state.finance.bridgeDebt>0?`<div class="section-title"><h2>Repayment</h2></div><div class="card"><div class="body">Repay debt when cash allows. Paying it down reduces future weekly interest.</div><div class="grid cols3" style="margin-top:10px">${[1,5,10].map(v=>`<button class="btn" data-repay="${v}" ${state.cash<=0?'disabled':''}>Repay ${money(Math.min(v,state.finance.bridgeDebt))}</button>`).join('')}</div></div>`:''}
@@ -10758,6 +10817,7 @@ function bind(){
  const confirmFinanceQuote=document.getElementById('confirmFinanceQuote');if(confirmFinanceQuote)confirmFinanceQuote.onclick=()=>{const q=state.finance.quote||0;state.finance.quote=0;if(q)takeBridge(q)};
  document.querySelectorAll('[data-bridge]').forEach(b=>b.onclick=()=>takeBridge(+b.dataset.bridge||5));
  document.querySelectorAll('[data-repay]').forEach(b=>b.onclick=()=>repayBridge(+b.dataset.repay||1));
+ document.querySelectorAll('[data-capital-asset]').forEach(b=>b.onclick=()=>buyCapitalAsset(b.dataset.capitalAsset));
  const aw=document.getElementById('advanceWeek');if(aw)aw.onclick=continueTime;
  const ns=document.getElementById('newConcept');if(ns)ns.onclick=()=>push('develop',{type:'concept'});
  const nc=document.getElementById('newCommission');if(nc)nc.onclick=()=>push('develop',{type:'commission'});
