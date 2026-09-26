@@ -2374,7 +2374,7 @@ function aiStartProjects(){
 
   d.busyUntil=f.productionEnd+1;a1.busyUntil=f.productionEnd+1;a2.busyUntil=f.productionEnd+1;
   state.films.push(f);rv.films.push(f.id);rv.lastGreenlightWeek=state.week;
-  addNews(state,`${rv.name} greenlit ${f.title} with ${d.name} directing and ${a1.name} starring.`,'Press Release');
+  const intent=typeof rivalCurrentIntent==='function'?rivalCurrentIntent(rv):null;addNews(state,`${rv.name} greenlit ${f.title} with ${d.name} directing and ${a1.name} starring.${intent?` The move fits ${rv.head.name}'s current ${intent.label.toLowerCase()} posture.`:''}`,'Press Release');
  });
 }
 function aiPublicityCost(f){
