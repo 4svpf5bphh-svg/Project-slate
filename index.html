@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0b.1</title>
+<title>Project Slate — Premium Presentation v4.0b.1.1</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0b.1';
+const VERSION='4.0b.1.1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3017,7 +3017,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0b.1-player-progression',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0b.1.1-trilogy-progress-hotfix',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -5576,7 +5576,11 @@ function maxAudienceScore(){return Math.max(0,...completedPlayerFilms().map(f=>f
 function profitablePlayerFilms(){return completedPlayerFilms().filter(f=>studioFilmProfit(f)>0).length}
 function numberOnePlayerFilms(){return completedPlayerFilms().filter(f=>boxRunStats(f).weeksAtOne>0).length}
 function playerContinuationCount(){return completedPlayerFilms().filter(f=>f.ipParentId||f.sequelInstallment>1||['reboot','spinoff','revival'].includes(f.franchiseMode)).length}
-function maxPlayerFranchiseInstallment(){return Math.max(1,...completedPlayerFilms().map(f=>f.sequelInstallment||f.ip?.installment||1))}
+function maxPlayerFranchiseInstallment(){
+ const continuation=completedPlayerFilms().filter(f=>f.ipParentId||f.sequelInstallment>1||['reboot','spinoff','revival'].includes(f.franchiseMode));
+ if(!continuation.length)return 0;
+ return Math.max(...continuation.map(f=>f.sequelInstallment||f.ip?.installment||2));
+}
 function playerBreakoutFilmCount(){return completedPlayerFilms().filter(f=>(f.careerStories||[]).some(x=>/breakout|raised their market profile/i.test(x))).length}
 function playerAwardWinsByCategory(cat){return completedPlayerFilms().reduce((n,f)=>n+(ensureAfterlifeState(f).wins||[]).filter(x=>x.category===cat).length,0)}
 function playerAwardWinsByCategories(cats){return completedPlayerFilms().reduce((n,f)=>n+(ensureAfterlifeState(f).wins||[]).filter(x=>cats.includes(x.category)).length,0)}
