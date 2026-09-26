@@ -1004,6 +1004,8 @@ function greenlight(f){
   chemistry:clamp(40+act*.25+d.actorDirection*.18+(fitAvg-65)*.22+actorHistory*.28+(r()-.5)*26,22,96),
   stability:clamp(cast.reduce((a,b)=>a+b.reliability,0)/cast.length*.50+d.budgetControl*.28-(Math.max(0,f.budget-directorScaleComfort(d))*.45)+(r()-.5)*12,22,97)
  };
+ const lotImpact=typeof lotPackageDynamics==='function'?lotPackageDynamics(f):null;
+ if(lotImpact){f.metrics.performances+=lotImpact.performances;f.metrics.chemistry+=lotImpact.chemistry;f.metrics.stability+=lotImpact.stability;f.lotGreenlight={week:state.week,score:lotImpact.score,tone:lotImpact.tone};}
  if(c.positioning==='prestige'){f.metrics.direction+=3;f.metrics.clarity+=2;f.metrics.pacing-=1}
  if(c.positioning==='commercial'){f.metrics.pacing+=3;f.metrics.clarity-=1}
  if(c.tone==='grounded'){f.metrics.direction+=2;f.metrics.performances+=2;f.metrics.technical-=1}
@@ -1011,7 +1013,7 @@ function greenlight(f){
  if(c.emphasis==='performance'){f.metrics.performances+=5;f.metrics.technical-=2}
  if(c.emphasis==='spectacle'){f.metrics.technical+=5;f.metrics.performances-=2;if(ratio<.9)f.metrics.technical-=6}
  applyProductionDepthMetrics(f);Object.keys(f.metrics).forEach(k=>f.metrics[k]=clamp(f.metrics[k],20,98));
- f.productionState={schedule:0,morale:clamp(66+(f.metrics.stability-65)*.30+(directorHistory+actorHistory)*.08,35,92),extraSpend:0,cleanWeeks:0,notes:[]};
+ f.productionState={schedule:0,morale:clamp(66+(f.metrics.stability-65)*.30+(directorHistory+actorHistory)*.08+(lotImpact?.morale||0),35,92),extraSpend:0,cleanWeeks:0,notes:[]};
  recordProductionDaily(f);
  f.events=buildProductionEvents(f,r);ensureProductionCreativeFork(f);
  d.busyUntil=f.productionEnd+1;cast.forEach(a=>a.busyUntil=f.productionEnd+1);support.forEach(a=>a.busyUntil=f.productionEnd+1);
