@@ -106,10 +106,11 @@ if(state&&state.films){playerFilms().filter(f=>f.stage==='complete').forEach(f=>
 // This is essential for existing-career reloads: bootstrapStudioMilestones reads STUDIO_MILESTONES.
 if(state.studio&&state.careerStarted){bootstrapStudioMilestones();const __audit=ensureSimulationAudit();if(!__audit.weekly.length)recordSimulationAudit('baseline');}
 if(state?.talent)state.talent.forEach(ensureTalentMarketEconomy);
+if(state?.talent&&typeof bootstrapLot==='function')bootstrapLot();
 if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.legends?.pending?.length)surfacePendingLegendUnlock()}
 function projectSlateSmokeChecks(){
  const failures=[],required=[
-  ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],
+  ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],['bootstrapLot',typeof bootstrapLot],['lotPairHistory',typeof lotPairHistory],['lotRegisterFilmOutcome',typeof lotRegisterFilmOutcome],['lotMaybeResurfacePairHistory',typeof lotMaybeResurfacePairHistory],
   ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['ensureFilmIdentity',typeof ensureFilmIdentity],['productionEventFlavor',typeof productionEventFlavor],['filmPressAngle',typeof filmPressAngle],['premiseReviewParagraph',typeof premiseReviewParagraph],['dailyScreenCritic',typeof dailyScreenCritic],['criticOpeningParagraph',typeof criticOpeningParagraph],['capsuleOutletLine',typeof capsuleOutletLine],['publishStudioMomentAftermath',typeof publishStudioMomentAftermath],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
@@ -126,6 +127,10 @@ function projectSlateSmokeChecks(){
   if(!nav.toString().includes('globalBackToTop'))failures.push('global back-to-top missing');
  }catch(e){failures.push('v3.13 systems smoke failed'+(e?.message?': '+e.message:''))}
  try{const f=(state.films||[]).find(x=>x.owner==='player');if(f){const id=ensureFilmIdentity(f);if(!id?.archetype||!id?.texture)failures.push('film identity invalid')}if(makeReview.toString().includes('Strong moments, mixed results'))failures.push('legacy repetitive review generator active');if(soundtrackOffers.toString().indexOf('usedTracks')<0)failures.push('music freshness missing')}catch(e){failures.push('v3.14 variation smoke failed')}
+ try{
+  const lot=ensureLotState();if((lot.version||0)<3||!lot.pairHistories)failures.push('Lot long-memory migration missing');
+  const t=(state.talent||[]).filter(x=>!x.retired).slice(0,2);if(t.length===2){const h=lotPairHistory(t[0],t[1]);if(!h||!Array.isArray(h.films)||!Array.isArray(h.storyIds))failures.push('Lot pair history invalid')}
+ }catch(e){failures.push('v4.2 Lot long-memory smoke failed'+(e?.message?': '+e.message:''))}
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
   if(!buildNewsItem.toString().includes('voicePressStory'))failures.push('press voice pass missing');
