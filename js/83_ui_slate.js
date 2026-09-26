@@ -1,19 +1,6 @@
 // Project Slate UI: slate
 
 
-function firstCareerFilm(f){const films=playerFilms();return !!f&&films.length>0&&films[0].id===f.id}
-function firstFilmCastingChecklistHTML(f,compact=false){
- if(!firstCareerFilm(f)||f.stage!=='development')return '';
- const rows=principalCastingRows(f),tested=rows.filter(x=>x.tested).length,ids=packageTalentIds(f),agreed=ids.filter(id=>f.contracts?.[id]).length;
- const items=[
-  {done:!!f.directorId,label:'Director attached'},
-  {done:f.cast.length===2,label:'Principal cast '+f.cast.length+'/2'},
-  {done:tested===2,label:'Screen tests '+tested+'/2',warn:f.cast.length===2&&tested<2},
-  {done:ids.length>0&&agreed===ids.length,label:'Talent terms '+agreed+'/'+Math.max(ids.length,1)}
- ];
- const steps=items.map(x=>'<div class="'+(x.done?'done':x.warn?'warn':'')+'"><span>'+(x.done?'✓':x.warn?'!':'○')+'</span><strong>'+x.label+'</strong></div>').join('');
- return '<div class="first-film-checklist '+(compact?'compact':'')+'"><div class="row"><div><div class="badge">FIRST FILM GUIDE</div><strong>Build the package before you bet the studio</strong></div><span class="pill blue">'+items.filter(x=>x.done).length+'/'+items.length+'</span></div><div class="first-film-steps">'+steps+'</div>'+(compact?'':'<div class="small">Screen tests are optional, not mandatory. Skipping them means accepting role-fit uncertainty rather than discovering it before greenlight.</div>')+'</div>';
-}
 function filmPressureBadgesHTML(f){
  const bits=[];
  if(f.stage==='development'){const untested=untestedPrincipalRoles(f);if(untested.length)bits.push('<span class="pill warn">'+untested.length+' lead'+(untested.length===1?'':'s')+' untested</span>')}
@@ -126,7 +113,6 @@ function developmentUI(f,s){
  }
  const cov=scriptCoverage(s),writer=writerById(s.writerId),producer=producerStrategy(f),effects=effectsApproach(f);
  return `<div class="hero"><div class="quote">${s.logline}</div><div style="margin-top:8px"><span class="pill">Recommended production ${money(range[0])}–${money(range[1])}</span><span class="pill">${writer?.name||'Unknown writer'}</span><span class="pill ${cov.readiness==='Packaging-ready'?'good':'blue'}">${cov.readiness}</span></div></div>
- ${firstFilmCastingChecklistHTML(f)}
  <div class="section-title"><h2>Package</h2><button id="toggleHold" class="btn ghost">Hold project</button></div><div class="card"><div class="listrow"><span>Director</span><strong>${d?d.name:'Not attached'}</strong></div><div class="listrow"><span>Principal cast</span><strong>${cast.length?cast.map(x=>x.name).join(', '):'Not cast'}</strong></div><div class="listrow"><span>Supporting cast</span><strong>${support.length?support.map(x=>x.name).join(', '):supportReq.required?'Required · not cast':'Optional · not cast'}</strong></div><div class="listrow"><span>Ensemble requirement</span><strong id="supportRequirement"><span class="pill ${supportReq.complete?'good':'warn'}">${supportReq.label} · ${supportReq.selected}/${supportReq.required||'optional'}</span></strong></div><div class="listrow"><span>Terms agreed</span><strong>${agreed}/${expectedTerms}</strong></div>${fit?`<div class="listrow"><span>Internal package view</span><strong><span class="pill ${fitBand(fit.average).cls}">${fitBand(fit.average).label}</span></strong></div>`:''}</div>
  ${fit&&fit.average<60?`<div class="card dangerline" style="margin-top:10px"><div class="body"><strong>Packaging warning:</strong> the current combination contains meaningful project-fit risk. Raw reputation does not guarantee this team will realise this screenplay well.</div></div>`:''}
  ${untestedPrincipalRoles(f).length?`<div class="card attention casting-evidence-warning" style="margin-top:10px"><div class="row"><strong>Role-specific evidence missing</strong><span class="pill warn">${untestedPrincipalRoles(f).length}/2 untested</span></div><div class="body" style="margin-top:6px">${untestedPrincipalRoles(f).map(x=>`${x.talent.name} as ${x.role.name}`).join(' · ')}. You can keep this cast, but greenlight will be a deliberate bet without screen-test evidence.</div></div>`:''}
