@@ -258,6 +258,8 @@ function talentProjectInterest(t,f,roleRef=null,mode='select'){
  // immediately after voluntarily reading for it.
  if(mode==='select'&&audition)return {accept:true,score:Math.max(76,fit),reason:`Having screen-tested for ${role.name}, the performer remains open to the role.`,fit,roleId:role.id};
  let score=48+(fit-62)*.58+studioRel*.22;
+ const lotInterest=typeof lotCastingModifier==='function'?lotCastingModifier(t,f):null;
+ if(lotInterest)score+=lotInterest.score;
  score+=agencyInterestModifier(t,f);
  if(agencyWindow(t,f))score+=12;
  if((t.discoveryWindowUntil||0)>=state.week&&t.emerging)score+=10;
@@ -274,6 +276,7 @@ function talentProjectInterest(t,f,roleRef=null,mode='select'){
  let reason='The performer is open to the project.';
  if(!accept){
   if(fit<54)reason=`The team does not feel ${role.name} is a convincing enough fit.`;
+  else if(lotInterest?.score<=-5&&lotInterest.strongest)reason=`A ${lotInterest.strongest.label.toLowerCase()} relationship with ${lotInterest.strongest.name} is making the existing package less attractive.`;
   else if(role.type==='support'&&t.momentum>=86)reason='The representatives are looking for a larger part at this point in the career.';
   else if(t.star>=88&&f.budget<12)reason='The project is currently too small for the performer’s market position.';
   else if(studioRel<0)reason='The existing relationship with the studio is not strong enough to overcome reservations about the part.';
@@ -282,7 +285,7 @@ function talentProjectInterest(t,f,roleRef=null,mode='select'){
   else if((t.credits||[]).slice(-3).some(c=>c.genre===f.genre))reason='The agent feels this part is too close to the performer’s recent work.';
   else reason='The representatives passed after weighing the role, package, studio relationship and the performer’s current career position.';
  }
- return {accept,score,reason,fit,roleId:role.id};
+ return {accept,score,reason,fit,roleId:role.id,lotInterest};
 }
 function markTalentDecline(f,t,roleId,reason,mode='role'){
  f.castingDeclines=f.castingDeclines||{};
@@ -331,6 +334,8 @@ function greenlightReviewData(f){
  if(cashAfter<8)risks.push(`Greenlighting leaves only ${money(Math.max(0,cashAfter))} in studio cash before later post and marketing spend.`);
  else if(cashAfter>=20)strengths.push('The studio retains meaningful liquidity after the production commitment.');
  if(req.required&&req.complete)strengths.push(`${req.label} casting is complete for the current production scale.`);
+ const lotSignal=typeof lotPackageSignal==='function'?lotPackageSignal(f):null;
+ if(lotSignal?.tone==='good')strengths.push(lotSignal.text);else if(lotSignal?.tone==='bad')risks.push(lotSignal.text);
  if(unavailable.length)risks.unshift(`${unavailable.map(t=>t.name).join(', ')} ${unavailable.length===1?'is':'are'} currently unavailable, so greenlight is blocked until the package is repaired.`);
  return {script:s,coverage:cov,director:d,fit,castingEvidence,requirement:req,natural,ratio,depth,talent,commitment,cashAfter,roleRows,unavailable,strengths:strengths.slice(0,4),risks:risks.slice(0,5)};
 }
