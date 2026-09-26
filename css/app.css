@@ -768,3 +768,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
  .influence-route{align-items:stretch;flex-direction:column}
  .influence-route .btn{width:100%}
 }
+
+/* v4.4 — Clarity & Information Delivery */
+.executive-intel-title{margin-top:18px}
+.executive-intel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.executive-intel-card{display:grid;gap:6px;min-width:0;border-left:3px solid var(--accent)}
+.executive-intel-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.executive-intel-card>strong{font-size:15px;line-height:1.25}
+.executive-intel-metric{font-size:22px;font-weight:900;letter-spacing:-.035em}
+.executive-intel-detail{line-height:1.4}
+.executive-intel-card .btn{margin-top:3px;justify-self:start}
+.executive-intel-empty{border-style:dashed}
+@media(max-width:680px){
+ .executive-intel-grid{grid-template-columns:1fr}
+ .executive-intel-card .btn{width:100%}
+}
