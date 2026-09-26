@@ -453,6 +453,35 @@ function rivalryBidPressure(rv){
  const x=rivalrySnapshot(rv);if(x.rank<2)return 1;
  return (rv.relationship||0)<=-7?(x.rank>=3?1.045:1.028):1.015;
 }
+function rivalDetenteOffer(rv){
+ if(!rv)return null;ensureRivalCharacter(rv);const x=rivalrySnapshot(rv),last=rv.lastDetenteWeek||0,cooldownUntil=last?last+26:0;
+ const eligible=x.rank>=2&&(rv.relationship||0)<12,available=eligible&&state.week>=cooldownUntil;
+ return {rv,rivalry:x,eligible,available,cooldownUntil,lastResult:rv.lastDetenteResult||null,
+  reason:!eligible?'There is not enough active hostility to justify a formal reset.':state.week<cooldownUntil?'Another private approach would look desperate before Week '+cooldownUntil+'.':'Use executive capital to try to cool the rivalry without erasing its history.'};
+}
+function attemptRivalDetente(rv){
+ const offer=rivalDetenteOffer(rv);if(!offer||!offer.available)return showToast(offer?.reason||'A détente is not available right now.');
+ const x=offer.rivalry,personality=(rv.head?.personality||'').toLowerCase();let chance=.68+(rv.relationship||0)*.008-x.rank*.07;
+ if(personality.includes('filmmaker')||personality.includes('patient'))chance+=.07;
+ if(personality.includes('expansion')||rv.style==='Aggressive Capital')chance-=.10;
+ chance=clamp(chance,.28,.78);
+ const rr=makeRng(hash((state.seed||1)+'|detente|'+rv.id+'|'+state.week)),success=rr()<chance;
+ rv.lastDetenteWeek=state.week;
+ if(success){
+  const delta=x.rank>=3?11:8;adjustRivalRelationship(rv,delta,'Private executive détente with '+state.studio.name);
+  recordRivalryEvent(rv,'detente','Private détente lowered the temperature between the studios',-3.2,'detente:'+state.week+':'+rv.id,{outcome:'Accepted'});
+  rv.lastDetenteResult={week:state.week,outcome:'accepted',headline:rv.head.name+' agreed to lower the temperature'};
+  addNews(state,rv.head.name+' and '+state.studio.name+' have quietly agreed to lower the temperature in their rivalry. Competition remains; the personal hostility has eased.','Studio Watch');
+  showToast(rv.head.name+' accepted the détente. The rivalry has cooled.');
+ }else{
+  adjustRivalRelationship(rv,-2,'Rejected détente approach from '+state.studio.name);
+  recordRivalryEvent(rv,'detente-rejected',rv.head.name+' rejected a private détente approach',.7,'detente-rejected:'+state.week+':'+rv.id,{outcome:'Rejected'});
+  rv.lastDetenteResult={week:state.week,outcome:'rejected',headline:rv.head.name+' rejected the approach'};
+  addNews(state,rv.head.name+' has declined a private attempt by '+state.studio.name+' to cool their studio rivalry.','Studio Watch');
+  showToast('The détente was rejected. The relationship is slightly colder.');
+ }
+ save();render();return success;
+}
 function rivalryProfileHTML(rv){
  const x=rivalrySnapshot(rv),recent=x.events.slice(0,6);
  return `<div class="section-title"><h2>Competitive history</h2><span class="pill ${x.tone}">${x.label}</span></div><div class="card ${x.rank>=3?'dangerline':x.rank>=2?'attention':''}"><div class="body">${x.desc}</div>${x.reasons.length?`<div class="small" style="margin-top:8px"><strong>Why the trade sees it this way:</strong> ${naturalNames(x.reasons)}.</div>`:''}${recent.length?`<div class="hr"></div>${recent.map(e=>`<div class="listrow"><div><strong>${e.label}</strong><div class="small">${String(e.type).replace(/-/g,' ')} · W${e.week}</div></div>${e.outcome?`<span class="small">${e.outcome}</span>`:''}</div>`).join('')}`:`<div class="small" style="margin-top:8px">No direct competitive history has accumulated yet.</div>`}</div>`;
@@ -708,6 +737,25 @@ function openAgencyWindow(t,f){
  state.agencyWindows=state.agencyWindows||{};
  state.agencyWindows[t.id]={filmId:f.id,agencyId:talentAgency(t).id,openedWeek:state.week,expiresWeek:state.week+4};
  return true;
+}
+function ensureAgencyInfluenceState(){
+ state.agencyInfluence=state.agencyInfluence||{cooldowns:{},history:[]};state.agencyInfluence.cooldowns=state.agencyInfluence.cooldowns||{};state.agencyInfluence.history=state.agencyInfluence.history||[];return state.agencyInfluence;
+}
+function agencyInfluenceOffer(t,f){
+ if(!t||!f||f.stage!=='development'||talentUnavailableForFilm(t,f)||packageTalentIds(f).includes(t.id))return null;
+ const x=agencyMarketLeverage(t,f),st=ensureAgencyInfluenceState(),until=st.cooldowns[x.agency.id]||0,window=agencyWindow(t,f);
+ const eligible=x.standing.score>=4,available=eligible&&!window&&state.week>=until;
+ return {talent:t,film:f,agency:x.agency,standing:x.standing,eligible,available,window,cooldownUntil:until,
+  reason:window?'Priority conversation already active.':!eligible?x.agency.name+' is not warm enough with your studio to spend relationship capital this way.':state.week<until?'Agency favour available again in Week '+until+'.':'Use the agency relationship to open a four-week priority conversation.'};
+}
+function useAgencyInfluence(t,f){
+ const offer=agencyInfluenceOffer(t,f);if(!offer)return showToast('No agency leverage is available on that package.');
+ if(!offer.available)return showToast(offer.reason);
+ const st=ensureAgencyInfluenceState();openAgencyWindow(t,f);st.cooldowns[offer.agency.id]=state.week+8;
+ st.history.unshift({week:state.week,agencyId:offer.agency.id,talentId:t.id,filmId:f.id,type:'priority',headline:offer.agency.name+' opens a priority conversation for '+t.name});st.history=st.history.slice(0,30);
+ f.history=f.history||[];f.history.push('Week '+state.week+': '+offer.agency.name+' opened a priority conversation with '+t.name+' after the studio called in relationship capital.');
+ addNews(state,offer.agency.name+' has opened a priority conversation between '+t.name+' and '+state.studio.name+' around '+f.title+'.','Casting');
+ showToast(offer.agency.name+' has opened the door for four weeks.');save();render();return true;
 }
 function agencySnapshot(a){
  const clients=agencyClients(a),standing=agencyStanding(a);
