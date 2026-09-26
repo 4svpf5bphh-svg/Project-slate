@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 p=Path("index.html")
 s=p.read_text(encoding="utf-8")
@@ -41,11 +42,14 @@ old_calendar="""if(blocker){const f=filmById(blocker.filmId);state.screen='slate
 new_calendar="""if(blocker){routeToHardBlocker(blocker,true);return true}"""
 one(old_calendar,new_calendar,"calendar blocker routing")
 
-old_continue="""showToast(marketing?"Plan the film's campaign and release before continuing.":post?'Review the rough cut and choose an intervention or lock picture before continuing.':'Resolve the active production decision before continuing.');
-   state.screen='slate';state.detail={type:'film',id:f.id};requestScrollTop();save();render();return;"""
-new_continue="""showToast(marketing?"Plan the film's campaign and release before continuing.":post?'Review the rough cut and choose an intervention or lock picture before continuing.':'Resolve the active production decision before continuing.');
+pat=r'''showToast\(marketing\?"Plan the film's campaign and release before continuing\.":post\?'Review the rough cut and choose an intervention or lock picture before continuing\.':'Resolve the active production decision before continuing\.'\);\s*state\.screen='slate';state\.detail=\{type:'film',id:f\.id\};requestScrollTop\(\);save\(\);render\(\);return;'''
+repl="""showToast(marketing?"Plan the film's campaign and release before continuing.":post?'Review the rough cut and choose an intervention or lock picture before continuing.':'Resolve the active production decision before continuing.');
    routeToHardBlocker(blocker,true);save();render();return;"""
-one(old_continue,new_continue,"continue blocker routing")
+s,n=re.subn(pat,repl,s,count=1)
+if n!=1:
+    raise SystemExit(f"continue blocker routing: expected 1 regex match, found {n}")
+
+
 
 old_decision="""rebuildDecisions();const d=state.decisions.find(x=>['production','post','marketing','campaign'].includes(x.type));if(d){const f=filmById(d.filmId);state.screen='slate';state.detail={type:'film',id:f.id};state.history=[];requestScrollTop();return true}"""
 new_decision="""rebuildDecisions();const d=state.decisions.find(x=>['production','post','marketing','campaign'].includes(x.type));if(d){routeToHardBlocker(d,true);return true}"""
