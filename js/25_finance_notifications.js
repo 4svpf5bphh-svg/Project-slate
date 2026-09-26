@@ -106,6 +106,7 @@ function ensureDeskStateLite(st=state){
 }
 function notificationDeskSource(type,key=''){
  if(type==='milestone')return 'Studio Legacy';
+ if(type==='intel'||String(key).startsWith('intel:'))return 'Executive Intelligence';
  if(type==='finance'||String(key).startsWith('autobridge:'))return 'Finance Office';
  if(String(key).startsWith('prod:')||String(key).startsWith('post:'))return 'Production Office';
  if(String(key).startsWith('marketing:'))return 'Campaign Room';
@@ -117,7 +118,7 @@ function mirrorNotificationToDesk(n){
  if(/^(mkt:|release:)/.test(n.key||''))return null;
  const d=ensureDeskStateLite(),existing=d.items.find(i=>i.notificationKey===n.key);if(existing){n.deskId=existing.id;return existing}
  const hard=/^(prod:|post:|marketing:)/.test(n.key||'');
- const item={id:d.nextId++,week:n.week,day:n.day,read:false,expanded:hard,resolved:!hard,archived:false,urgency:n.type==='warning'?'urgent':'normal',type:'system',source:notificationDeskSource(n.type,n.key),choices:[],requiresAction:hard,headline:n.title,body:n.body,filmId:n.filmId||null,notificationKey:n.key,destination:n.destination||null,system:true};
+ const item={id:d.nextId++,week:n.week,day:n.day,read:false,expanded:hard,resolved:!hard,archived:false,urgency:n.type==='warning'?'urgent':'normal',type:n.type==='intel'?'intel':'system',source:notificationDeskSource(n.type,n.key),choices:[],requiresAction:hard,headline:n.title,body:n.body,filmId:n.filmId||null,notificationKey:n.key,destination:n.destination||null,system:true};
  d.items.unshift(item);d.items=d.items.slice(0,100);n.deskId=item.id;return item;
 }
 function syncOperationalDeskItems(){
@@ -145,6 +146,9 @@ function notify(key,title,body,filmId=null,requiresAction=false,type='info',dest
  // while optional information accumulates in Studio Desk.
  state.activeNotificationId=null;
  return n;
+}
+function publishExecutiveIntel(key,title,body,filmId=null,destination=null){
+ return notify('intel:'+key,title,body,filmId,false,'intel',destination);
 }
 function markNotification(id){ensureNotifications();const n=state.notifications.find(x=>x.id===id);if(n)n.read=true;if(state.activeNotificationId===id)state.activeNotificationId=null}
 function openNotificationTarget(n){
