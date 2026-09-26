@@ -431,6 +431,24 @@ function rivalrySnapshot(rv){
  if((rv.relationship||0)<=-7)reasons.push(`a ${rivalDisposition(rv).toLowerCase()} executive relationship`);
  return {rank,label,tone,desc,reasons,events:recent,lane,rankGap,score};
 }
+function rivalCurrentIntent(rv){
+ ensureRivalCharacter(rv);rv.profile=rv.profile||aiStudioProfile(rv.style);
+ const health=aiFinancialHealth(rv),treasury=aiTreasurySnapshot(rv),pipeline=state.films.filter(f=>f.owner===rv.id&&!['complete','shelved'].includes(f.stage));
+ const production=pipeline.filter(f=>f.stage==='production').length,rivalry=rivalrySnapshot(rv),idleWeeks=state.week-(rv.lastGreenlightWeek||1);
+ let label='Build the slate',tone='blue',short='Looking for the next package that fits the studio model without disturbing its reserve.';
+ if(health==='Financial distress'){label='Protect liquidity';tone='bad';short='Avoiding large commitments and trying to restore enough liquidity to keep the pipeline alive.'}
+ else if(health==='Under pressure'||health==='Leveraged'){label='Reset with discipline';tone='warn';short='Biasing toward smaller or cheaper packages until the balance sheet has more room.'}
+ else if(production===0&&idleWeeks>=5){label='Restart the pipeline';tone='warn';short='Actively looking for a makeable project after an extended gap between greenlights.'}
+ else if(treasury.production>=rv.capacity){label='Protect the current slate';tone='good';short='Production capacity is full, so the studio is more likely to defend existing releases than add another film immediately.'}
+ else if(rv.style==='Aggressive Capital'||rv.style==='Blockbusters'){label='Chase scale';tone='warn';short='Prepared to spend heavily on premium scripts, stars and event-sized packages when the creative case is strong.'}
+ else if(rv.style==='Prestige'||rv.style==='Indie / Prestige'){label='Protect prestige';tone='blue';short='Prioritising filmmaker-led, performance-heavy material while keeping meaningful cash in reserve.'}
+ else if(rv.style==='Genre Specialist'){label='Own a genre lane';tone='blue';short='Looking for contained genre material that can be repeated without betting the studio on one film.'}
+ else if(rv.style==='Franchise Builder'){label='Find scalable IP';tone='blue';short='Looking for concepts that can support sequels, audience familiarity and repeatable event releases.'}
+ else if(rv.style==='Broad Commercial'){label='Stay accessible';tone='blue';short='Preferring broad concepts, reliable talent and packages with manageable downside.'}
+ if(rivalry.rank>=2&&(rv.relationship||0)<=-7)short+=' The rivalry with '+state.studio.name+' is active, so contested screenplay bids against you carry slightly more pressure than an ordinary deal.';
+ else if(rivalry.rank>=2)short+=' Repeated competition with '+state.studio.name+' is now part of how this studio evaluates crowded opportunities.';
+ return {label,tone,short,health,production,capacity:rv.capacity,rivalry:rivalry.label};
+}
 function rivalryBidPressure(rv){
  const x=rivalrySnapshot(rv);if(x.rank<2)return 1;
  return (rv.relationship||0)<=-7?(x.rank>=3?1.045:1.028):1.015;
