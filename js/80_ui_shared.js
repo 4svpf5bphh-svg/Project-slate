@@ -23,7 +23,7 @@ function nav(){
   ['release','▥','Release'],
   ['industry','◌','Industry']
  ];
- const deskCount=state.studio&&typeof deskActionCount==='function'?deskActionCount():0;
+ const deskCount=state.studio&&typeof deskInboxCount==='function'?deskInboxCount():state.studio&&typeof deskActionCount==='function'?deskActionCount():0;
  return `<nav class="bottomnav">${items.map(i=>`<button class="navbtn ${state.screen===i[0]?'active':''}" data-nav="${i[0]}"><span class="icon">${i[1]}</span>${i[2]}${i[0]==='studio'&&deskCount?`<span class="navbadge">${deskCount}</span>`:''}</button>`).join('')}</nav><button id="globalBackToTop" class="global-back-top" aria-label="Back to top" title="Back to top">↑</button>`;
 }
 function backHead(title,sub=''){return `<div class="screenhead"><button class="back" id="backBtn">← Back</button><h1>${title}</h1>${sub?`<div class="small">${sub}</div>`:''}</div>`}
