@@ -798,25 +798,34 @@ function awardsStudioBody(){
  ${awardsRaceBoardHTML(current)}\n  <div class="section-title"><h2>Awards history</h2><span class="small">${playerAwardTotals().wins} wins · ${playerAwardTotals().noms} nominations all-time</span></div><div class="grid awards-history-list">${archive.filter(c=>c.playerNoms||c.playerWins).slice(0,8).map(c=>`<div class="card awards-history-card"><div class="awards-history-head"><strong>Year ${c.season}</strong><span class="pill ${c.playerWins?'good':''}">${c.playerWins} win${c.playerWins===1?'':'s'}</span></div><div class="small awards-history-summary">${c.playerNoms} nominations · ${c.categories.filter(cat=>cat.nominees.some(n=>n.owner==='player')).map(cat=>cat.label).join(' · ')||'No player nominees'}</div></div>`).join('')||'<div class="card body">Your first Awards Night will become part of the permanent studio record.</div>'}</div>`;
 }
 
+function studioFinanceOverviewBody(){
+ const ob=studioOverheadBreakdown(),idle=currentIdleCarry(),runway=studioCashRunway();
+ return `<div class="grid cols4"><div class="card"><div class="badge">Cash</div><div class="kpi">${money(state.cash)}</div></div><div class="card"><div class="badge">Weekly overhead</div><div class="kpi">${moneyFine(ob.total)}</div></div><div class="card ${runway.weeks<3?'dangerline':runway.weeks<6?'attention':''}"><div class="badge">Operating runway</div><div class="kpi" style="font-size:18px">${runway.label}</div><div class="small">Net recurring burn ${moneyFine(runway.netBurn)}/week</div></div><div class="card"><div class="badge">Bridge debt</div><div class="kpi">${money(state.finance?.bridgeDebt||0)}</div></div></div>
+ <div class="section-title"><h2>Weekly operating position</h2><span class="small">Before new film investment</span></div><div class="card"><div class="listrow"><span>Operating scale</span><strong>${ob.scale.label}</strong></div><div class="listrow"><span>Permanent corporate operation</span><strong>${moneyFine(ob.corporate)}</strong></div><div class="listrow"><span>Upgraded departments</span><strong>${moneyFine(ob.departments)}</strong></div><div class="listrow"><span>Active slate</span><strong>${moneyFine(ob.slate)}</strong></div><div class="listrow"><span>Current catalogue receipts</span><strong>+${moneyFine(idle.catalogue)}</strong></div><div class="listrow"><span>Idle carry</span><strong class="${idle.net>=0?'goodtext':'badtext'}">${idle.net>=0?'+':''}${moneyFine(idle.net)}/week</strong></div><div class="small" style="margin-top:8px">A successful studio carries a larger permanent organisation even between productions. Catalogue cash decays rather than funding the company indefinitely.</div></div>
+ ${recoveryPlanPanel()}<div class="section-title"><h2>Treasury</h2></div><div class="card ${state.finance?.bridgeDebt>0?'dangerline':''}"><div class="body">${state.finance?.bridgeDebt>0?'Emergency finance remains outstanding. Keep enough cash for production, campaigns and weekly overhead before expanding the slate.':'The studio has no bridge debt. Cash timing still matters because production and release expenditure peak at different stages.'}</div><button id="openFinance" class="btn block" style="margin-top:10px">Open detailed finance</button></div>`;
+}
+function studioBusinessBody(){
+ let tab=state.uiBusinessTab||'finance';
+ const allowed=['finance','identity','growth'];if(typeof corporateVisible==='function'&&corporateVisible())allowed.push('corporate');if(simulationAuditAccess())allowed.push('audit');
+ if(!allowed.includes(tab)){tab='finance';state.uiBusinessTab='finance'}
+ const items=[['finance','Finance'],['growth','Growth'],['identity','Identity']];if(typeof corporateVisible==='function'&&corporateVisible())items.push(['corporate','Corporate']);if(simulationAuditAccess())items.push(['audit','Audit']);
+ const tabs=sectionTabs(items,tab,'data-business-tab');
+ let body=tab==='finance'?studioFinanceOverviewBody():tab==='growth'?studioGrowthUI():tab==='identity'?studioIdentityBody():tab==='corporate'&&typeof studioCorporateBody==='function'?studioCorporateBody():tab==='audit'&&simulationAuditAccess()?simulationAuditBody():studioFinanceOverviewBody();
+ return tabs+body;
+}
 function studioScreen(){
  rebuildDecisions();
- let tab=state.uiStudioTab||'desk';if(tab==='overview'){tab='desk';state.uiStudioTab='desk'}
- const tabItems=[['desk',deskActionCount()?`Desk · ${deskActionCount()}`:'Desk'],['awards','Awards'],['legacy','Legacy'],['finance','Finance']];if(typeof corporateVisible==='function'&&corporateVisible())tabItems.push(['corporate','Corporate']);tabItems.push(['library','Library'],['identity','Identity'],['growth','Growth']);if(simulationAuditAccess())tabItems.push(['audit','Audit']);
+ let tab=state.uiStudioTab||'desk';
+ if(tab==='overview'){tab='desk';state.uiStudioTab='desk'}
+ if(['finance','identity','growth','corporate','audit'].includes(tab)){state.uiBusinessTab=tab;tab='business';state.uiStudioTab='business'}
+ const tabItems=[['desk',deskInboxCount()? `Desk · ${deskInboxCount()}`:'Desk'],['business','Business'],['awards','Awards'],['legacy','Legacy'],['library','Library']];
  const tabs=sectionTabs(tabItems,tab,'data-studio-tab');
  let body='';
  if(tab==='desk')body=studioDeskBody();
+ else if(tab==='business')body=studioBusinessBody();
  else if(tab==='awards')body=awardsStudioBody();
  else if(tab==='legacy')body=studioLegacyBody();
- else if(tab==='finance'){
-  const ob=studioOverheadBreakdown(),idle=currentIdleCarry(),runway=studioCashRunway();
-  body=`<div class="grid cols4"><div class="card"><div class="badge">Cash</div><div class="kpi">${money(state.cash)}</div></div><div class="card"><div class="badge">Weekly overhead</div><div class="kpi">${moneyFine(ob.total)}</div></div><div class="card ${runway.weeks<3?'dangerline':runway.weeks<6?'attention':''}"><div class="badge">Operating runway</div><div class="kpi" style="font-size:18px">${runway.label}</div><div class="small">Net recurring burn ${moneyFine(runway.netBurn)}/week</div></div><div class="card"><div class="badge">Bridge debt</div><div class="kpi">${money(state.finance?.bridgeDebt||0)}</div></div></div>
-  <div class="section-title"><h2>Weekly operating position</h2><span class="small">Before new film investment</span></div><div class="card"><div class="listrow"><span>Operating scale</span><strong>${ob.scale.label}</strong></div><div class="listrow"><span>Permanent corporate operation</span><strong>${moneyFine(ob.corporate)}</strong></div><div class="listrow"><span>Upgraded departments</span><strong>${moneyFine(ob.departments)}</strong></div><div class="listrow"><span>Active slate</span><strong>${moneyFine(ob.slate)}</strong></div><div class="listrow"><span>Current catalogue receipts</span><strong>+${moneyFine(idle.catalogue)}</strong></div><div class="listrow"><span>Idle carry</span><strong class="${idle.net>=0?'goodtext':'badtext'}">${idle.net>=0?'+':''}${moneyFine(idle.net)}/week</strong></div><div class="small" style="margin-top:8px">A successful studio carries a larger permanent organisation even between productions. Catalogue cash decays rather than funding the company indefinitely.</div></div>
-  ${recoveryPlanPanel()}<div class="section-title"><h2>Treasury</h2></div><div class="card ${state.finance?.bridgeDebt>0?'dangerline':''}"><div class="body">${state.finance?.bridgeDebt>0?`Emergency finance remains outstanding. Keep enough cash for production, campaigns and weekly overhead before expanding the slate.`:`The studio has no bridge debt. Cash timing still matters because production and release expenditure peak at different stages.`}</div><button id="openFinance" class="btn block" style="margin-top:10px">Open detailed finance</button></div>`;
- }else if(tab==='corporate'&&typeof studioCorporateBody==='function')body=studioCorporateBody();
- else if(tab==='audit'&&simulationAuditAccess())body=simulationAuditBody();
  else if(tab==='library')body=studioLibraryBody();
- else if(tab==='identity')body=studioIdentityBody();
- else if(tab==='growth')body=studioGrowthUI();
  else {state.uiStudioTab='desk';body=studioDeskBody()}
  return topbar('Studio',`${state.studio.name} · Week ${state.week}`)+`<main class="screen">${tabs}${body}</main>${nav()}`;
 }
