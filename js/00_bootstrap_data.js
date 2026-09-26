@@ -1,4 +1,4 @@
-const VERSION='4.1b';
+const VERSION='4.1c';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
