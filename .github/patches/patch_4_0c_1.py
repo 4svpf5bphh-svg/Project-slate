@@ -212,9 +212,12 @@ s=s[:branch_pos]+insert+s[branch_pos+len("}else{"):]
 
 
 
-one("  <div class=\"section-title\"><h2>The box-office race</h2><span class=\"small\">Your run against overlapping releases</span></div>${cinemaComparisonGraph(f)}",
-    "  ${theatricalInterventionPanel(f)}\n  <div class=\"section-title\"><h2>The box-office race</h2><span class=\"small\">Your run against overlapping releases</span></div>${cinemaComparisonGraph(f)}",
-    "film detail release room")
+race_marker='<div class="section-title"><h2>The box-office race</h2><span class="small">Your run against overlapping releases</span></div>'
+race_pos=s.find(race_marker)
+if race_pos<0:
+    raise SystemExit("film detail release room: box-office race marker missing")
+s=s[:race_pos]+'  ${theatricalInterventionPanel(f)}\\n  '+s[race_pos:]
+
 
 one("document.querySelectorAll('[data-release-tab]').forEach(b=>b.onclick=()=>{state.uiReleaseTab=b.dataset.releaseTab;save();render()});",
     "document.querySelectorAll('[data-release-tab]').forEach(b=>b.onclick=()=>{state.uiReleaseTab=b.dataset.releaseTab;save();render()});\n document.querySelectorAll('[data-theatrical-move]').forEach(b=>b.onclick=e=>{e.stopPropagation();applyTheatricalMove(filmById(b.dataset.filmId),b.dataset.theatricalMove)});",
