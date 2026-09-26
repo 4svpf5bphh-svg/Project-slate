@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0d.1</title>
+<title>Project Slate — Premium Presentation v4.0d.2</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -624,6 +624,40 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .global-back-top:active{transform:scale(.94)}
 @media(min-width:900px){.global-back-top{right:max(22px,calc((100vw - 980px)/2 - 58px))}}
 
+
+/* v4.0d.2 — Signal vs Noise */
+.desk-command-card{display:flex;flex-direction:column;justify-content:center}
+.desk-command-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.desk-command-grid>div{border:1px solid var(--border);background:rgba(255,255,255,.025);border-radius:12px;padding:10px;text-align:center}
+.desk-command-grid span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.65px;color:var(--muted)}
+.desk-command-grid strong{display:block;font-size:22px;margin-top:3px}
+.desk-upcoming-list{display:grid;gap:8px}
+.desk-upcoming-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid var(--border);background:var(--card);border-radius:14px;padding:11px 12px}
+.desk-upcoming-row.is-blocker{border-color:#7b4c42;box-shadow:inset 3px 0 0 var(--bad)}
+.desk-upcoming-index{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--card2);font-size:11px;font-weight:900;color:var(--accent2)}
+.desk-upcoming-kind{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);white-space:nowrap}
+.desk-upcoming-empty{border-left:3px solid var(--good)}
+.desk-thread-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.desk-thread{position:relative;overflow:hidden}
+.desk-thread:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.desk-thread-good:before{background:var(--good)}.desk-thread-bad:before{background:var(--bad)}.desk-thread-warn:before{background:var(--warn)}
+.desk-thread-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.desk-thread-kicker{font-size:9px;font-weight:900;letter-spacing:1.1px;color:var(--muted)}
+.desk-thread-detail{font-size:12px;line-height:1.45;color:#c5ccd6;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+.desk-signal-urgent{box-shadow:inset 3px 0 0 var(--bad)}.desk-signal-action{box-shadow:inset 3px 0 0 var(--warn)}.desk-signal-major{box-shadow:inset 3px 0 0 var(--blue)}
+.desk-digest{display:grid;gap:10px}
+.desk-digest-week{border:1px solid var(--border);background:var(--card);border-radius:14px;overflow:hidden}
+.desk-digest-head{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;background:rgba(255,255,255,.025);border-bottom:1px solid var(--border);font-size:11px}
+.desk-digest-head span{color:var(--muted)}
+.desk-digest-row{border-bottom:1px solid var(--border)}.desk-digest-row:last-child{border-bottom:0}
+.desk-digest-toggle{width:100%;border:0;background:transparent;display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:9px;align-items:center;text-align:left;padding:10px 11px;color:inherit}
+.desk-digest-row.is-read .desk-digest-toggle{opacity:.68}
+.desk-digest-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2)}.desk-digest-row.is-read .desk-digest-dot{background:#4a5260}
+.desk-digest-copy{min-width:0}.desk-digest-copy b{display:block;font-size:12.5px;line-height:1.3}.desk-digest-copy small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.desk-digest-view{font-size:10px;color:var(--accent2);font-weight:800}
+.desk-digest-detail{padding:0 12px 12px 30px}
+@media(max-width:720px){.desk-thread-grid{grid-template-columns:1fr}.desk-command-grid{grid-template-columns:repeat(3,1fr)}.desk-command-grid strong{font-size:18px}.desk-upcoming-row{grid-template-columns:30px minmax(0,1fr)}.desk-upcoming-kind{grid-column:2;margin-top:-4px}}
+
 </style>
 </head>
 <body>
@@ -631,7 +665,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0d.1';
+const VERSION='4.0d.2';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3100,7 +3134,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0d.1-causality-clarity',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0d.2-signal-noise',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -9862,6 +9896,9 @@ function studioLegacyOverviewBody(){
 function ensureDesk(){
  state.desk=state.desk||{items:[],archive:[],nextId:1,lastGeneratedWeek:0,seenIntro:false};
  normalizeDeskIds(state);
+ // Informational Desk traffic is already complete when it arrives. Treat it as
+ // resolved-but-unread so it can be archived after reading instead of becoming permanent clutter.
+ state.desk.items.forEach(i=>{if(!i.requiresAction&&!i.system&&!(i.choices||[]).length&&i.resolved===false)i.resolved=true});
  state.pulse=state.pulse||{history:[],lastWeek:0};state.pulse.history=state.pulse.history||[];
  if(typeof syncOperationalDeskItems==='function')syncOperationalDeskItems();
  return state.desk;
@@ -9869,7 +9906,79 @@ function ensureDesk(){
 function deskFilm(){return activePlayerFilms().slice().sort((a,b)=>(b.marketing||0)-(a.marketing||0))[0]||playerFilms().slice().sort((a,b)=>(b.releaseWeek||b.completeWeek||0)-(a.releaseWeek||a.completeWeek||0))[0]||null}
 function deskRival(){return state.rivals?.slice().sort((a,b)=>(b.recognition||0)-(a.recognition||0))[Math.abs((state.week*7+(state.seed||1)))%Math.max(1,state.rivals.length)]||null}
 function deskActionCount(){return ensureDesk().items.filter(x=>!x.resolved&&x.requiresAction).length}
-function deskInboxCount(){const d=ensureDesk();return d.items.filter(x=>!x.read||(!x.resolved&&x.requiresAction)).length}
+function deskInboxCount(){
+ const d=ensureDesk();
+ return d.items.filter(x=>(!x.resolved&&x.requiresAction)||(!x.read&&deskSignalScore(x)>=62)).length;
+}
+function deskIsHardLifecycle(item){
+ return !!(item?.system&&/^(prod:|post:|marketing:)/.test(item.notificationKey||''));
+}
+function deskSignalScore(item){
+ if(!item)return 0;
+ let score=18;
+ if(deskIsHardLifecycle(item)&&!item.resolved)return 100;
+ if(item.urgency==='urgent'&&!item.resolved)score=96;
+ if(item.requiresAction&&!item.resolved)score=Math.max(score,82);
+ const typeBase={finance:72,crisis:76,production:65,pulse:60,talent:58,press:56,system:54,industry:42,gossip:28};
+ score=Math.max(score,typeBase[item.type]??45);
+ if(item.source==='Studio Legacy')score+=12;
+ if(item.impact?.length)score+=Math.min(8,item.impact.length*2);
+ if(item.outcome)score+=3;
+ if(!item.read)score+=4;
+ if(state.week-(item.week||state.week)<=1)score+=2;
+ return clamp(Math.round(score),0,100);
+}
+function deskSignalBand(item){
+ if(!item.resolved&&item.requiresAction)return item.urgency==='urgent'||deskIsHardLifecycle(item)?'urgent':'action';
+ const score=deskSignalScore(item);
+ return score>=76?'major':score>=62?'signal':'brief';
+}
+function studioUpcomingEvents(limit=4,horizonDays=35){
+ ensureCalendarState();
+ const now=state.calendarDay,end=now+horizonDays,out=[],seen=new Set();
+ const add=(day,label,kind='event',filmId=null)=>{
+  if(!Number.isFinite(day)||day<now||day>end)return;
+  const key=`${day}|${label}`;if(seen.has(key))return;seen.add(key);out.push({day,label,kind,filmId});
+ };
+ const blocker=calendarHardBlocker(),bf=blocker?filmById(blocker.filmId):null;
+ if(blocker){
+  const label=blocker.type==='post'?'Rough Cut Review':blocker.type==='marketing'?'Release Planning':'Production Decision';
+  add(now,`${label}${bf?` · ${bf.title}`:''}`,'blocker',bf?.id||null);
+ }
+ playerFilms().filter(f=>f.stage==='scheduled').forEach(f=>{
+  ensureFilmCalendar(f);
+  (f.marketingState?.milestones||[]).filter(x=>!x.resolved).forEach(x=>add(x.day,campaignCheckpointLabel({...x,title:f.title}),'campaign',f.id));
+  if(f.releaseDay)add(f.releaseDay,`Release Day · ${f.title}`,'release',f.id);
+ });
+ playerFilms().filter(f=>f.stage==='production').forEach(f=>{
+  (f.events||[]).filter(e=>!e.resolved).forEach(e=>{
+   const week=(f.productionStart||state.week)+(e.week||1)-1,day=weekStartDay(week);
+   add(day,`${e.title||e.name||'Production checkpoint'} · ${f.title}`,'production',f.id);
+  });
+  if(f.productionEnd)add(weekStartDay(f.productionEnd),`Production Wrap · ${f.title}`,'production',f.id);
+ });
+ if(!blocker)playerFilms().filter(f=>f.stage==='post'&&!f.calendarPostStopSeen).forEach(f=>add(now+1,`Rough Cut Review · ${f.title}`,'post',f.id));
+ const cinema=playerFilms().filter(f=>f.stage==='cinema').sort((a,b)=>(b.marketing||0)-(a.marketing||0))[0];
+ if(cinema){
+  let sunday=sundayForWeek(calendarWeekForDay(now));if(sunday<now)sunday+=7;
+  add(sunday,`Weekend Box Office · ${cinema.title}`,'boxOffice',cinema.id);
+ }
+ return out.sort((a,b)=>a.day-b.day||a.label.localeCompare(b.label)).slice(0,limit);
+}
+function deskUpcomingHTML(events){
+ if(!events.length)return `<div class="card desk-upcoming-empty"><strong>Clear runway</strong><div class="small">No major studio checkpoint is scheduled in the next five weeks.</div></div>`;
+ return `<div class="desk-upcoming-list">${events.map((e,i)=>{const days=Math.max(0,e.day-state.calendarDay),when=days===0?'Now':days===1?'Tomorrow':`In ${days} days`;return `<div class="desk-upcoming-row ${e.kind==='blocker'?'is-blocker':''}"><span class="desk-upcoming-index">${i+1}</span><div><strong>${e.label}</strong><div class="small">${when} · ${calendarShortDate(e.day)}</div></div><span class="desk-upcoming-kind">${e.kind==='boxOffice'?'Box office':e.kind==='campaign'?'Campaign':e.kind==='production'?'Production':e.kind==='release'?'Release':e.kind==='post'?'Post':'Action'}</span></div>`}).join('')}</div>`;
+}
+function deskThreadHTML(t){
+ const tone=['good','bad','warn','blue'].includes(t.tone)?t.tone:'blue';
+ return `<div class="card desk-thread desk-thread-${tone}"><div class="desk-thread-top"><span class="desk-thread-kicker">ACTIVE STORYLINE</span><span class="pill ${tone==='bad'?'bad':tone==='warn'?'warn':tone==='good'?'good':'blue'}">${t.progress||'Developing'}</span></div><strong>${t.title}</strong><div class="small" style="margin-top:6px">${t.summary}</div><div class="desk-thread-detail">${t.detail||''}</div></div>`;
+}
+function deskDigestHTML(items){
+ if(!items.length)return `<div class="card body">No background briefings are waiting.</div>`;
+ const groups=new Map();
+ items.slice(0,30).forEach(x=>{const key=x.week||state.week;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)});
+ return `<div class="desk-digest">${[...groups.entries()].slice(0,8).map(([week,rows])=>`<section class="desk-digest-week"><div class="desk-digest-head"><strong>Week ${week}</strong><span>${rows.length} brief${rows.length===1?'':'s'}</span></div>${rows.map(x=>`<div class="desk-digest-row ${x.read?'is-read':'is-unread'}"><button class="desk-digest-toggle" data-desk-toggle="${x.id}"><span class="desk-digest-dot"></span><span class="desk-digest-copy"><b>${x.headline}</b><small>${x.source}</small></span><span class="desk-digest-view">${x.expanded?'Close':'View'}</span></button>${x.expanded?`<div class="desk-digest-detail"><div class="body">${x.body}</div>${x.outcome?`<div class="desk-outcome"><strong>Outcome</strong><div class="small" style="margin-top:4px">${x.outcome}</div>${x.impact?.length?`<div class="desk-impact">${x.impact.map(v=>`<span>${v}</span>`).join('')}</div>`:''}</div>`:''}<div class="desk-actions">${x.destination&&x.system?`<button class="btn ghost" data-desk-open="${x.id}">Open</button>`:''}${x.resolved?`<button class="btn ghost" data-desk-archive="${x.id}">Archive</button>`:''}</div></div>`:''}</div>`).join('')}</section>`).join('')}</div>`;
+}
 function ensureFilmSocial(f){
  if(!f)return null;
  const m=f.marketingState||{};
@@ -9963,6 +10072,7 @@ function updateSocialPulseWeek(){
 function pushDeskItem(x){
  const d=ensureDesk(),id=d.nextId++;let item={id,week:state.week,day:typeof currentCalendarDay==='function'?currentCalendarDay():null,read:false,expanded:true,resolved:false,archived:false,urgency:'normal',type:'industry',source:'The Lot',choices:[],...x};
  item=lotDeskVoice(item);item.expanded=!!item.requiresAction;
+ if(!item.requiresAction&&!(item.choices||[]).length)item.resolved=true;
  d.items.unshift(item);d.items=d.items.slice(0,90);
  if(item.requiresAction&&typeof notify==='function'){
   const deadline=item.expiresWeek?` Respond before the end of Week ${item.expiresWeek}.`:'';
@@ -10259,10 +10369,14 @@ function socialVolumeLabel(v){return v>=82?'Exploding':v>=66?'Very high':v>=50?'
 function studioPulseRows(){
  return activePlayerFilms().filter(f=>['production','post','marketing','scheduled','cinema'].includes(f.stage)).slice(0,5).map(f=>{const p=ensureFilmSocial(f);return {f,p,score:p.volume,sentiment:socialSentimentLabel(p.sentiment),volume:socialVolumeLabel(p.volume),trend:p.delta>3?`▲ ${p.delta}`:p.delta<-3?`▼ ${Math.abs(p.delta)}`:'—'}});
 }
-function studioDeskSnapshot(){const d=ensureDesk(),open=d.items.filter(x=>!x.resolved&&x.requiresAction),urgent=open.filter(x=>x.urgency==='urgent'),unread=d.items.filter(x=>!x.read),latest=d.items[0];return `<div class="section-title"><h2>Studio Desk</h2><button class="btn ghost" data-studio-tab="desk">Open Desk${open.length?` · ${open.length}`:''}</button></div><div class="card desk-snapshot ${urgent.length?'attention':''}"><span class="desk-dot ${urgent.length?'urgent':''}"></span><div><strong>${urgent.length?`${urgent.length} urgent ${urgent.length===1?'item':'items'}`:open.length?`${open.length} ${open.length===1?'decision':'decisions'} waiting`:unread.length?`${unread.length} unread ${unread.length===1?'item':'items'}`:'Desk clear'}</strong><div class="small">${latest?latest.headline:'Press, agencies and The Lot will surface here as the career develops.'}</div></div><button class="btn" data-studio-tab="desk">Review</button></div>`}
+function studioDeskSnapshot(){
+ const d=ensureDesk(),open=d.items.filter(x=>!x.resolved&&x.requiresAction),urgent=open.filter(x=>x.urgency==='urgent'||deskIsHardLifecycle(x)),signals=d.items.filter(x=>!x.read&&!open.includes(x)&&deskSignalScore(x)>=62),briefUnread=d.items.filter(x=>!x.read&&!open.includes(x)&&deskSignalScore(x)<62),focus=[...open,...signals].sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0)),latest=focus[0]||d.items[0];
+ const headline=urgent.length?`${urgent.length} urgent ${urgent.length===1?'item':'items'}`:open.length?`${open.length} ${open.length===1?'response':'responses'} waiting`:signals.length?`${signals.length} noteworthy ${signals.length===1?'signal':'signals'}`:briefUnread.length?`${briefUnread.length} background ${briefUnread.length===1?'brief':'briefs'}`:'Desk clear';
+ return `<div class="section-title"><h2>Studio Desk</h2><button class="btn ghost" data-studio-tab="desk">Open Desk${open.length?` · ${open.length}`:''}</button></div><div class="card desk-snapshot ${urgent.length?'attention':''}"><span class="desk-dot ${urgent.length?'urgent':''}"></span><div><strong>${headline}</strong><div class="small">${latest?latest.headline:'Press, agencies and The Lot will surface here as the career develops.'}</div></div><button class="btn" data-studio-tab="desk">Review</button></div>`;
+}
 function deskItemHTML(x){
- const choices=x.choices||[],expanded=x.requiresAction?(!x.read||x.expanded):!!x.expanded,status=x.resolved?(x.expired?'Expired':'Resolved'):x.requiresAction?'Response needed':'For awareness',weeks=x.expiresWeek?x.expiresWeek-state.week:null,deadline=!x.resolved&&x.expiresWeek?`<span class="small ${weeks<=1?'badtext':''}">Closes after W${x.expiresWeek}${weeks>=0?` · ${weeks===0?'last chance':weeks+'w left'}`:''}</span>`:'';
- return `<div class="card desk-item ${x.urgency==='urgent'?'urgent':x.requiresAction?'action':'info'} ${x.read?'desk-read':''}"><div class="desk-meta"><span class="desk-source">${x.source}</span><span class="pill ${x.urgency==='urgent'?'bad':x.requiresAction?'warn':'blue'}">${status}</span><span class="small">${x.day&&typeof calendarShortDate==='function'?calendarShortDate(x.day):'W'+x.week}</span>${deadline}</div><div class="desk-headline">${x.headline}</div>${expanded?`<div class="body" style="margin-top:7px">${x.body}</div>${x.type==='gossip'?`<div class="small" style="margin-top:8px">Rumour status: unverified. Lot gossip can be accurate, distorted or wrong.</div>`:''}${!x.resolved&&choices.length?`<div class="desk-choice-grid">${choices.map(c=>`<button class="btn ${x.urgency==='urgent'?'primary':''}" data-desk-choice="${c[0]}" data-desk-id="${x.id}">${c[1]}</button>`).join('')}</div>`:''}${x.outcome?`<div class="desk-outcome"><strong>Outcome</strong><div class="small" style="margin-top:4px">${x.outcome}</div>${x.impact?.length?`<div class="desk-impact">${x.impact.map(v=>`<span>${v}</span>`).join('')}</div>`:''}</div>`:''}`:`<div class="small desk-collapsed-note">Read · ${x.requiresAction&&!x.resolved?'decision still waiting · ':''}details collapsed</div>`}<div class="desk-actions">${!x.read?`<button class="btn ghost" data-desk-read="${x.id}">Mark read</button>`:''}${x.destination&&x.system?`<button class="btn ${x.requiresAction&&!x.resolved?'primary':'ghost'}" data-desk-open="${x.id}">${x.requiresAction&&!x.resolved?'Open action':'Open'}</button>`:''}<button class="btn ghost" data-desk-toggle="${x.id}">${expanded?'Collapse':x.requiresAction&&!x.resolved?'View details':'View'}</button>${x.resolved?`<button class="btn ghost" data-desk-archive="${x.id}">Archive</button>`:''}</div></div>`;
+ const choices=x.choices||[],expanded=x.requiresAction?(!x.read||x.expanded):!!x.expanded,status=!x.requiresAction?'For awareness':x.resolved?(x.expired?'Expired':'Resolved'):'Response needed',weeks=x.expiresWeek?x.expiresWeek-state.week:null,deadline=!x.resolved&&x.expiresWeek?`<span class="small ${weeks<=1?'badtext':''}">Closes after W${x.expiresWeek}${weeks>=0?` · ${weeks===0?'last chance':weeks+'w left'}`:''}</span>`:'',band=deskSignalBand(x);
+ return `<div class="card desk-item desk-signal-${band} ${x.urgency==='urgent'?'urgent':x.requiresAction?'action':'info'} ${x.read?'desk-read':''}"><div class="desk-meta"><span class="desk-source">${x.source}</span><span class="pill ${band==='urgent'?'bad':band==='action'?'warn':band==='major'?'blue':''}">${status}</span><span class="small">${x.day&&typeof calendarShortDate==='function'?calendarShortDate(x.day):'W'+x.week}</span>${deadline}</div><div class="desk-headline">${x.headline}</div>${expanded?`<div class="body" style="margin-top:7px">${x.body}</div>${x.type==='gossip'?`<div class="small" style="margin-top:8px">Rumour status: unverified. Lot gossip can be accurate, distorted or wrong.</div>`:''}${!x.resolved&&choices.length?`<div class="desk-choice-grid">${choices.map(c=>`<button class="btn ${x.urgency==='urgent'?'primary':''}" data-desk-choice="${c[0]}" data-desk-id="${x.id}">${c[1]}</button>`).join('')}</div>`:''}${x.outcome?`<div class="desk-outcome"><strong>Outcome</strong><div class="small" style="margin-top:4px">${x.outcome}</div>${x.impact?.length?`<div class="desk-impact">${x.impact.map(v=>`<span>${v}</span>`).join('')}</div>`:''}</div>`:''}`:`<div class="small desk-collapsed-note">${x.read?'Read · ':''}${x.requiresAction&&!x.resolved?'decision still waiting · ':''}details collapsed</div>`}<div class="desk-actions">${!x.read?`<button class="btn ghost" data-desk-read="${x.id}">Mark read</button>`:''}${x.destination&&x.system?`<button class="btn ${x.requiresAction&&!x.resolved?'primary':'ghost'}" data-desk-open="${x.id}">${x.requiresAction&&!x.resolved?'Open action':'Open'}</button>`:''}<button class="btn ghost" data-desk-toggle="${x.id}">${expanded?'Collapse':x.requiresAction&&!x.resolved?'View details':'View'}</button>${x.resolved?`<button class="btn ghost" data-desk-archive="${x.id}">Archive</button>`:''}</div></div>`;
 }
 function pulseMetricRead(kind,value){
  const bands={
@@ -10301,13 +10415,17 @@ function pulseDetailScreen(id){
 }
 
 function studioDeskBody(){
- const d=ensureDesk();expireDeskItems();syncOperationalDeskItems();const open=d.items.filter(x=>!x.resolved&&x.requiresAction),unread=d.items.filter(x=>!x.read),pulse=studioPulseRows(),archivable=d.items.filter(x=>x.read&&x.resolved).length;
- return `<div class="desk-hero"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length} response${open.length===1?'':'s'} waiting</div><div class="body" style="margin-top:8px">One inbox for the studio. Lifecycle checkpoints, milestones, finance warnings, agency approaches and industry traffic all live here. Full-screen moments remain full-screen, but once you have seen them they do not leave a second notification behind.</div></div><div class="card"><div class="listrow"><span>Unread</span><strong>${unread.length}</strong></div><div class="listrow"><span>Needs action</span><strong>${open.length}</strong></div><div class="listrow"><span>Archived</span><strong>${d.archive.length}</strong></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
- <div class="section-title"><h2>Needs a response</h2><span class="small">Hard production, rough-cut and release-planning checkpoints also stop Continue</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>No response is waiting.</strong><div class="small" style="margin-top:5px">The Lot is never quiet for long.</div></div>`}</div>
+ const d=ensureDesk();expireDeskItems();syncOperationalDeskItems();
+ const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0));
+ const open=ranked.filter(x=>!x.resolved&&x.requiresAction),unread=d.items.filter(x=>!x.read),signals=ranked.filter(x=>!open.includes(x)&&deskSignalScore(x)>=62),background=ranked.filter(x=>!open.includes(x)&&!signals.includes(x)),pulse=studioPulseRows(),archivable=d.items.filter(x=>x.read&&x.resolved).length,threads=activeCareerThreads(3),upcoming=studioUpcomingEvents(4,35),signalUnread=signals.filter(x=>!x.read).length,briefUnread=background.filter(x=>!x.read).length;
+ return `<div class="desk-hero"><div class="hero"><div class="badge">THE STUDIO DESK · SIGNAL vs NOISE</div><div class="kpi" style="margin-top:5px">${open.length} response${open.length===1?'':'s'} waiting</div><div class="body" style="margin-top:8px">The Desk now separates decisions, meaningful signals and background industry traffic. Routine chatter still exists, but it no longer competes visually with something that can change the studio.</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${signalUnread}</strong></div><div><span>Digest unread</span><strong>${briefUnread}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
+ <div class="section-title"><h2>Up next</h2><span class="small">Major studio checkpoints · next five weeks</span></div>${deskUpcomingHTML(upcoming)}
+ <div class="section-title"><h2>Needs a response</h2><span class="small">Urgent crises and hard lifecycle blockers interrupt Continue; everything else can wait here</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>No response is waiting.</strong><div class="small" style="margin-top:5px">You can keep moving without clearing background traffic.</div></div>`}</div>
+ ${threads.length?`<div class="section-title desk-section"><h2>Active storylines</h2><span class="small">Persistent threads shaping how the industry reads your studio</span></div><div class="desk-thread-grid">${threads.map(deskThreadHTML).join('')}</div>`:''}
+ <div class="section-title desk-section"><h2>Signals worth knowing</h2><span class="small">Higher-consequence information, separated from routine chatter</span></div><div class="desk-stack">${signals.length?signals.slice(0,12).map(deskItemHTML).join(''):`<div class="card body">No major signal is competing for your attention right now.</div>`}</div>
  <div class="section-title desk-section pulse-section-title"><h2>Pulse</h2><span class="small">Audience conversation · tap a film to drill in</span></div><div class="pulse-board">${pulse.length?pulse.map(pulseFilmHTML).join(''):`<div class="card pulse-empty"><span class="pulse-brand">PULSE</span><div class="body" style="margin-top:8px">Audience conversation starts to appear once a film reaches production. It becomes more meaningful as trailers, publicity and real audiences give people something to react to.</div></div>`}</div>
- <div class="section-title desk-section"><h2>Industry brief</h2><div style="display:flex;gap:8px;align-items:center"><span class="small">Awareness only · collapsed by default</span>${unread.length?`<button class="btn ghost" id="deskMarkAllRead2">Mark all read</button>`:''}${archivable?`<button class="btn ghost" id="deskArchiveRead2">Archive read</button>`:''}</div></div><div class="desk-stack">${d.items.length?d.items.filter(x=>!open.includes(x)).slice(0,30).map(deskItemHTML).join(''):`<div class="card body">No Desk traffic yet. Continue the calendar to let the industry move.</div>`}</div>`;
+ <div class="section-title desk-section"><h2>Industry digest</h2><div style="display:flex;gap:8px;align-items:center"><span class="small">Background context · compressed by week</span>${unread.length?`<button class="btn ghost" id="deskMarkAllRead2">Mark all read</button>`:''}${archivable?`<button class="btn ghost" id="deskArchiveRead2">Archive read</button>`:''}</div></div>${deskDigestHTML(background)}`;
 }
-
 function legendCardHTML(entry){
  const unlocked=legendUnlocked(entry.id),t=unlocked?talentById(entry.id):null,p=legendRequirementProgress(entry),tier=legendTier(entry);
  return `<div class="card legend-card ${unlocked?'unlocked':'locked'} legend-tier-${tier.key}">${unlocked?`<div class="legend-head">${portraitHTML(t,'sm')}<div><div class="legend-status">UNLOCKED · ${entry.type}</div><strong>${entry.seed[0]}</strong><div class="small">${entry.seed[7]}</div></div></div><div style="margin-top:9px"><span class="pill legend-badge">LEGEND</span><span class="pill tier-${tier.key}">${tier.label}</span><span class="pill">Prime archive age ${entry.seed[8]}</span>${t?.retired?'<span class="pill bad">Retired in this universe</span>':busy(t)?`<span class="pill warn">Busy to W${t.busyUntil}</span>`:'<span class="pill good">Live on The Lot</span>'}</div><button class="btn block" style="margin-top:10px" data-talent="${entry.id}">Open career profile</button>`:`<div class="legend-head"><div class="legend-silhouette">✦</div><div><div class="legend-status">LOCKED · ${entry.type}</div><strong>${entry.seed[0]}</strong><div class="small">${entry.seed[7]}</div></div></div><div style="margin-top:9px"><span class="pill tier-${tier.key}">${tier.label}</span><span class="small" style="margin-left:6px">${tier.desc}</span></div><div class="legend-clue"><div class="small"><strong>Archive clue:</strong> ${entry.clue}</div><div class="legend-progress">${p.text}</div><div class="milestone-progress"><span style="width:${p.pct}%"></span></div></div>`}</div>`;
