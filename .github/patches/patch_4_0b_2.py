@@ -131,10 +131,10 @@ one("streamingAsset:+streamingAsset.toFixed(1),awards,strongIP",
     "streamingAsset:+streamingAsset.toFixed(1),capitalAssets:+capitalAssets.toFixed(1),awards,strongIP",
     "corporate capital asset return")
 
-one("  <div class=\"listrow\"><span>Active slate</span><strong>${moneyFine(b.slate)}/week</strong></div><div class=\"listrow\"><span>Catalogue receipts</span>",
+one("<div class=\"listrow\"><span>Active slate</span><strong>${moneyFine(b.slate)}/week</strong></div><div class=\"listrow\"><span>Catalogue receipts</span>",
     "  <div class=\"listrow\"><span>Active slate</span><strong>${moneyFine(b.slate)}/week</strong></div><div class=\"listrow\"><span>Capital assets</span><strong>${moneyFine(b.assets||0)}/week</strong></div><div class=\"listrow\"><span>Catalogue receipts</span>",
     "finance capital overhead row")
-one("  <div class=\"section-title\"><h2>Emergency bridge finance</h2></div>",
+one("<div class=\"section-title\"><h2>Emergency bridge finance</h2></div>",
     "  ${capitalAllocationPanel()}\n  <div class=\"section-title\"><h2>Emergency bridge finance</h2></div>",
     "finance capital allocation panel")
 one("  ${typeof ownedStreamingCorporatePanel==='function'?ownedStreamingCorporatePanel():''}",
