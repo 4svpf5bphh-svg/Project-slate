@@ -4,7 +4,7 @@ let lastPremiumRouteKey=null;
 function premiumRouteKey(){
  if(state.detail)return `detail:${state.detail.type}:${state.detail.id||state.detail.mode||''}`;
  let sub='';
- if(state.screen==='studio')sub=`:${state.uiStudioTab||'desk'}:${state.uiDeskTab||''}:${state.uiLegacyTab||''}`;
+ if(state.screen==='studio')sub=`:${state.uiStudioTab||'desk'}:${state.uiDeskTab||''}:${state.uiLegacyTab||''}:${state.uiBusinessTab||''}`;
  else if(state.screen==='slate'||state.screen==='films')sub=`:${state.uiSlateTab||'pipeline'}`;
  else if(state.screen==='release'||state.screen==='box')sub=`:${state.uiReleaseTab||'box'}`;
  else if(state.screen==='industry')sub=`:${state.industryTab||'news'}`;
@@ -110,7 +110,7 @@ if(state?.talent&&typeof bootstrapLot==='function')bootstrapLot();
 if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.legends?.pending?.length)surfacePendingLegendUnlock()}
 function projectSlateSmokeChecks(){
  const failures=[],required=[
-  ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],['bootstrapLot',typeof bootstrapLot],['lotPairHistory',typeof lotPairHistory],['lotRegisterFilmOutcome',typeof lotRegisterFilmOutcome],['lotMaybeResurfacePairHistory',typeof lotMaybeResurfacePairHistory],['lotInfluenceApproachOffer',typeof lotInfluenceApproachOffer],['useLotInfluenceApproach',typeof useLotInfluenceApproach],['lotCampaignOpportunity',typeof lotCampaignOpportunity],['lotApplyCampaignAngle',typeof lotApplyCampaignAngle],['agencyInfluenceOffer',typeof agencyInfluenceOffer],['useAgencyInfluence',typeof useAgencyInfluence],['rivalDetenteOffer',typeof rivalDetenteOffer],['attemptRivalDetente',typeof attemptRivalDetente],
+  ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],['bootstrapLot',typeof bootstrapLot],['lotPairHistory',typeof lotPairHistory],['lotRegisterFilmOutcome',typeof lotRegisterFilmOutcome],['lotMaybeResurfacePairHistory',typeof lotMaybeResurfacePairHistory],['lotInfluenceApproachOffer',typeof lotInfluenceApproachOffer],['useLotInfluenceApproach',typeof useLotInfluenceApproach],['lotCampaignOpportunity',typeof lotCampaignOpportunity],['lotApplyCampaignAngle',typeof lotApplyCampaignAngle],['agencyInfluenceOffer',typeof agencyInfluenceOffer],['useAgencyInfluence',typeof useAgencyInfluence],['rivalDetenteOffer',typeof rivalDetenteOffer],['attemptRivalDetente',typeof attemptRivalDetente],['publishExecutiveIntel',typeof publishExecutiveIntel],['executiveFilmIntelRows',typeof executiveFilmIntelRows],['executiveFilmIntelHTML',typeof executiveFilmIntelHTML],['studioBusinessBody',typeof studioBusinessBody],
   ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['ensureFilmIdentity',typeof ensureFilmIdentity],['productionEventFlavor',typeof productionEventFlavor],['filmPressAngle',typeof filmPressAngle],['premiseReviewParagraph',typeof premiseReviewParagraph],['dailyScreenCritic',typeof dailyScreenCritic],['criticOpeningParagraph',typeof criticOpeningParagraph],['capsuleOutletLine',typeof capsuleOutletLine],['publishStudioMomentAftermath',typeof publishStudioMomentAftermath],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
@@ -138,6 +138,13 @@ function projectSlateSmokeChecks(){
   if(!rivalDetenteHTML.toString().includes('data-rival-detente'))failures.push('rival détente UI missing');
   if(!commitRelease.toString().includes('lotApplyCampaignAngle'))failures.push('Lot campaign leverage not applied at commit');
  }catch(e){failures.push('v4.3 Power & Influence smoke failed'+(e?.message?': '+e.message:''))}
+ try{
+  if(!recordTrackingSnapshot.toString().includes('publishExecutiveIntel'))failures.push('tracking intelligence publish missing');
+  if(!releaseFilm.toString().includes("'reviews:'"))failures.push('review intelligence publish missing');
+  if(!publishSettledOpeningNews.toString().includes("'opening:'"))failures.push('opening intelligence publish missing');
+  if(!deskSignalScore.toString().includes('intel:78'))failures.push('executive intelligence signal priority missing');
+  if(!studioScreen.toString().includes("['business','Business']"))failures.push('Studio Business consolidation missing');
+ }catch(e){failures.push('v4.4 clarity smoke failed'+(e?.message?': '+e.message:''))}
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
   if(!buildNewsItem.toString().includes('voicePressStory'))failures.push('press voice pass missing');
