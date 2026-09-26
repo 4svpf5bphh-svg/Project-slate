@@ -1,5 +1,45 @@
 // Project Slate UI: slate
 
+
+function firstCareerFilm(f){const films=playerFilms();return !!f&&films.length>0&&films[0].id===f.id}
+function firstFilmCastingChecklistHTML(f,compact=false){
+ if(!firstCareerFilm(f)||f.stage!=='development')return '';
+ const rows=principalCastingRows(f),tested=rows.filter(x=>x.tested).length,ids=packageTalentIds(f),agreed=ids.filter(id=>f.contracts?.[id]).length;
+ const items=[
+  {done:!!f.directorId,label:'Director attached'},
+  {done:f.cast.length===2,label:'Principal cast '+f.cast.length+'/2'},
+  {done:tested===2,label:'Screen tests '+tested+'/2',warn:f.cast.length===2&&tested<2},
+  {done:ids.length>0&&agreed===ids.length,label:'Talent terms '+agreed+'/'+Math.max(ids.length,1)}
+ ];
+ const steps=items.map(x=>'<div class="'+(x.done?'done':x.warn?'warn':'')+'"><span>'+(x.done?'✓':x.warn?'!':'○')+'</span><strong>'+x.label+'</strong></div>').join('');
+ return '<div class="first-film-checklist '+(compact?'compact':'')+'"><div class="row"><div><div class="badge">FIRST FILM GUIDE</div><strong>Build the package before you bet the studio</strong></div><span class="pill blue">'+items.filter(x=>x.done).length+'/'+items.length+'</span></div><div class="first-film-steps">'+steps+'</div>'+(compact?'':'<div class="small">Screen tests are optional, not mandatory. Skipping them means accepting role-fit uncertainty rather than discovering it before greenlight.</div>')+'</div>';
+}
+function filmPressureBadgesHTML(f){
+ const bits=[];
+ if(f.stage==='development'){const untested=untestedPrincipalRoles(f);if(untested.length)bits.push('<span class="pill warn">'+untested.length+' lead'+(untested.length===1?'':'s')+' untested</span>')}
+ const hostile=typeof lotHostilePackage==='function'?lotHostilePackage(f):null;if(hostile)bits.push('<span class="pill bad">HOSTILE PACKAGE</span>');
+ const stories=typeof lotActiveStoriesForFilm==='function'?lotActiveStoriesForFilm(f):[];if(stories.length)bits.push('<span class="pill blue">THE LOT · '+stories.length+' active</span>');
+ return bits.length?'<div class="film-pressure-badges">'+bits.join('')+'</div>':'';
+}
+function lotFilmPressureHTML(f){
+ if(typeof lotActiveStoriesForFilm!=='function')return '';
+ const stories=lotActiveStoriesForFilm(f),hostile=lotHostilePackage(f),mediation=lotMediationOffer(f);
+ if(!stories.length&&!hostile)return '';
+ const storyTone=s=>s.type==='friendship'?'good':s.intensity>=3?'bad':'warn';
+ let hostileHTML='';
+ if(hostile)hostileHTML='<div class="hostile-package-line"><span class="pill bad">HOSTILE PACKAGE</span><strong>'+hostile.a.name+' × '+hostile.b.name+'</strong><span>Grudge '+Math.round(hostile.rel.grudge||0)+' · tension '+Math.round(hostile.rel.tension||0)+'</span></div>';
+ const storyHTML=stories.slice(0,3).map(s=>{
+  const names=s.participants.map(id=>talentById(id)?.name).filter(Boolean).join(' + '),tone=storyTone(s),label=s.type==='friendship'?'Friendship':s.intensity>=4?'Legendary nonsense':s.intensity>=3?'Escalated':'Active';
+  return '<div class="lot-film-story '+tone+'"><div><strong>'+s.headline+'</strong><span>'+names+' · heat '+Math.round(s.heat||0)+'</span></div><span class="pill '+tone+'">'+label+'</span></div>';
+ }).join('');
+ let med='';
+ if(mediation){
+  if(mediation.available)med='<div class="lot-mediation"><div><strong>Studio intervention available</strong><span>Bring both sides together before this becomes more expensive than the argument.</span></div><button class="btn" data-lot-mediate="'+mediation.story.id+'">Mediate · '+money(mediation.cost)+'</button></div>';
+  else if(mediation.last)med='<div class="lot-mediation result"><div><strong>Last mediation: '+mediation.last.outcome+'</strong><span>'+mediation.last.headline+'</span></div><span class="pill '+(mediation.last.outcome==='backfired'?'bad':mediation.last.outcome==='cooled'?'good':'warn')+'">'+(mediation.exhausted?'No leverage left':'Retry W'+mediation.cooldownUntil)+'</span></div>';
+ }
+ return '<div class="section-title"><h2>The Lot on this film</h2><span class="small">People stories with real package consequences</span></div><div class="card lot-film-panel '+(hostile?'dangerline':'')+'">'+hostileHTML+'<div class="lot-film-stories">'+storyHTML+'</div>'+med+'</div>';
+}
+
 function slateScreen(){
  const tab=state.uiSlateTab||'pipeline',pf=playerFilms(),active=pf.filter(f=>f.stage!=='complete');
  const groups=[
@@ -9,7 +49,7 @@ function slateScreen(){
   ['cinema','In Cinemas',active.filter(f=>f.stage==='cinema')]
  ];
  const tabs=sectionTabs([['pipeline','Pipeline',active.length],['development','Development',groups[0][2].length],['production','Production',groups[1][2].length],['finishing','Post / Release',groups[2][2].length],['cinema','Cinemas',groups[3][2].length]],tab,'data-slate-tab');
- const card=f=>`<div class="card click ${f.pendingEvent||f.marketingState?.pending?'attention':''}" data-film="${f.id}"><div class="film-card-layout">${filmKeyArtHTML(f,'thumb')}<div class="film-card-copy"><div class="row"><div><strong>${f.title}</strong><div class="small">${f.genre} · ${fmtStage(f.stage)}</div></div>${stagePill(f)}</div><div class="body" style="margin-top:8px">${filmSummary(f)}</div></div></div></div>`;
+ const card=f=>`<div class="card click ${f.pendingEvent||f.marketingState?.pending?'attention':''}" data-film="${f.id}"><div class="film-card-layout">${filmKeyArtHTML(f,'thumb')}<div class="film-card-copy"><div class="row"><div><strong>${f.title}</strong><div class="small">${f.genre} · ${fmtStage(f.stage)}</div></div>${stagePill(f)}</div><div class="body" style="margin-top:8px">${filmSummary(f)}</div>${filmPressureBadgesHTML(f)}</div></div></div>`;
  let body='';
  if(tab==='pipeline'){
   body=groups.map(([id,label,list])=>`<div class="section-title"><h2>${label}</h2><span class="small">${list.length}</span></div>${list.length?`<div class="grid cols2">${list.map(card).join('')}</div>`:`<div class="card body">No films currently at this stage.</div>`}`).join('');
@@ -69,7 +109,7 @@ function filmScreen(id){
  else if(f.stage==='scheduled')body=scheduledUI(f);
  else if(f.stage==='cinema')body=cinemaUI(f);
  else if(f.stage==='complete')body=wrapUI(f);
- return topbar('Film',fmtStage(f.stage))+`<main class="screen">${backHead('Film',`${f.genre} · ${fmtStage(f.stage)}`)}${filmIdentityHero(f)}${body}${filmTimelineHTML(f)}</main>${nav()}`;
+ return topbar('Film',fmtStage(f.stage))+`<main class="screen">${backHead('Film',`${f.genre} · ${fmtStage(f.stage)}`)}${filmIdentityHero(f)}${lotFilmPressureHTML(f)}${body}${filmTimelineHTML(f)}</main>${nav()}`;
 }
 function developmentUI(f,s){
  ensurePackagingState(f);ensureProductionDepth(f);
@@ -86,8 +126,10 @@ function developmentUI(f,s){
  }
  const cov=scriptCoverage(s),writer=writerById(s.writerId),producer=producerStrategy(f),effects=effectsApproach(f);
  return `<div class="hero"><div class="quote">${s.logline}</div><div style="margin-top:8px"><span class="pill">Recommended production ${money(range[0])}–${money(range[1])}</span><span class="pill">${writer?.name||'Unknown writer'}</span><span class="pill ${cov.readiness==='Packaging-ready'?'good':'blue'}">${cov.readiness}</span></div></div>
+ ${firstFilmCastingChecklistHTML(f)}
  <div class="section-title"><h2>Package</h2><button id="toggleHold" class="btn ghost">Hold project</button></div><div class="card"><div class="listrow"><span>Director</span><strong>${d?d.name:'Not attached'}</strong></div><div class="listrow"><span>Principal cast</span><strong>${cast.length?cast.map(x=>x.name).join(', '):'Not cast'}</strong></div><div class="listrow"><span>Supporting cast</span><strong>${support.length?support.map(x=>x.name).join(', '):supportReq.required?'Required · not cast':'Optional · not cast'}</strong></div><div class="listrow"><span>Ensemble requirement</span><strong id="supportRequirement"><span class="pill ${supportReq.complete?'good':'warn'}">${supportReq.label} · ${supportReq.selected}/${supportReq.required||'optional'}</span></strong></div><div class="listrow"><span>Terms agreed</span><strong>${agreed}/${expectedTerms}</strong></div>${fit?`<div class="listrow"><span>Internal package view</span><strong><span class="pill ${fitBand(fit.average).cls}">${fitBand(fit.average).label}</span></strong></div>`:''}</div>
  ${fit&&fit.average<60?`<div class="card dangerline" style="margin-top:10px"><div class="body"><strong>Packaging warning:</strong> the current combination contains meaningful project-fit risk. Raw reputation does not guarantee this team will realise this screenplay well.</div></div>`:''}
+ ${untestedPrincipalRoles(f).length?`<div class="card attention casting-evidence-warning" style="margin-top:10px"><div class="row"><strong>Role-specific evidence missing</strong><span class="pill warn">${untestedPrincipalRoles(f).length}/2 untested</span></div><div class="body" style="margin-top:6px">${untestedPrincipalRoles(f).map(x=>`${x.talent.name} as ${x.role.name}`).join(' · ')}. You can keep this cast, but greenlight will be a deliberate bet without screen-test evidence.</div></div>`:''}
  <div class="grid cols4" style="margin-top:12px"><button id="chooseDirector" class="btn">${d?'Change director':'Choose director'}</button><button id="chooseCast" class="btn">Cast leads (${f.cast.length}/2)</button><button id="chooseSupportingCast" class="btn ${!supportReq.complete?'attention':''}">Supporting cast (${support.length}/${supportReq.max})</button><button id="reviewContracts" class="btn" ${!d||f.cast.length<2?'disabled':''}>Contracts ${agreed}/${expectedTerms}</button></div>
  <div class="section-title"><h2>Production budget</h2><span class="small">Recommended ${money(range[0])}–${money(range[1])}</span></div>
  <div class="card"><div class="row"><span>Committed production spend</span><strong id="budgetRead">${money(f.budget)}</strong></div><input id="budgetSlider" class="range" type="range" min="${min}" max="${max}" step="0.5" value="${f.budget}" style="margin-top:14px"><div class="range-labels"><span>${money(min)}</span><span>${money(max)}</span></div><div id="budgetAdvice" class="body" style="margin-top:10px">${budgetAdvice(f.budget,s)}</div><div class="cast-scale-note"><strong>${supportReq.label}</strong><span>${supportReq.required===0?'At this scale a third performer is optional.':supportReq.required===1?'This scale requires one supporting performer in addition to the two leads.':'At event scale the film must carry four principal performers: two leads and two supporting roles.'}</span></div><div id="cashAfter" class="small" style="margin-top:8px">Estimated cash after package + production: ${money(cashAfter)}</div></div>
@@ -165,7 +207,7 @@ function directorPicker(f){
  const available=pickerList('Director',f),selected=f.directorId?talentById(f.directorId):null;
  return topbar('Choose Director',f.title)+`<main class="screen pickerpad">${backHead('Director Shortlist','Filter and rank the market by what matters for this project')}
  ${pickerControls('Director')}
- <div class="grid">${available.map(t=>{ensureTalentCareer(t);const score=directorProjectFit(t,f),band=fitBand(score),ev=directorFitEvidence(t,f);return `<div class="card"><div class="talenthead"><div class="click talentidentity" data-talent="${t.id}">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${t.tag} · ${t.careerState}</div></div></div><strong>${money(t.fee)}</strong></div><div style="margin-top:8px"><span class="pill ${band.cls}">${band.label}</span><span class="pill">Craft ${t.craft}</span><span class="pill">Commercial ${t.commercial}</span><span class="pill">Momentum ${momentumIndicator(t)}</span>${talentUnavailableForFilm(t,f)?'<span class="pill bad">Unavailable</span>':''}</div><div class="body" style="margin-top:8px">${directorBio(t)}</div><div class="hr"></div>${ev.map(x=>`<div class="small" style="margin-top:6px">• ${x}</div>`).join('')}<button class="btn block ${f.directorId===t.id?'primary':''}" style="margin-top:10px" data-attach-director="${t.id}" ${talentUnavailableForFilm(t,f)?'disabled':''}>${f.directorId===t.id?'Attached':'Attach'}</button></div>`}).join('')}</div>
+ <div class="grid">${available.map(t=>{ensureTalentCareer(t);const score=directorProjectFit(t,f),band=fitBand(score),ev=directorFitEvidence(t,f),lotSignal=typeof lotCandidateCastingSignal==='function'?lotCandidateCastingSignal(t,f):null;return `<div class="card"><div class="talenthead"><div class="click talentidentity" data-talent="${t.id}">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${t.tag} · ${t.careerState}</div></div></div><strong>${money(t.fee)}</strong></div><div style="margin-top:8px"><span class="pill ${band.cls}">${band.label}</span><span class="pill">Craft ${t.craft}</span><span class="pill">Commercial ${t.commercial}</span><span class="pill">Momentum ${momentumIndicator(t)}</span>${talentUnavailableForFilm(t,f)?'<span class="pill bad">Unavailable</span>':''}</div>${lotSignal?`<div class="lot-casting-signal ${lotSignal.tone}"><strong>${lotSignal.label}</strong><span>${lotSignal.text}</span></div>`:''}<div class="body" style="margin-top:8px">${directorBio(t)}</div><div class="hr"></div>${ev.map(x=>`<div class="small" style="margin-top:6px">• ${x}</div>`).join('')}<button class="btn block ${f.directorId===t.id?'primary':''}" style="margin-top:10px" data-attach-director="${t.id}" ${talentUnavailableForFilm(t,f)?'disabled':''}>${f.directorId===t.id?'Attached':'Attach'}</button></div>`}).join('')}</div>
  </main><div class="pickerbar"><div class="pickerbar-inner"><div><strong>${selected?selected.name:'No director selected'}</strong><div class="small">${selected?'Attached to '+f.title:'Choose one director, then continue.'}</div></div><button id="pickerContinue" class="btn primary" ${selected?'':'disabled'}>Continue</button></div></div>${nav()}`;
 }
 function contractsScreen(f){
