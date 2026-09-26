@@ -6,6 +6,26 @@ function directorBio(t){
 function actorBio(t){
  return `${t.tag}. ${t.careerState}. Current industry momentum is ${t.momentum>=80?'very strong':t.momentum>=65?'positive':'mixed'}.`;
 }
+function talentInfluenceOpportunities(t){
+ if(!t||t.retired)return [];
+ return playerFilms().filter(f=>f.stage==='development'&&!f.paused&&!lotAttachedTalentIds(f).includes(t.id)&&!talentUnavailableForFilm(t,f)).map(f=>{
+  let role=null;
+  if(t.type==='Director'){if(f.directorId)return null;role={id:'director',name:'Director'}}
+  else{
+   ensureFilmRoles(f);role=ensureFilmRoles(f).find(r=>r.type==='lead'&&!f.roleAssignments?.[r.id]);
+   if(!role){const req=supportingCastRequirement(f);role=ensureFilmRoles(f).find(r=>r.type==='support'&&!f.roleAssignments?.[r.id]&&supportingActors(f).length<req.max)}
+   if(!role)return null;
+  }
+  const agency=typeof agencyInfluenceOffer==='function'?agencyInfluenceOffer(t,f):null;
+  const personal=t.type==='Actor'&&typeof lotInfluenceApproachOffer==='function'?lotInfluenceApproachOffer(t,f,role.id):null;
+  if(!agency?.available&&!personal?.available)return null;
+  return {f,role,agency,personal};
+ }).filter(Boolean);
+}
+function talentInfluencePanel(t){
+ const rows=talentInfluenceOpportunities(t);if(!rows.length)return '';
+ return `<div class="section-title"><h2>Access & influence</h2><span class="small">Use earned relationships to open doors — never to guarantee a yes</span></div><div class="grid">${rows.map(x=>`<div class="card influence-opportunity"><div class="row"><div><strong>${x.f.title}</strong><div class="small">${x.role.name} · development package</div></div><span class="pill blue">LEVERAGE AVAILABLE</span></div>${x.personal?.available?`<div class="influence-route"><div><strong>${x.personal.ally.name} can make the call</strong><span>${x.personal.text}</span></div><button class="btn" data-lot-influence-talent="${t.id}" data-lot-influence-film="${x.f.id}" data-lot-influence-role="${x.role.id}">Use personal introduction</button></div>`:''}${x.agency?.available?`<div class="influence-route"><div><strong>${x.agency.agency.name} will take your call</strong><span>Warm agency standing can open a four-week priority conversation on this package.</span></div><button class="btn" data-agency-influence-talent="${t.id}" data-agency-influence-film="${x.f.id}">Call in agency favour</button></div>`:''}</div>`).join('')}</div>`;
+}
 function talentProfile(id){
  const t=talentById(id);if(!t)return talentScreen();ensureTalentCareer(t);if(typeof ensureLotProfile==='function')ensureLotProfile(t);
  const awards=talentAwardCount(t),recent=recentGeneratedCredits(t,78),rep=agencyMarketLeverage(t);
@@ -13,6 +33,7 @@ function talentProfile(id){
  return topbar(t.type,'Full career profile')+`<main class="screen">${backHead(t.name,`${t.tag} · ${money(t.fee)}`)}
  <div class="hero talenthero"><div class="talentidentity">${portraitHTML(t,'lg')}<div><div class="quote">${t.name}</div><div class="body" style="margin-top:5px">${t.type==='Actor'?actorBio(t):directorBio(t)}</div><div style="margin-top:8px"><span class="pill blue">${t.careerState}</span>${t.emerging?'<span class="pill blue">EMERGING TALENT</span>':''}${t.firstMajorBreakStudio?`<span class="pill good">First major break · ${t.firstMajorBreakStudio}</span>`:''}${t.isLegend?'<span class="pill legend-badge">LEGENDS ARCHIVE</span>':''}${t.momentumDelta?`<span class="pill ${t.momentumDelta>0?'good':'warn'}">${t.momentumDelta>0?'+':''}${t.momentumDelta} recent momentum</span>`:''}</div></div></div><div style="margin-top:12px">${watchlistButton(t)}</div></div>
  ${typeof lotTalentPanel==='function'?lotTalentPanel(t):''}<div class="section-title"><h2>Representation</h2></div><div class="card"><div class="row"><strong>${rep.agency.name}</strong><span class="pill ${rep.standing.score>=4?'good':rep.standing.score<=-4?'bad':'blue'}">${rep.relationship}</span></div><div class="body" style="margin-top:7px">${rep.agency.focus}. The client's current negotiating position is <strong>${rep.label.toLowerCase()}</strong>; agency warmth, recent career momentum and awards now shape access and terms without revealing hidden role fit.</div>${state.agencyWindows?.[t.id]&&state.week<=state.agencyWindows[t.id].expiresWeek&&filmById(state.agencyWindows[t.id].filmId)?.stage==='development'?`<div class="small" style="margin-top:8px">Priority conversation on ${filmById(state.agencyWindows[t.id].filmId).title} until Week ${state.agencyWindows[t.id].expiresWeek}. The agency is holding the door open, but the deal still has to make sense.</div>`:''}</div>
+ ${talentInfluencePanel(t)}
  <div class="section-title"><h2>Current profile</h2></div><div class="grid cols2">${stats.map(x=>`<div class="card"><div class="badge">${x[0]}</div><div class="kpi">${Math.round(x[1])}</div></div>`).join('')}</div>
  <div class="section-title"><h2>Momentum history</h2><span class="small">${momentumIndicator(t)}</span></div><div class="card">${t.momentumHistory?.length?t.momentumHistory.slice(0,8).map(h=>`<div class="listrow"><div><strong>${h.delta>0?'▲':h.delta<0?'▼':'→'} ${h.from} → ${h.to}</strong><div class="small">${h.reason}</div></div><span class="small">W${h.week}</span></div>`).join(''):`<div class="body">No meaningful momentum movement has been recorded yet.</div>`}</div>
  <div class="section-title"><h2>Career</h2></div><div class="card"><div class="listrow"><span>${t.isLegend?'Archive age':'Age'}</span><strong>${t.age}</strong></div><div class="listrow"><span>Status</span><strong>${t.retired?'Retired':busy(t)?'Working through Week '+t.busyUntil:'Available'}</strong></div><div class="listrow"><span>Career state</span><strong>${t.careerState}</strong></div><div class="listrow"><span>Market fee</span><strong>${money(t.fee)}</strong></div>${t.type==='Actor'?`<div class="listrow"><span>Career peak Star Power</span><strong>${Math.round(t.careerPeakStar||t.star)}</strong></div>`:''}<div class="listrow"><span>Career peak Momentum</span><strong>${Math.round(t.careerPeakMomentum||t.momentum)}</strong></div><div class="listrow"><span>Awards record</span><strong>${awards.wins} wins · ${awards.noms} nominations</strong></div><div class="listrow"><span>Relationship with your studio</span><strong>${relationshipLabel(t.relationship||0)} · ${t.relationship||0}</strong></div></div>
