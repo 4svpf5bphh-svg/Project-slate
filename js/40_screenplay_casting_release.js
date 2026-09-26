@@ -1037,6 +1037,7 @@ function buildAwardsCeremony(season){
   if(f.owner==='player')playerWins+=w.length;
   if(!n.length)return;
   registerStudioAwardImpact(f,w.length,n.length);
+  if(typeof lotRegisterAwardsOutcome==='function')lotRegisterAwardsOutcome(f,w,n);
   if(f.owner==='player'){
    state.reputation.creative=clamp(state.reputation.creative+(w.length?Math.min(6,w.length*1.5):.5),0,100);
    const d=talentById(f.directorId),lead=(f.cast||[]).map(talentById).filter(Boolean),support=(f.supportingCastIds||[]).map(talentById).filter(Boolean),cast=[...lead,...support];
