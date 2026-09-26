@@ -174,8 +174,9 @@ function bind(){
  document.querySelectorAll('[data-move-release-week]').forEach(b=>b.onclick=()=>moveScheduledRelease(filmById(currentFilmId),+b.dataset.moveReleaseWeek));
  const cr=document.getElementById('commitRelease');if(cr)cr.onclick=()=>commitRelease(filmById(currentFilmId));
  const rc=document.getElementById('reviewCard');if(rc)rc.onclick=()=>push(state.screen,{type:'review',id:currentFilmId});
- const peopleSearch=document.getElementById('peopleSearch');if(peopleSearch)peopleSearch.oninput=()=>{state.uiPeopleSearch=peopleSearch.value;save();render()};
  const peopleFilter=document.getElementById('peopleFilter');if(peopleFilter)peopleFilter.onchange=()=>{state.uiPeopleFilter=peopleFilter.value;save();render()};
+ const peopleSort=document.getElementById('peopleSort');if(peopleSort)peopleSort.onchange=()=>{state.uiPeopleSort=peopleSort.value;save();render()};
+ const peopleAvailable=document.getElementById('peopleAvailable');if(peopleAvailable)peopleAvailable.onchange=()=>{state.uiPeopleAvailable=peopleAvailable.checked;save();render()};
  const toggleTalentWatch=document.getElementById('toggleTalentWatch');if(toggleTalentWatch&&state.detail?.type==='talent'){const t=talentById(state.detail.id);toggleTalentWatch.onclick=()=>setTalentWatch(t.id,!watchedTalent(t))};
  const dismissNotification=document.getElementById('dismissNotification');if(dismissNotification)dismissNotification.onclick=()=>{markNotification(state.activeNotificationId);save();render()};
  const openNotificationTargetBtn=document.getElementById('openNotificationTarget');if(openNotificationTargetBtn)openNotificationTargetBtn.onclick=()=>openNotificationTarget(state.notifications.find(x=>x.id===state.activeNotificationId));
