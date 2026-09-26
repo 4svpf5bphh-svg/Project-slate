@@ -183,9 +183,10 @@ function deskSignalScore(item){
  if(deskIsHardLifecycle(item)&&!item.resolved)return 100;
  if(item.urgency==='urgent'&&!item.resolved)score=96;
  if(item.requiresAction&&!item.resolved)score=Math.max(score,82);
- const typeBase={finance:72,crisis:76,production:65,pulse:60,talent:58,press:56,system:54,industry:42,gossip:28};
+ const typeBase={intel:78,finance:72,crisis:76,production:65,pulse:60,talent:58,press:56,system:54,industry:42,gossip:28};
  score=Math.max(score,typeBase[item.type]??45);
  if(item.source==='Studio Legacy')score+=12;
+ if(item.source==='Executive Intelligence')score+=6;
  if(item.impact?.length)score+=Math.min(8,item.impact.length*2);
  if(item.outcome)score+=3;
  if(!item.read)score+=4;
@@ -688,11 +689,46 @@ function deskSubnav(){
  const tab=state.uiDeskTab||'briefing',d=ensureDesk(),open=d.items.filter(x=>!x.resolved&&x.requiresAction).length,threads=ensureCareerThreads().active.length,pulse=studioPulseRows().length,briefs=d.items.filter(x=>!x.read&&deskSignalScore(x)<62&&!(!x.resolved&&x.requiresAction)).length;
  return sectionTabs([['briefing',open?`Briefing · ${open}`:'Briefing'],['threads',threads?`Threads · ${threads}`:'Threads'],['pulse',pulse?`Pulse · ${pulse}`:'Pulse'],['digest',briefs?`Digest · ${briefs}`:'Digest']],tab,'data-desk-tab');
 }
+function executiveFilmIntelRows(limit=6){
+ const rows=[],desk=ensureDesk();
+ playerFilms().forEach(f=>{
+  if(f.stage==='scheduled'){
+   const h=f.marketingState?.trackingHistory||[],t=h[0];if(!t)return;
+   const prev=h[1],trend=prev?t.center-prev.center:null,key='intel:tracking:'+f.id+':'+t.day+':'+t.phase,item=desk.items.find(x=>x.notificationKey===key);
+   rows.push({f,kind:'tracking',order:t.day||t.week*7,kicker:'OPENING TRACKING',metric:money(t.low)+'–'+money(t.high),headline:t.phase,detail:(trend===null?'First public range':Math.abs(trend)<.6?'Flat versus last read':trend>0?'Midpoint up '+money(Math.abs(trend)):'Midpoint down '+money(Math.abs(trend)))+' · release '+(f.releaseDay&&typeof calendarShortDate==='function'?calendarShortDate(f.releaseDay):'W'+f.releaseWeek),cls:trend!==null&&trend>1?'good':trend!==null&&trend<-1?'warn':'blue',item});
+   return;
+  }
+  if(f.stage==='cinema'){
+   const row=typeof theatricalLatestSettledRow==='function'?theatricalLatestSettledRow(f):null;
+   if(row?.settledRank){
+    const opening=(row.week||1)===1,track=opening&&typeof trackingVsActual==='function'?trackingVsActual(f,row.dom):null,key='intel:opening:'+f.id+':'+(row.worldWeek||f.releaseWeek),item=desk.items.find(x=>x.notificationKey===key);
+    rows.push({f,kind:opening?'opening':'box',order:(row.worldWeek||state.week)*7+6,kicker:opening?'OPENING WEEKEND':'IN THEATRES',metric:'#'+row.settledRank+' · '+money(row.dom+row.intl)+' WW',headline:'Critics '+(f.review?.critics??'—')+'% · Audience '+(f.review?.audience??'—')+'%',detail:opening&&track?track.text:'Domestic '+money(row.dom)+' · Worldwide run '+money((f.weeklyResults||[]).reduce((n,x)=>n+x.dom+x.intl,0)),cls:track?.cls||((f.review?.audience||0)>=80?'good':'blue'),item});
+   }else if(f.review){
+    const key='intel:reviews:'+f.id,item=desk.items.find(x=>x.notificationKey===key);
+    rows.push({f,kind:'review',order:f.releaseDay||state.calendarDay,kicker:'REVIEWS LIVE',metric:f.review.critics+'% / '+f.review.audience+'%',headline:'Critics / audience',detail:'Opening weekend is still counting.',cls:f.review.critics>=80&&f.review.audience>=80?'good':f.review.critics<55||f.review.audience<55?'warn':'blue',item});
+   }
+   return;
+  }
+  if(f.stage==='complete'&&state.week-(f.completeWeek||0)<=8&&f.review){
+   const profit=(f.studioRevenue||0)-(f.investment||0);
+   rows.push({f,kind:'final',order:(f.completeWeek||0)*7,kicker:'RECENT RELEASE',metric:money(f.finalGross||0)+' WW',headline:'Critics '+f.review.critics+'% · Audience '+f.review.audience+'%',detail:'Studio result '+(profit>=0?'+':'')+money(profit),cls:profit>=5?'good':profit<=-5?'warn':'blue',item:null});
+  }
+ });
+ return rows.sort((a,b)=>b.order-a.order).slice(0,limit);
+}
+function executiveFilmIntelHTML(){
+ const rows=executiveFilmIntelRows();if(!rows.length)return '<div class="card body executive-intel-empty">Tracking, reviews and box-office results will appear here automatically as your films reach the market.</div>';
+ return '<div class="executive-intel-grid">'+rows.map(x=>{
+  const action=x.item?'<button class="btn ghost" data-desk-open="'+x.item.id+'">'+(x.kind==='review'||x.kind==='opening'?'Open review':'Open film')+'</button>':'<button class="btn ghost" data-film="'+x.f.id+'">Open film</button>';
+  return '<div class="card executive-intel-card '+(x.cls==='good'?'goodline':x.cls==='warn'?'attention':'')+'"><div class="executive-intel-top"><span class="badge">'+x.kicker+'</span>'+(x.item&&!x.item.read?'<span class="pill blue">NEW</span>':'')+'</div><strong>'+x.f.title+'</strong><div class="executive-intel-metric">'+x.metric+'</div><div class="small"><b>'+x.headline+'</b></div><div class="small executive-intel-detail">'+x.detail+'</div>'+action+'</div>';
+ }).join('')+'</div>';
+}
 function deskBriefingBody(){
  const d=ensureDesk();expireDeskItems();syncOperationalDeskItems();
- const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0)),open=ranked.filter(x=>!x.resolved&&x.requiresAction),signals=ranked.filter(x=>!open.includes(x)&&deskSignalScore(x)>=62),unread=d.items.filter(x=>!x.read),archivable=d.items.filter(x=>x.read&&x.resolved).length,upcoming=studioUpcomingEvents(4,35),active=activePlayerFilms(),standing=playerStudioStanding(),growth=ensureStudioGrowth();
+ const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0)),open=ranked.filter(x=>!x.resolved&&x.requiresAction),allSignals=ranked.filter(x=>!open.includes(x)&&deskSignalScore(x)>=62),signals=allSignals.filter(x=>x.type!=='intel'),unread=d.items.filter(x=>!x.read),archivable=d.items.filter(x=>x.read&&x.resolved).length,upcoming=studioUpcomingEvents(4,35),active=activePlayerFilms(),standing=playerStudioStanding(),growth=ensureStudioGrowth();
  return `<div class="studio-brand-hero desk-brand-hero"><div>${playerStudioLogoHTML('lg',true)}<div class="small" style="margin-top:10px">Studio command centre · ${studioIdentityPrimary().label}</div></div><div class="grid cols4 studio-brand-stats"><div><div class="kpi">#${standing.rank}</div><div class="small">Industry rank</div></div><div><div class="kpi">${Math.round(growth.recognition)}</div><div class="small">Recognition</div></div><div><div class="kpi">${active.length}</div><div class="small">Active projects</div></div><div><div class="kpi">${money(state.cash)}</div><div class="small">Cash</div></div></div></div>
- ${careerArcCard()}<div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} response${open.length===1?'':'s'} waiting`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'These are the decisions currently waiting on you. Background information will not block the calendar.':'No player response is currently required. You can move the calendar without clearing routine traffic.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${signals.filter(x=>!x.read).length}</strong></div><div><span>Unread total</span><strong>${unread.length}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
+ ${careerArcCard()}<div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} response${open.length===1?'':'s'} waiting`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'These are the decisions currently waiting on you. Background information will not block the calendar.':'No player response is currently required. You can move the calendar without clearing routine traffic.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${allSignals.filter(x=>!x.read).length}</strong></div><div><span>Unread total</span><strong>${unread.length}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
+ <div class="section-title executive-intel-title"><h2>Film intelligence</h2><span class="small">Tracking, reviews and box office stay visible even after you advance time</span></div>${executiveFilmIntelHTML()}
  <div class="section-title"><h2>Up next</h2><span class="small">Major studio checkpoints · next five weeks</span></div>${deskUpcomingHTML(upcoming)}
  <div class="section-title"><h2>Needs a response</h2><span class="small">Urgent crises and lifecycle blockers interrupt Continue; optional calls wait here</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>No response is waiting.</strong><div class="small" style="margin-top:5px">Keep building, releasing or advancing time.</div></div>`}</div>
  <div class="section-title desk-section"><h2>Signals worth knowing</h2><span class="small">Higher-consequence information only</span></div><div class="desk-stack">${signals.length?signals.slice(0,8).map(deskItemHTML).join(''):`<div class="card body">No major signal is competing for your attention right now.</div>`}</div>`;
