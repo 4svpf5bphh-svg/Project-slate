@@ -198,14 +198,18 @@ one("<div class=\"section-title\"><h2>Your public slate</h2><span class=\"small\
     "<div class=\"section-title\"><h2>Your campaigns</h2><span class=\"small\">Marketing and dated films before opening weekend</span></div>",
     "campaign heading")
 one("You have no films currently in marketing, scheduled or cinemas.","You have no films currently in marketing or scheduled for release.","campaign empty copy")
-pat=r"}else\\{\\s+const leader=chart\\[0\\],market=chart\\.reduce\\(\\(a,x\\)=>a\\+x\\.gross,0\\),playerRows=chart\\.filter\\(x=>x\\.owner==='player'\\);"
-repl="""}else if(tab==='theatres'){
+leader_line="const leader=chart[0],market=chart.reduce((a,x)=>a+x.gross,0),playerRows=chart.filter(x=>x.owner==='player');"
+leader_pos=s.find(leader_line)
+if leader_pos<0:
+    raise SystemExit("in theatres release tab: leader line missing")
+branch_pos=s.rfind("}else{",0,leader_pos)
+if branch_pos<0:
+    raise SystemExit("in theatres release tab: branch boundary missing")
+insert="""}else if(tab==='theatres'){
    body=theatricalReleaseRoomHTML(inTheatres);
-  }else{
-   const leader=chart[0],market=chart.reduce((a,x)=>a+x.gross,0),playerRows=chart.filter(x=>x.owner==='player');"""
-s,n=re.subn(pat,repl,s,count=1)
-if n!=1:
-    raise SystemExit(f"in theatres release tab: expected 1 regex match, found {n}")
+  }else{"""
+s=s[:branch_pos]+insert+s[branch_pos+len("}else{"):]
+
 
 
 one("  <div class=\"section-title\"><h2>The box-office race</h2><span class=\"small\">Your run against overlapping releases</span></div>${cinemaComparisonGraph(f)}",
