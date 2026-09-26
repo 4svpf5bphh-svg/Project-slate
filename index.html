@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0d.2.1</title>
+<title>Project Slate — Premium Presentation v4.0d.3</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -675,6 +675,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .desk-digest-actions{display:flex;justify-content:flex-end;gap:8px;margin:12px 0 8px}
 @media(max-width:720px){.desk-thread-grid-full,.pulse-board-full{grid-template-columns:1fr}.pulse-desk-hero{display:block}.pulse-desk-hot{margin-top:12px}.pulse-like-strip{align-items:flex-start;flex-direction:column;gap:2px}}
 
+
+/* v4.0d.3 — Long Career */
+.career-arc-card{margin:12px 0;border-left:3px solid var(--blue)}
+.career-arc-good{border-left-color:var(--good)}.career-arc-bad{border-left-color:var(--bad)}
+.career-arc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.career-form-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:11px}
+.career-form-strip span{display:flex;flex-direction:column;gap:3px;border:1px solid var(--border);border-radius:10px;padding:8px;background:rgba(255,255,255,.025);min-width:0}
+.career-form-strip b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.career-form-strip small{font-size:10px;color:var(--muted)}
+.career-form-strip span.good{border-color:#386249}.career-form-strip span.bad{border-color:#6b3b3b}.career-form-strip span.warn{border-color:#665232}
+@media(max-width:720px){.career-form-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 </style>
 </head>
 <body>
@@ -682,7 +693,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0d.2.1';
+const VERSION='4.0d.3';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3151,7 +3162,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0d.2.1-desk-hub',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0d.3-long-career-recovery',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -3794,7 +3805,7 @@ function launchLateGameChallenger(){
 function maybeLaunchLateGameChallenger(){return launchLateGameChallenger()}
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=400;
+const SAVE_SCHEMA_VERSION=403;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -4020,6 +4031,10 @@ function applySaveSchemaMigrations(x,fromVersion){
  if(schema<400){
   schema=400;
  }
+ if(schema<403){
+  x.careerCycle=x.careerCycle||{phase:'building',startedWeek:x.week||1,lastEvaluatedWeek:0,lastTransitionWeek:x.week||1,history:[],lastPlanEndWeek:0,lastRecoveryWeek:0,peakRecognition:x.studioGrowth?.recognition||12};
+  schema=403;
+ }
 
  x.saveSchema=schema;
  return x;
@@ -4031,7 +4046,7 @@ function migrateState(x){
  x.version=VERSION;
  x.difficulty=x.difficulty||'normal';x.uiDifficultyDraft=x.uiDifficultyDraft||x.difficulty||'normal';x.developmentUnlocks=x.developmentUnlocks||{commissionNotified:false,originalNotified:false};x.screenplayEconomy=x.screenplayEconomy||{history:[],lastWeek:0,turnarounds:0,lastTurnaroundWeek:0};x.challengerState=x.challengerState||{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null};x.industryOpportunities=x.industryOpportunities||{lastOfferWeek:0,history:[],accepted:0};x.emergingTalentState=x.emergingTalentState||{lastIntroductionWeek:0,history:[]};x.corporateState=x.corporateState||{status:'private',founderOwnership:100,investorConfidence:62,ipoDeclinedUntil:0,ipoWeek:null,ipoProceeds:0,lastReviewWeek:0,lastOfferWeek:0,lastFundamental:null,lastMarketCap:null,lastSharePrice:null,history:[],quarterly:[],boardPressure:false};
  x.calendarDay=Number.isFinite(x.calendarDay)?x.calendarDay:Math.max(1,((x.week||1)-1)*7+1);x.lastWeeklyHeartbeatWeek=x.lastWeeklyHeartbeatWeek||x.week||1;x.simulationAudit=x.simulationAudit||{schema:2,enabled:true,firstWeek:null,lastWeek:0,weekly:[],quarterly:[],flags:[],captures:0,benchmarks:[]};x.simulationAudit.benchmarks=Array.isArray(x.simulationAudit.benchmarks)?x.simulationAudit.benchmarks:[];
- x.agencyWindows=x.agencyWindows||{};x.collaborations=x.collaborations||{};x.careerThreads=x.careerThreads||{active:[],history:[],nextId:1,lastUpdatedWeek:0};x.pressMemory=x.pressMemory||{};x.executivePersona=x.executivePersona||{history:[],lastPrimary:null,lastEvaluatedWeek:0};x.industryMood=x.industryMood||{history:[],lastQuarter:0};x.reputation=x.reputation||{};if(x.reputation.press===undefined)x.reputation.press=50;x.fastForward=x.fastForward||{uses:0,lastFromDay:null,lastToDay:null};x.legends=x.legends||{unlocked:{},history:[],pending:[],initialized:false};x.legends.unlocked=x.legends.unlocked||{};x.legends.history=x.legends.history||[];x.legends.pending=x.legends.pending||[];x.activeLegendUnlockId=x.activeLegendUnlockId||null;syncPrivateRealRoster(x);ensureBaseFictionalRoster(x);ensureAudienceMarket(x);x.lastAwardsSeasonResolved=x.lastAwardsSeasonResolved||0;x.portraitCache=x.portraitCache||{};Object.keys(x.portraitCache).forEach(k=>{const v=x.portraitCache[k];if(v==='__none__')delete x.portraitCache[k];else if(typeof v==='string')x.portraitCache[k]=normalizePortraitSource(v)||v});x.talentWatchlist=x.talentWatchlist||[];x.yearbooks=x.yearbooks||[];x.awardsArchive=x.awardsArchive||[];x.awardsNominationsArchive=x.awardsNominationsArchive||[];x.pendingAwardsNominations=x.pendingAwardsNominations||null;x.awardsCeremonyStep=Number.isFinite(x.awardsCeremonyStep)?x.awardsCeremonyStep:0;x.pendingCeremony=x.pendingCeremony||null;x.availabilityWatches=x.availabilityWatches||[];x.studioIdentity=x.studioIdentity||{history:[],lastPrimary:null,lastEvaluatedWeek:0};ensureStudioIdentity(x);x.pendingFilmWraps=x.pendingFilmWraps||[];x.activeFilmWrapId=x.activeFilmWrapId||null;x.uiFilmWrapStep=Number.isFinite(x.uiFilmWrapStep)?clamp(x.uiFilmWrapStep,0,4):0;x.studioMomentQueue=x.studioMomentQueue||[];x.activeStudioMoment=x.activeStudioMoment||null;x.boxOfficeMemory=x.boxOfficeMemory||{leaderId:null,streak:0,lastWeek:0};ensureEconomyState(x);(x.films||[]).forEach(f=>{
+ x.agencyWindows=x.agencyWindows||{};x.collaborations=x.collaborations||{};x.careerThreads=x.careerThreads||{active:[],history:[],nextId:1,lastUpdatedWeek:0};x.careerCycle=x.careerCycle||{phase:'building',startedWeek:x.week||1,lastEvaluatedWeek:0,lastTransitionWeek:x.week||1,history:[],lastPlanEndWeek:0,lastRecoveryWeek:0,peakRecognition:x.studioGrowth?.recognition||12};x.pressMemory=x.pressMemory||{};x.executivePersona=x.executivePersona||{history:[],lastPrimary:null,lastEvaluatedWeek:0};x.industryMood=x.industryMood||{history:[],lastQuarter:0};x.reputation=x.reputation||{};if(x.reputation.press===undefined)x.reputation.press=50;x.fastForward=x.fastForward||{uses:0,lastFromDay:null,lastToDay:null};x.legends=x.legends||{unlocked:{},history:[],pending:[],initialized:false};x.legends.unlocked=x.legends.unlocked||{};x.legends.history=x.legends.history||[];x.legends.pending=x.legends.pending||[];x.activeLegendUnlockId=x.activeLegendUnlockId||null;syncPrivateRealRoster(x);ensureBaseFictionalRoster(x);ensureAudienceMarket(x);x.lastAwardsSeasonResolved=x.lastAwardsSeasonResolved||0;x.portraitCache=x.portraitCache||{};Object.keys(x.portraitCache).forEach(k=>{const v=x.portraitCache[k];if(v==='__none__')delete x.portraitCache[k];else if(typeof v==='string')x.portraitCache[k]=normalizePortraitSource(v)||v});x.talentWatchlist=x.talentWatchlist||[];x.yearbooks=x.yearbooks||[];x.awardsArchive=x.awardsArchive||[];x.awardsNominationsArchive=x.awardsNominationsArchive||[];x.pendingAwardsNominations=x.pendingAwardsNominations||null;x.awardsCeremonyStep=Number.isFinite(x.awardsCeremonyStep)?x.awardsCeremonyStep:0;x.pendingCeremony=x.pendingCeremony||null;x.availabilityWatches=x.availabilityWatches||[];x.studioIdentity=x.studioIdentity||{history:[],lastPrimary:null,lastEvaluatedWeek:0};ensureStudioIdentity(x);x.pendingFilmWraps=x.pendingFilmWraps||[];x.activeFilmWrapId=x.activeFilmWrapId||null;x.uiFilmWrapStep=Number.isFinite(x.uiFilmWrapStep)?clamp(x.uiFilmWrapStep,0,4):0;x.studioMomentQueue=x.studioMomentQueue||[];x.activeStudioMoment=x.activeStudioMoment||null;x.boxOfficeMemory=x.boxOfficeMemory||{leaderId:null,streak:0,lastWeek:0};ensureEconomyState(x);(x.films||[]).forEach(f=>{
   ensureProductionDepth(f);ensureDistributionState(f);
   const fs=(x.scripts||[]).find(s=>s.id===f.scriptId);
   if(fs?.ipParentFilmId&&!f.ipParentId)f.ipParentId=fs.ipParentFilmId;
@@ -4091,7 +4106,7 @@ function initialState(){
   notifications:[],notificationKeys:[],activeNotificationId:null,
   industryTab:'news',uiStudioTab:'desk',uiDeskTab:'briefing',uiLegacyTab:'overview',uiSlateTab:'pipeline',uiReleaseTab:'box',
   uiPeopleFilter:'all',uiPeopleSearch:'',
-  collaborations:{},careerThreads:{active:[],history:[],nextId:1,lastUpdatedWeek:0},pressMemory:{},executivePersona:{history:[],lastPrimary:null,lastEvaluatedWeek:0},industryMood:{history:[],lastQuarter:0},fastForward:{uses:0,lastFromDay:null,lastToDay:null},challengerState:{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null},industryOpportunities:{lastOfferWeek:0,history:[],accepted:0},emergingTalentState:{lastIntroductionWeek:0,history:[]},corporateState:{status:'private',founderOwnership:100,investorConfidence:62,ipoDeclinedUntil:0,ipoWeek:null,ipoProceeds:0,lastReviewWeek:0,lastOfferWeek:0,lastFundamental:null,lastMarketCap:null,lastSharePrice:null,history:[],quarterly:[],boardPressure:false,streamingPlatform:{status:'none',name:null,model:null,launchWeek:null,launchCost:0,subscribers:0,peakSubscribers:0,lastQuarterSubscribers:0,lastQuarterWeek:0,exclusiveFilmIds:[],history:[],quarterly:[],lifetimeRevenue:0,lifetimeOperatingCost:0,currentQuarterRevenue:0,currentQuarterCost:0,lastWeeklyRevenue:0,lastWeeklyCost:0,lastWeeklyNet:0,lastExclusiveWeek:null,notifiedWeek:0,declinedUntil:0,woundDownWeek:null}},studioHistory:{anniversaries:[],rivalLeadership:[],hallSnapshots:[],retrospectives:[],lastLeadershipChangeWeek:0},industryRipples:[],audienceMarket:null,portraitCache:{},talentWatchlist:[],yearbooks:[],awardsArchive:[],awardsNominationsArchive:[],pendingAwardsNominations:null,awardsCeremonyStep:0,pendingCeremony:null,availabilityWatches:[],studioIdentity:{history:[],lastPrimary:null,lastEvaluatedWeek:0},pendingFilmWraps:[],activeFilmWrapId:null,uiFilmWrapStep:0,studioMomentQueue:[],activeStudioMoment:null,boxOfficeMemory:{leaderId:null,streak:0,lastWeek:0},economy:{lifetimeOverhead:0,lifetimeCatalogue:0,lifetimeAncillary:0,lastWeeklyOverhead:0,lastCatalogueReceipts:0},studioGrowth:{fans:.04,recognition:12,upgrades:{production:0,casting:0,publicity:0,development:0,post:0},history:[]},studioMilestones:{completed:{},history:[],lastCheckedWeek:0,initialized:false},legends:{unlocked:{},history:[],pending:[],initialized:false},activeLegendUnlockId:null,talentDrama:[],
+  collaborations:{},careerThreads:{active:[],history:[],nextId:1,lastUpdatedWeek:0},careerCycle:{phase:'building',startedWeek:1,lastEvaluatedWeek:0,lastTransitionWeek:1,history:[],lastPlanEndWeek:0,lastRecoveryWeek:0,peakRecognition:12},pressMemory:{},executivePersona:{history:[],lastPrimary:null,lastEvaluatedWeek:0},industryMood:{history:[],lastQuarter:0},fastForward:{uses:0,lastFromDay:null,lastToDay:null},challengerState:{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null},industryOpportunities:{lastOfferWeek:0,history:[],accepted:0},emergingTalentState:{lastIntroductionWeek:0,history:[]},corporateState:{status:'private',founderOwnership:100,investorConfidence:62,ipoDeclinedUntil:0,ipoWeek:null,ipoProceeds:0,lastReviewWeek:0,lastOfferWeek:0,lastFundamental:null,lastMarketCap:null,lastSharePrice:null,history:[],quarterly:[],boardPressure:false,streamingPlatform:{status:'none',name:null,model:null,launchWeek:null,launchCost:0,subscribers:0,peakSubscribers:0,lastQuarterSubscribers:0,lastQuarterWeek:0,exclusiveFilmIds:[],history:[],quarterly:[],lifetimeRevenue:0,lifetimeOperatingCost:0,currentQuarterRevenue:0,currentQuarterCost:0,lastWeeklyRevenue:0,lastWeeklyCost:0,lastWeeklyNet:0,lastExclusiveWeek:null,notifiedWeek:0,declinedUntil:0,woundDownWeek:null}},studioHistory:{anniversaries:[],rivalLeadership:[],hallSnapshots:[],retrospectives:[],lastLeadershipChangeWeek:0},industryRipples:[],audienceMarket:null,portraitCache:{},talentWatchlist:[],yearbooks:[],awardsArchive:[],awardsNominationsArchive:[],pendingAwardsNominations:null,awardsCeremonyStep:0,pendingCeremony:null,availabilityWatches:[],studioIdentity:{history:[],lastPrimary:null,lastEvaluatedWeek:0},pendingFilmWraps:[],activeFilmWrapId:null,uiFilmWrapStep:0,studioMomentQueue:[],activeStudioMoment:null,boxOfficeMemory:{leaderId:null,streak:0,lastWeek:0},economy:{lifetimeOverhead:0,lifetimeCatalogue:0,lifetimeAncillary:0,lastWeeklyOverhead:0,lastCatalogueReceipts:0},studioGrowth:{fans:.04,recognition:12,upgrades:{production:0,casting:0,publicity:0,development:0,post:0},history:[]},studioMilestones:{completed:{},history:[],lastCheckedWeek:0,initialized:false},legends:{unlocked:{},history:[],pending:[],initialized:false},activeLegendUnlockId:null,talentDrama:[],
   uiPickerSearch:'',uiPickerSort:'fit',uiPickerAvailable:false,uiStudioNameDraft:'',uiBrandDraft:{theme:'violet',mark:'aperture',wordmark:'modern'},
   screen:'setup',detail:null,history:[],ids:{film:0,script:0,event:0,review:0,notification:0,talent:0,news:0},
   scripts:[],market:[],writers:[],talent:[],rivals:[],films:[],boxOffice:[],news:[],completed:[],decisions:[],
@@ -4187,6 +4202,41 @@ function maybeWarnCashRunway(){
  addNews(state,`${state.studio.name} is operating with roughly ${r.weeks.toFixed(1)} weeks of cash runway at the current recurring burn rate.`,'Studio Finance');
 }
 
+
+function ensureCareerCycle(st=state){
+ st.careerCycle=st.careerCycle||{phase:'building',startedWeek:st.week||1,lastEvaluatedWeek:0,lastTransitionWeek:st.week||1,history:[],lastPlanEndWeek:0,lastRecoveryWeek:0,peakRecognition:12};
+ const c=st.careerCycle;c.history=c.history||[];c.peakRecognition=Math.max(c.peakRecognition||0,st.studioGrowth?.recognition||0);return c;
+}
+function careerRecentFilms(limit=5){return completedPlayerFilms().slice().sort((a,b)=>(b.completeDay||b.completeWeek*7)-(a.completeDay||a.completeWeek*7)).slice(0,limit)}
+function careerFormSnapshot(){
+ const c=ensureCareerCycle(),recent=careerRecentFilms(5),window=recent.slice(0,4),last3=recent.slice(0,3),recentProfit=window.reduce((n,f)=>n+studioFilmProfit(f),0),losses=last3.filter(f=>studioFilmProfit(f)<-1).length,majorLosses=last3.filter(f=>studioFilmProfit(f)<=-8).length,hits=last3.filter(f=>studioFilmProfit(f)>=10).length,runway=studioCashRunway(),debt=state.finance?.bridgeDebt||0,recognition=ensureStudioGrowth().recognition||0;
+ let id='steady',label='Steady',tone='blue',desc='The studio is operating without a dominant short-term success or recovery narrative.';
+ if(recent.length<3){id='building';label='Building';desc='The studio is still establishing enough history for a real career cycle to form.'}
+ const pressured=recent.length>=3&&(debt>=8||(Number.isFinite(runway.weeks)&&runway.weeks<3)||(losses>=2&&recentProfit<=-10)||majorLosses>=2);
+ if(pressured){id='pressure';label='Under Pressure';tone='bad';desc='Recent results or the balance sheet have become a persistent studio story rather than a one-week warning.'}
+ else if(c.lastRecoveryWeek&&state.week-c.lastRecoveryWeek<=26){id='resurgent';label='Resurgent';tone='good';desc='The studio has emerged from a difficult stretch and the industry is beginning to read the improvement as a comeback.'}
+ else if(recent.length>=3&&hits>=2&&recentProfit>=18){id='momentum';label='Running Hot';tone='good';desc='Recent releases have created clear commercial momentum and raised expectations around the next move.'}
+ else if(recognition>=72&&recent.length>=5){id='established';label='Established';tone='blue';desc='The studio has enough history and recognition that individual misses matter, but no longer define the whole company.'}
+ return {id,label,tone,desc,recent,window,last3,recentProfit,losses,majorLosses,hits,runway,debt,recognition};
+}
+function updateCareerCycle(force=false){
+ if(!state.studio)return;const c=ensureCareerCycle(),snap=careerFormSnapshot(),prev=c.phase||'building';c.phase=snap.id;c.lastEvaluatedWeek=state.week;c.peakRecognition=Math.max(c.peakRecognition||0,snap.recognition||0);
+ if(force||prev!==snap.id){
+  c.lastTransitionWeek=state.week;c.history.unshift({week:state.week,type:'phase',from:prev,to:snap.id,label:snap.label});c.history=c.history.slice(0,24);
+  if(prev!==snap.id&&['pressure','resurgent','momentum'].includes(snap.id)){
+   const headline=snap.id==='pressure'?`${state.studio.name} has entered a difficult run`:snap.id==='resurgent'?`${state.studio.name} is being talked about as a comeback story`:`${state.studio.name} is running hot`;
+   pushDeskItem({templateId:`career-phase-${snap.id}`,repeatKey:`career-phase-${snap.id}:${state.week}`,family:'career-cycle',type:snap.id==='pressure'?'finance':'industry',source:'Studio Watch',urgency:snap.id==='pressure'?'urgent':'normal',requiresAction:false,headline,body:snap.desc,choices:[],resolved:true,read:false,expanded:false});
+  }
+ }
+ const key='studio-career-cycle',thread=careerThread(key);
+ if(snap.id==='pressure')upsertCareerThread({key,type:'finance',tone:'bad',priority:86,title:'The studio is under pressure',summary:`${snap.losses} losses in the last three releases · ${money(snap.debt)} bridge debt · ${snap.runway.label} runway.`,detail:'This is a career phase, not a Game Over state. The company can recover through better releases, balance-sheet repair or a formal recovery strategy.',progress:'Under pressure'});
+ else if(snap.id==='resurgent')upsertCareerThread({key,type:'memory',tone:'good',priority:72,title:'The comeback is becoming part of the story',summary:'Recent form has moved the studio out of immediate pressure and the trade is watching whether the improvement holds.',detail:'A resurgence is evidence, not a permanent buff. The next slate can reinforce it or reopen the old questions.',progress:`Since W${c.lastRecoveryWeek}`});
+ else if(thread)resolveCareerThread(key,'The current run stopped being strong enough to define the studio’s immediate career narrative.');
+}
+function careerArcCard(){
+ const x=careerFormSnapshot(),tone=x.tone==='bad'?'bad':x.tone==='good'?'good':'blue',recent=x.recent.slice(0,4);
+ return `<div class="career-arc-card card career-arc-${x.tone}"><div class="career-arc-head"><div><div class="badge">CAREER FORM</div><div class="kpi">${x.label}</div></div><span class="pill ${tone}">Year ${careerYears()+1}</span></div><div class="body">${x.desc}</div>${recent.length?`<div class="career-form-strip">${recent.map(f=>{const profit=studioFilmProfit(f),out=filmOutcomeLabel(f,profit);return `<span class="${out.cls}"><b>${f.title}</b><small>${profit>=0?'+':''}${money(profit)}</small></span>`}).join('')}</div>`:''}${x.id==='pressure'?`<button class="btn block" data-studio-tab="finance" style="margin-top:10px">Review financial position</button>`:''}</div>`;
+}
 
 // Notifications, routing and scroll restoration
 
@@ -7460,7 +7510,7 @@ function finishFilm(f){
  state.reputation.creative=clamp(state.reputation.creative+(f.review.critics-65)*.08,20,95);
  state.reputation.commercial=clamp(state.reputation.commercial+(profit>0?2:-2)+(f.finalGross>120?2:0),20,95);
  state.reputation.talent=clamp(state.reputation.talent+(impact>75?2:impact<55?-1:0),20,95);
- updateRelationshipsAfterFilm(f,profit);buildFilmLegacy(f,talentBefore);queueFilmWrap(f);if(typeof checkStudioMilestones==='function')checkStudioMilestones();
+ updateRelationshipsAfterFilm(f,profit);buildFilmLegacy(f,talentBefore);if(typeof updateCareerCycle==='function')updateCareerCycle();queueFilmWrap(f);if(typeof checkStudioMilestones==='function')checkStudioMilestones();
  state.completed.unshift(f.id);addNews(state,`${f.title} closes its theatrical run at ${money(f.finalGross)} worldwide, leaving ${state.studio.name} with ${profit>=0?'a recorded profit of':'a recorded loss of'} ${money(Math.abs(profit))}.`,'Your Studio');
 }
 function boxPressureForWeek(week,genre,excludeId=null){
@@ -8682,7 +8732,7 @@ function runWeeklyHeartbeat(targetWeek){
  Object.entries(state.agencyWindows||{}).forEach(([id,w])=>{if(targetWeek>w.expiresWeek||filmById(w.filmId)?.stage!=='development')delete state.agencyWindows[id]});
  const interest=serviceBridge(),streamingReceipts=typeof collectOwnedStreamingWeeklyRevenue==='function'?collectOwnedStreamingWeeklyRevenue():0,overhead=studioWeeklyOverhead(),finance=payWeeklyOverhead(overhead);
  tickAudienceMarket();tickIPWorld();const catalogueReceipts=updateAfterlifeRevenue();recordWeeklyEconomy(overhead,catalogueReceipts);maybeWarnCashRunway();processAIAwardsCampaigns();maybeResolveAwardsNominations();maybeResolveAwardsSeason();
- aiWeeklyFinance();updateWritingProjects();updatePlayerFilms();advanceAI();if(typeof processScreenplayMarketWeek==='function')processScreenplayMarketWeek();if(typeof maybeLaunchLateGameChallenger==='function')maybeLaunchLateGameChallenger();if(typeof maybeGenerateIndustryInvitation==='function')maybeGenerateIndustryInvitation();aiStartProjects();reviewAIReleaseCalendar();checkPlayerReleaseCompetition();rotateMarket();if(state.week%13===0){updateStudioIdentityHistory();updateExecutivePersonaHistory();captureIndustryMoodQuarter()}ageAndCareers();checkAvailabilityWatches();maybeGenerateTalentDrama();generateIndustryPress();maybeGenerateTrendNews();maybeGenerateIndustryYearbook();if(typeof processHollywoodHistoryWeek==='function')processHollywoodHistoryWeek();if(typeof processCorporateWeek==='function')processCorporateWeek();generateStudioDeskWeek();updateCareerThreads();checkStudioMilestones();checkDevelopmentUnlocks();rebuildDecisions();
+ aiWeeklyFinance();updateWritingProjects();updatePlayerFilms();advanceAI();if(typeof processScreenplayMarketWeek==='function')processScreenplayMarketWeek();if(typeof maybeLaunchLateGameChallenger==='function')maybeLaunchLateGameChallenger();if(typeof maybeGenerateIndustryInvitation==='function')maybeGenerateIndustryInvitation();aiStartProjects();reviewAIReleaseCalendar();checkPlayerReleaseCompetition();rotateMarket();if(state.week%13===0){updateStudioIdentityHistory();updateExecutivePersonaHistory();captureIndustryMoodQuarter()}ageAndCareers();checkAvailabilityWatches();maybeGenerateTalentDrama();generateIndustryPress();maybeGenerateTrendNews();maybeGenerateIndustryYearbook();if(typeof processHollywoodHistoryWeek==='function')processHollywoodHistoryWeek();if(typeof processCorporateWeek==='function')processCorporateWeek();generateStudioDeskWeek();updateCareerCycle();updateCareerThreads();checkStudioMilestones();checkDevelopmentUnlocks();rebuildDecisions();
  if(interest>.01&&state.week%4===0)addNews(state,`${money(interest)} of bridge-finance interest accrued this week. The running cost of emergency borrowing is now becoming a material part of studio cash flow.`,'Studio Finance');
  if(overhead>=.16&&finance.borrowed===0&&state.week%13===0)addNews(state,`${state.studio.name} is carrying ${moneyFine(overhead)} in weekly operating and slate overhead as the company scales.`,'Studio Finance');
  recordSimulationAudit('weekly');
@@ -10453,7 +10503,7 @@ function deskBriefingBody(){
  const d=ensureDesk();expireDeskItems();syncOperationalDeskItems();
  const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0)),open=ranked.filter(x=>!x.resolved&&x.requiresAction),signals=ranked.filter(x=>!open.includes(x)&&deskSignalScore(x)>=62),unread=d.items.filter(x=>!x.read),archivable=d.items.filter(x=>x.read&&x.resolved).length,upcoming=studioUpcomingEvents(4,35),active=activePlayerFilms(),standing=playerStudioStanding(),growth=ensureStudioGrowth();
  return `<div class="studio-brand-hero desk-brand-hero"><div>${playerStudioLogoHTML('lg',true)}<div class="small" style="margin-top:10px">Studio command centre · ${studioIdentityPrimary().label}</div></div><div class="grid cols4 studio-brand-stats"><div><div class="kpi">#${standing.rank}</div><div class="small">Industry rank</div></div><div><div class="kpi">${Math.round(growth.recognition)}</div><div class="small">Recognition</div></div><div><div class="kpi">${active.length}</div><div class="small">Active projects</div></div><div><div class="kpi">${money(state.cash)}</div><div class="small">Cash</div></div></div></div>
- <div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} response${open.length===1?'':'s'} waiting`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'These are the decisions currently waiting on you. Background information will not block the calendar.':'No player response is currently required. You can move the calendar without clearing routine traffic.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${signals.filter(x=>!x.read).length}</strong></div><div><span>Unread total</span><strong>${unread.length}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
+ ${careerArcCard()}<div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} response${open.length===1?'':'s'} waiting`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'These are the decisions currently waiting on you. Background information will not block the calendar.':'No player response is currently required. You can move the calendar without clearing routine traffic.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${signals.filter(x=>!x.read).length}</strong></div><div><span>Unread total</span><strong>${unread.length}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
  <div class="section-title"><h2>Up next</h2><span class="small">Major studio checkpoints · next five weeks</span></div>${deskUpcomingHTML(upcoming)}
  <div class="section-title"><h2>Needs a response</h2><span class="small">Urgent crises and lifecycle blockers interrupt Continue; optional calls wait here</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>No response is waiting.</strong><div class="small" style="margin-top:5px">Keep building, releasing or advancing time.</div></div>`}</div>
  <div class="section-title desk-section"><h2>Signals worth knowing</h2><span class="small">Higher-consequence information only</span></div><div class="desk-stack">${signals.length?signals.slice(0,8).map(deskItemHTML).join(''):`<div class="card body">No major signal is competing for your attention right now.</div>`}</div>`;
