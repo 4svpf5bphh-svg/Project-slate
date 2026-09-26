@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 p=Path("index.html")
 s=p.read_text(encoding="utf-8")
@@ -197,9 +198,15 @@ one("<div class=\"section-title\"><h2>Your public slate</h2><span class=\"small\
     "<div class=\"section-title\"><h2>Your campaigns</h2><span class=\"small\">Marketing and dated films before opening weekend</span></div>",
     "campaign heading")
 one("You have no films currently in marketing, scheduled or cinemas.","You have no films currently in marketing or scheduled for release.","campaign empty copy")
-one(" }else{\n   const leader=chart[0],market=chart.reduce((a,x)=>a+x.gross,0),playerRows=chart.filter(x=>x.owner==='player');",
-    " }else if(tab==='theatres'){\n   body=theatricalReleaseRoomHTML(inTheatres);\n  }else{\n   const leader=chart[0],market=chart.reduce((a,x)=>a+x.gross,0),playerRows=chart.filter(x=>x.owner==='player');",
-    "in theatres release tab")
+pat=r"}else\\{\\s+const leader=chart\\[0\\],market=chart\\.reduce\\(\\(a,x\\)=>a\\+x\\.gross,0\\),playerRows=chart\\.filter\\(x=>x\\.owner==='player'\\);"
+repl="""}else if(tab==='theatres'){
+   body=theatricalReleaseRoomHTML(inTheatres);
+  }else{
+   const leader=chart[0],market=chart.reduce((a,x)=>a+x.gross,0),playerRows=chart.filter(x=>x.owner==='player');"""
+s,n=re.subn(pat,repl,s,count=1)
+if n!=1:
+    raise SystemExit(f"in theatres release tab: expected 1 regex match, found {n}")
+
 
 one("  <div class=\"section-title\"><h2>The box-office race</h2><span class=\"small\">Your run against overlapping releases</span></div>${cinemaComparisonGraph(f)}",
     "  ${theatricalInterventionPanel(f)}\n  <div class=\"section-title\"><h2>The box-office race</h2><span class=\"small\">Your run against overlapping releases</span></div>${cinemaComparisonGraph(f)}",
