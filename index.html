@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0d.3</title>
+<title>Project Slate — Premium Presentation v4.0d.3.1</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -693,6 +693,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .recovery-plan-active{border-left:3px solid var(--warn)}
 .recovery-option{border:1px solid var(--border);border-radius:13px;padding:12px;background:rgba(255,255,255,.022)}
 .recovery-option .small{line-height:1.45;margin-top:6px}
+
+/* v4.0d.3.1 — Mobile-first talent filters */
+.talent-filter-panel{border:1px solid var(--border);background:var(--card);border-radius:14px;padding:10px;margin-bottom:12px}
+.talent-filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.talent-filter-grid label>span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.75px;color:var(--muted);margin:0 0 5px 2px}
+.talent-filter-grid .select{width:100%;min-width:0}
+.talent-filter-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--border)}
+.talent-available-toggle{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
+@media(max-width:520px){.talent-filter-grid{grid-template-columns:1fr 1fr}.talent-filter-grid .select{font-size:12px;padding-left:9px;padding-right:24px}}
+
 </style>
 </head>
 <body>
@@ -700,7 +710,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0d.3';
+const VERSION='4.0d.3.1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3161,7 +3171,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0d.3-long-career-recovery',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0d.3.1-slate-rhythm',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -9983,37 +9993,29 @@ function studioUpcomingEvents(limit=4,horizonDays=35){
  ensureCalendarState();
  const now=state.calendarDay,end=now+horizonDays,out=[],seen=new Set();
  const add=(day,label,kind='event',filmId=null)=>{
-  if(!Number.isFinite(day)||day<now||day>end)return;
+  if(!Number.isFinite(day)||day<=now||day>end)return;
   const key=`${day}|${label}`;if(seen.has(key))return;seen.add(key);out.push({day,label,kind,filmId});
  };
- const blocker=calendarHardBlocker(),bf=blocker?filmById(blocker.filmId):null;
- if(blocker){
-  const label=blocker.type==='post'?'Rough Cut Review':blocker.type==='marketing'?'Release Planning':'Production Decision';
-  add(now,`${label}${bf?` · ${bf.title}`:''}`,'blocker',bf?.id||null);
- }
+ // Only show events the studio can actually know in advance.
+ // Current blockers are surfaced separately; unscripted discoveries stay hidden until they happen.
  playerFilms().filter(f=>f.stage==='scheduled').forEach(f=>{
   ensureFilmCalendar(f);
-  (f.marketingState?.milestones||[]).filter(x=>!x.resolved).forEach(x=>add(x.day,campaignCheckpointLabel({...x,title:f.title}),'campaign',f.id));
+  (f.marketingState?.milestones||[]).filter(x=>!x.resolved&&x.day>now).forEach(x=>add(x.day,campaignCheckpointLabel({...x,title:f.title}),'campaign',f.id));
   if(f.releaseDay)add(f.releaseDay,`Release Day · ${f.title}`,'release',f.id);
  });
  playerFilms().filter(f=>f.stage==='production').forEach(f=>{
-  (f.events||[]).filter(e=>!e.resolved).forEach(e=>{
-   const week=(f.productionStart||state.week)+(e.week||1)-1,day=weekStartDay(week);
-   add(day,`${e.title||e.name||'Production checkpoint'} · ${f.title}`,'production',f.id);
-  });
-  if(f.productionEnd)add(weekStartDay(f.productionEnd),`Production Wrap · ${f.title}`,'production',f.id);
+  if(f.productionEnd)add(weekStartDay(f.productionEnd),`Expected Production Wrap · ${f.title}`,'production',f.id);
  });
- if(!blocker)playerFilms().filter(f=>f.stage==='post'&&!f.calendarPostStopSeen).forEach(f=>add(now+1,`Rough Cut Review · ${f.title}`,'post',f.id));
  const cinema=playerFilms().filter(f=>f.stage==='cinema').sort((a,b)=>(b.marketing||0)-(a.marketing||0))[0];
  if(cinema){
-  let sunday=sundayForWeek(calendarWeekForDay(now));if(sunday<now)sunday+=7;
+  let sunday=sundayForWeek(calendarWeekForDay(now));if(sunday<=now)sunday+=7;
   add(sunday,`Weekend Box Office · ${cinema.title}`,'boxOffice',cinema.id);
  }
  return out.sort((a,b)=>a.day-b.day||a.label.localeCompare(b.label)).slice(0,limit);
 }
 function deskUpcomingHTML(events){
- if(!events.length)return `<div class="card desk-upcoming-empty"><strong>Clear runway</strong><div class="small">No major studio checkpoint is scheduled in the next five weeks.</div></div>`;
- return `<div class="desk-upcoming-list">${events.map((e,i)=>{const days=Math.max(0,e.day-state.calendarDay),when=days===0?'Now':days===1?'Tomorrow':`In ${days} days`;return `<div class="desk-upcoming-row ${e.kind==='blocker'?'is-blocker':''}"><span class="desk-upcoming-index">${i+1}</span><div><strong>${e.label}</strong><div class="small">${when} · ${calendarShortDate(e.day)}</div></div><span class="desk-upcoming-kind">${e.kind==='boxOffice'?'Box office':e.kind==='campaign'?'Campaign':e.kind==='production'?'Production':e.kind==='release'?'Release':e.kind==='post'?'Post':'Action'}</span></div>`}).join('')}</div>`;
+ if(!events.length)return `<div class="card desk-upcoming-empty"><strong>No scheduled checkpoint</strong><div class="small">Nothing the studio can currently know is due in the next five weeks. Unscripted production and industry events stay hidden until they happen.</div></div>`;
+ return `<div class="desk-upcoming-list">${events.map((e,i)=>{const days=Math.max(0,e.day-state.calendarDay),when=days===1?'Tomorrow':`In ${days} days`;return `<div class="desk-upcoming-row"><span class="desk-upcoming-index">${i+1}</span><div><strong>${e.label}</strong><div class="small">${when} · ${calendarShortDate(e.day)}</div></div><span class="desk-upcoming-kind">${e.kind==='boxOffice'?'Box office':e.kind==='campaign'?'Campaign':e.kind==='production'?'Production':e.kind==='release'?'Release':'Scheduled'}</span></div>`}).join('')}</div>`;
 }
 function deskThreadHTML(t){
  const tone=['good','bad','warn','blue'].includes(t.tone)?t.tone:'blue';
@@ -10873,14 +10875,20 @@ function developmentUI(f,s){
  <button id="greenlight" class="btn primary block" style="margin-top:14px" ${!d||cast.length<2||!supportReq.complete||!allContractsAgreed(f)?'disabled':''}>${!supportReq.complete?`Cast ${supportReq.required-supportReq.selected} more supporting performer${supportReq.required-supportReq.selected===1?'':'s'} before greenlight`:d&&cast.length===2&&!allContractsAgreed(f)?'Agree all talent terms before greenlight':'Review Greenlight'}</button>`;
 }
 function pickerList(type,f,roleId=null){
- const q=(state.uiPickerSearch||'').trim().toLowerCase(),rawSort=state.uiPickerSort||'fit',sort=type==='Actor'&&rawSort==='fit'?'market':rawSort,availableOnly=!!state.uiPickerAvailable;
+ const sort=state.uiPickerSort||(type==='Actor'?'market':'fit'),availableOnly=!!state.uiPickerAvailable,maxFee=Number(state.uiPickerMaxFee)||0,minMomentum=Number(state.uiPickerMinMomentum)||0,minFit=Number(state.uiPickerMinFit)||0;
  let list=state.talent.filter(t=>t.type===type&&!t.retired);list.forEach(ensureTalentMarketEconomy);
- if(q)list=list.filter(t=>`${t.name} ${t.tag} ${(t.genres||[]).join(' ')}`.toLowerCase().includes(q));
  if(availableOnly)list=list.filter(t=>!talentUnavailableForFilm(t,f));
+ if(maxFee>0)list=list.filter(t=>(t.fee||0)<=maxFee);
+ if(minMomentum>0)list=list.filter(t=>(t.momentum||0)>=minMomentum);
+ if(minFit>0)list=list.filter(t=>{
+  const fit=type==='Director'?directorProjectFit(t,f):actorRoleFit(t,f,roleId||castingTargetRole(f).id);
+  return fit>=minFit;
+ });
  list.sort((a,b)=>{
-  if(sort==='fit'&&type==='Director')return directorProjectFit(b,f)-directorProjectFit(a,f);
-  if(sort==='market')return actorIndustryShortlistScore(b)-actorIndustryShortlistScore(a);
-  if(sort==='fee')return a.fee-b.fee;
+  if(sort==='fit')return type==='Director'?directorProjectFit(b,f)-directorProjectFit(a,f):actorRoleFit(b,f,roleId||castingTargetRole(f).id)-actorRoleFit(a,f,roleId||castingTargetRole(f).id);
+  if(sort==='market')return type==='Actor'?actorIndustryShortlistScore(b)-actorIndustryShortlistScore(a):(b.momentum||0)-(a.momentum||0);
+  if(sort==='fee')return (a.fee||0)-(b.fee||0);
+  if(sort==='feeHigh')return (b.fee||0)-(a.fee||0);
   if(sort==='ability')return type==='Director'?(b.craft-a.craft):(b.acting-a.acting);
   if(sort==='commercial')return type==='Director'?(b.commercial-a.commercial):(actorCommercialDraw(b)-actorCommercialDraw(a));
   if(sort==='momentum')return (b.momentum||0)-(a.momentum||0);
@@ -10890,19 +10898,44 @@ function pickerList(type,f,roleId=null){
  return list;
 }
 function pickerControls(type){
- const sort=type==='Actor'&&(state.uiPickerSort||'fit')==='fit'?'market':(state.uiPickerSort||'fit');
- return `<div class="filterbar"><input id="pickerSearch" class="search" placeholder="Search ${type==='Director'?'directors':'actors'}" value="${state.uiPickerSearch||''}"><select id="pickerSort" class="select">
-  ${type==='Director'?`<option value="fit" ${sort==='fit'?'selected':''}>Sort: Project fit</option>`:`<option value="market" ${sort==='market'?'selected':''}>Sort: Industry shortlist</option>`}
-  <option value="fee" ${sort==='fee'?'selected':''}>Sort: Fee low → high</option>
-  <option value="ability" ${sort==='ability'?'selected':''}>Sort: ${type==='Director'?'Craft':'Acting reputation'}</option>
-  <option value="commercial" ${sort==='commercial'?'selected':''}>Sort: ${type==='Director'?'Commercial instinct':'Commercial draw'}</option>
-  ${type==='Actor'?`<option value="momentum" ${sort==='momentum'?'selected':''}>Sort: Momentum</option>`:''}
-  <option value="name" ${sort==='name'?'selected':''}>Sort: Name</option>
- </select></div><label class="small" style="display:flex;gap:8px;align-items:center;margin:0 0 12px"><input id="pickerAvailable" type="checkbox" ${state.uiPickerAvailable?'checked':''}> Show available talent only</label>`;
+ const sort=state.uiPickerSort||(type==='Actor'?'market':'fit'),fee=Number(state.uiPickerMaxFee)||0,momentum=Number(state.uiPickerMinMomentum)||0,fit=Number(state.uiPickerMinFit)||0;
+ return `<div class="talent-filter-panel"><div class="talent-filter-grid">
+ <label><span>Sort</span><select id="pickerSort" class="select">
+  <option value="${type==='Actor'?'market':'fit'}" ${sort===(type==='Actor'?'market':'fit')?'selected':''}>${type==='Actor'?'Industry shortlist':'Project fit'}</option>
+  <option value="fee" ${sort==='fee'?'selected':''}>Fee · low → high</option>
+  <option value="feeHigh" ${sort==='feeHigh'?'selected':''}>Fee · high → low</option>
+  <option value="momentum" ${sort==='momentum'?'selected':''}>Momentum · high → low</option>
+  <option value="ability" ${sort==='ability'?'selected':''}>${type==='Director'?'Craft':'Acting'} · high → low</option>
+  <option value="commercial" ${sort==='commercial'?'selected':''}>${type==='Director'?'Commercial instinct':'Commercial draw'} · high → low</option>
+  ${type==='Actor'?`<option value="fit" ${sort==='fit'?'selected':''}>Role fit · high → low</option>`:''}
+  <option value="name" ${sort==='name'?'selected':''}>Name · A → Z</option>
+ </select></label>
+ <label><span>Maximum fee</span><select id="pickerFee" class="select">
+  <option value="0" ${fee===0?'selected':''}>Any fee</option>
+  <option value="1" ${fee===1?'selected':''}>Up to $1m</option>
+  <option value="3" ${fee===3?'selected':''}>Up to $3m</option>
+  <option value="5" ${fee===5?'selected':''}>Up to $5m</option>
+  <option value="10" ${fee===10?'selected':''}>Up to $10m</option>
+  <option value="20" ${fee===20?'selected':''}>Up to $20m</option>
+ </select></label>
+ <label><span>Momentum</span><select id="pickerMomentum" class="select">
+  <option value="0" ${momentum===0?'selected':''}>Any momentum</option>
+  <option value="60" ${momentum===60?'selected':''}>60+</option>
+  <option value="70" ${momentum===70?'selected':''}>70+</option>
+  <option value="80" ${momentum===80?'selected':''}>80+</option>
+  <option value="90" ${momentum===90?'selected':''}>90+</option>
+ </select></label>
+ <label><span>${type==='Director'?'Project':'Role'} fit</span><select id="pickerFit" class="select">
+  <option value="0" ${fit===0?'selected':''}>Any fit</option>
+  <option value="60" ${fit===60?'selected':''}>60+</option>
+  <option value="70" ${fit===70?'selected':''}>70+</option>
+  <option value="80" ${fit===80?'selected':''}>80+</option>
+ </select></label>
+ </div><div class="talent-filter-foot"><label class="talent-available-toggle"><input id="pickerAvailable" type="checkbox" ${state.uiPickerAvailable?'checked':''}> Available only</label><button class="btn ghost" id="pickerResetFilters">Reset filters</button></div></div>`;
 }
 function directorPicker(f){
  const available=pickerList('Director',f),selected=f.directorId?talentById(f.directorId):null;
- return topbar('Choose Director',f.title)+`<main class="screen pickerpad">${backHead('Director Shortlist','Search and sort by what matters for this specific project')}
+ return topbar('Choose Director',f.title)+`<main class="screen pickerpad">${backHead('Director Shortlist','Filter and rank the market by what matters for this project')}
  ${pickerControls('Director')}
  <div class="grid">${available.map(t=>{ensureTalentCareer(t);const score=directorProjectFit(t,f),band=fitBand(score),ev=directorFitEvidence(t,f);return `<div class="card"><div class="talenthead"><div class="click talentidentity" data-talent="${t.id}">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${t.tag} · ${t.careerState}</div></div></div><strong>${money(t.fee)}</strong></div><div style="margin-top:8px"><span class="pill ${band.cls}">${band.label}</span><span class="pill">Craft ${t.craft}</span><span class="pill">Commercial ${t.commercial}</span><span class="pill">Momentum ${momentumIndicator(t)}</span>${talentUnavailableForFilm(t,f)?'<span class="pill bad">Unavailable</span>':''}</div><div class="body" style="margin-top:8px">${directorBio(t)}</div><div class="hr"></div>${ev.map(x=>`<div class="small" style="margin-top:6px">• ${x}</div>`).join('')}<button class="btn block ${f.directorId===t.id?'primary':''}" style="margin-top:10px" data-attach-director="${t.id}" ${talentUnavailableForFilm(t,f)?'disabled':''}>${f.directorId===t.id?'Attached':'Attach'}</button></div>`}).join('')}</div>
  </main><div class="pickerbar"><div class="pickerbar-inner"><div><strong>${selected?selected.name:'No director selected'}</strong><div class="small">${selected?'Attached to '+f.title:'Choose one director, then continue.'}</div></div><button id="pickerContinue" class="btn primary" ${selected?'':'disabled'}>Continue</button></div></div>${nav()}`;
@@ -11482,10 +11515,13 @@ function bind(){
  const extraAuditions=document.getElementById('extraAuditions');if(extraAuditions)extraAuditions.onclick=()=>extraAuditionRound(filmById(currentFilmId));
  document.querySelectorAll('[data-contract-talent]').forEach(b=>b.onclick=()=>acceptContract(filmById(currentFilmId),b.dataset.contractTalent,b.dataset.contractOffer));
  const contractsContinue=document.getElementById('contractsContinue');if(contractsContinue)contractsContinue.onclick=()=>{state.history=[];state.screen='slate';state.detail={type:'film',id:currentFilmId};save();render()};
- const pickerSearch=document.getElementById('pickerSearch');if(pickerSearch)pickerSearch.oninput=()=>{state.uiPickerSearch=pickerSearch.value;save();render()};
  const pickerSort=document.getElementById('pickerSort');if(pickerSort)pickerSort.onchange=()=>{state.uiPickerSort=pickerSort.value;save();render()};
+ const pickerFee=document.getElementById('pickerFee');if(pickerFee)pickerFee.onchange=()=>{state.uiPickerMaxFee=+pickerFee.value;save();render()};
+ const pickerMomentum=document.getElementById('pickerMomentum');if(pickerMomentum)pickerMomentum.onchange=()=>{state.uiPickerMinMomentum=+pickerMomentum.value;save();render()};
+ const pickerFit=document.getElementById('pickerFit');if(pickerFit)pickerFit.onchange=()=>{state.uiPickerMinFit=+pickerFit.value;save();render()};
  const pickerAvailable=document.getElementById('pickerAvailable');if(pickerAvailable)pickerAvailable.onchange=()=>{state.uiPickerAvailable=pickerAvailable.checked;save();render()};
- const pickerContinue=document.getElementById('pickerContinue');if(pickerContinue)pickerContinue.onclick=()=>{state.uiPickerSearch='';state.history=[];state.screen='slate';state.detail={type:'film',id:currentFilmId};save();render()};
+ const pickerResetFilters=document.getElementById('pickerResetFilters');if(pickerResetFilters)pickerResetFilters.onclick=()=>{state.uiPickerSort=null;state.uiPickerMaxFee=0;state.uiPickerMinMomentum=0;state.uiPickerMinFit=0;state.uiPickerAvailable=false;save();render()};
+ const pickerContinue=document.getElementById('pickerContinue');if(pickerContinue)pickerContinue.onclick=()=>{state.history=[];state.screen='slate';state.detail={type:'film',id:currentFilmId};save();render()};
  document.querySelectorAll('[data-budget]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);f.budget=+b.dataset.budget;save();render()});
  const budgetSlider=document.getElementById('budgetSlider');if(budgetSlider){budgetSlider.oninput=()=>{const f=filmById(currentFilmId),sc=scriptById(f.scriptId);f.budget=+budgetSlider.value;document.getElementById('budgetRead').textContent=money(f.budget);document.getElementById('budgetAdvice').textContent=budgetAdvice(f.budget,sc);const fees=packageTalentIds(f).reduce((a,id)=>a+(f.contracts[id]?.upfront??talentById(id)?.fee??0),0),depth=productionDepthCost(f);document.getElementById('cashAfter').textContent=`Estimated cash after package + production: ${money(state.cash-f.budget-fees-depth)}`;scheduleDraftSave()};budgetSlider.onchange=()=>{save();render()}};
  document.querySelectorAll('[data-creative-field]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);f.creative=f.creative||defaultCreative();f.creative[b.dataset.creativeField]=b.dataset.creativeValue;save();render()});
