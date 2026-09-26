@@ -84,7 +84,7 @@ jobs:
           one(old,new,"declines")
 
           patch_fn("deskItemHTML"," const choices=x.choices||[],expanded=!x.read||x.expanded,status="," const choices=x.choices||[],expanded=x.requiresAction?(!x.read||x.expanded):!!x.expanded,status=","desk collapse")
-          patch_fn("pushDeskItem","  item=lotDeskVoice(item);\n  d.items.unshift(item);","  item=lotDeskVoice(item);item.expanded=!!item.requiresAction;\n  d.items.unshift(item);","desk push")
+          patch_fn("pushDeskItem","item=lotDeskVoice(item);","item=lotDeskVoice(item);item.expanded=!!item.requiresAction;","desk push")
           patch_fn("studioDeskBody","<h2>Inbox</h2>","<h2>Industry brief</h2>","desk heading")
           patch_fn("studioDeskBody","<span class=\"small\">Read items collapse to headlines</span>","<span class=\"small\">Awareness only · collapsed by default</span>","desk hint")
           patch_fn("filmWrapVerdictCopy","  return first;","  const choice=filmChoiceCallback(f);if(choice)first+=' '+choice;\n  return first;","wrap callback")
