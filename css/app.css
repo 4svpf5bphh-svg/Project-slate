@@ -708,12 +708,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* v4.1c — The Lot: Pressure */
 .film-pressure-badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.first-film-checklist{margin:12px 0;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));background:color-mix(in srgb,var(--accent) 5%,var(--card));border-radius:14px;padding:12px}
-.first-film-checklist.compact{margin:0 0 12px;padding:10px}
-.first-film-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
-.first-film-steps>div{display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:10px;padding:8px;color:var(--muted);font-size:10px}
-.first-film-steps>div.done{border-color:color-mix(in srgb,var(--good) 45%,var(--border));color:var(--good);background:color-mix(in srgb,var(--good) 5%,transparent)}
-.first-film-steps>div.warn{border-color:color-mix(in srgb,var(--warn) 55%,var(--border));color:var(--warn);background:color-mix(in srgb,var(--warn) 6%,transparent)}
 .role-casting-card.untested-role{border-bottom-color:color-mix(in srgb,var(--warn) 65%,var(--border))}
 .role-untested-warning{margin-top:7px;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--warn)}
 .lot-casting-signal{display:grid;gap:3px;margin-top:9px;padding:8px 9px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.025)}
@@ -739,8 +733,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .lot-mediation.result{align-items:flex-start}
 .hostile-package-banner{margin-bottom:12px}
 @media(max-width:640px){
- .first-film-steps{grid-template-columns:1fr}
- .hostile-package-line{grid-template-columns:1fr}
+  .hostile-package-line{grid-template-columns:1fr}
  .lot-mediation{align-items:stretch;flex-direction:column}
  .lot-mediation .btn{width:100%}
 }
+
+/* v4.1d — Rivals With Intent */
+.talent-profile-link{appearance:none;-webkit-appearance:none;border:0;background:none;padding:4px 0 0;color:var(--accent2);font:inherit;font-size:10px;font-weight:800;cursor:pointer;text-align:left}
+.talent-profile-link:hover{text-decoration:underline}
+.talent-directory-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:center;margin-bottom:12px}
+.rival-intent-strip{display:grid;grid-template-columns:auto 1fr;gap:5px 8px;align-items:center;margin-top:10px;padding-top:9px;border-top:1px solid var(--border)}
+.rival-intent-strip>span:last-child{grid-column:1/-1;font-size:10px;line-height:1.4;color:var(--muted)}
+.rival-intent-card strong{display:block;margin-top:4px;font-size:17px}
+@media(max-width:640px){.talent-directory-controls{grid-template-columns:1fr 1fr}.talent-directory-controls .talent-available-toggle{grid-column:1/-1}}
