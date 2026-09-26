@@ -160,13 +160,19 @@ one("maybeWarnCashRunway();maybeResolveAwardsNominations();maybeResolveAwardsSea
     "maybeWarnCashRunway();processAIAwardsCampaigns();maybeResolveAwardsNominations();maybeResolveAwardsSeason();",
     "weekly AI awards campaign tick")
 
+aw0=s.find("function awardsStudioBody(){")
+aw1=s.find("function studioScreen(){",aw0)
+if aw0<0 or aw1<0:
+    raise SystemExit("awardsStudioBody boundary not found")
+awards_body=s[aw0:aw1]
 for cat in ["picture","director","lead","support","screenplay","soundtrack"]:
     old=f"awardBuzzLabel(awardsEligibilityScore(f,'{cat}'))"
     new=f"awardBuzzLabel(awardsCompetitiveScore(f,'{cat}'))"
-    count=s.count(old)
+    count=awards_body.count(old)
     if count!=1:
-        raise SystemExit(f"player awards buzz {cat}: expected 1 occurrence, found {count}")
-    s=s.replace(old,new,1)
+        raise SystemExit(f"player awards buzz {cat}: expected 1 awardsStudioBody occurrence, found {count}")
+    awards_body=awards_body.replace(old,new,1)
+s=s[:aw0]+awards_body+s[aw1:]
 
 one('<div class="section-title"><h2>Awards history</h2>',
     '${awardsRaceBoardHTML(current)}\\n  <div class="section-title"><h2>Awards history</h2>',
