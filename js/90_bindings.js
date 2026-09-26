@@ -151,6 +151,7 @@ function bind(){
  const windDownStreamingPlatform=document.getElementById('windDownStreamingPlatform');if(windDownStreamingPlatform)windDownStreamingPlatform.onclick=()=>windDownOwnedStreamingPlatform();
  const holdStreamingRightsBtn=document.getElementById('holdStreamingRights');if(holdStreamingRightsBtn)holdStreamingRightsBtn.onclick=()=>holdStreamingRights(filmById(currentFilmId));
  document.querySelectorAll('[data-event-choice]').forEach(b=>b.onclick=()=>resolveEvent(filmById(currentFilmId),b.dataset.eventId,b.dataset.eventChoice));
+ document.querySelectorAll('[data-lot-mediate]').forEach(b=>b.onclick=e=>{e.stopPropagation();mediateLotStory(filmById(currentFilmId),b.dataset.lotMediate)});
  const ts=document.getElementById('testScreen');if(ts)ts.onclick=()=>runTestScreen(filmById(currentFilmId));
  const markNoTest=document.getElementById('markNoTest');if(markNoTest)markNoTest.onclick=()=>skipTest(filmById(currentFilmId));
  document.querySelectorAll('[data-post-select]').forEach(b=>b.onclick=()=>selectPostAction(filmById(currentFilmId),b.dataset.postSelect));
