@@ -183,7 +183,9 @@ new_queue=r'''function queueWeekendBoxOfficeMoment(worldWeek){
 }'''
 replace_function("queueWeekendBoxOfficeMoment",new_queue)
 
-one("f.weeklyPlan=run.plan;","f.weeklyPlan=run.plan;ensureTheatricalRunState(f);","release run state")
+one("f.pressReviews=makeReviewRoundup(f,Math.round(critics),Math.round(audience));\n f.weeklyPlan=run.plan;",
+    "f.pressReviews=makeReviewRoundup(f,Math.round(critics),Math.round(audience));\n f.weeklyPlan=run.plan;ensureTheatricalRunState(f);",
+    "release run state")
 
 one("const playerCampaigns=playerFilms().filter(f=>['marketing','scheduled','cinema'].includes(f.stage)),inProgress=playerFilms().map(f=>({f,row:filmRowAtWorldWeek(f,state.week)})).filter(x=>x.row&&!x.row.settledRank);",
     "const playerCampaigns=playerFilms().filter(f=>['marketing','scheduled'].includes(f.stage)),inTheatres=playerFilms().filter(f=>f.stage==='cinema'),inProgress=playerFilms().map(f=>({f,row:filmRowAtWorldWeek(f,state.week)})).filter(x=>x.row&&!x.row.settledRank);",
