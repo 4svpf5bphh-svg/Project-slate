@@ -1,0 +1,50 @@
+name: one-shot v4.0c.2 rival release strategy
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply v4.0c.2 rival-release patch
+        run: python .github/patches/patch_4_0c_2.py
+
+      - name: JavaScript syntax check
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path("index.html").read_text(encoding="utf-8")
+          start=s.index("<script>")+len("<script>")
+          end=s.rindex("</script>")
+          Path("/tmp/project-slate.js").write_text(s[start:end],encoding="utf-8")
+          PY
+          node --check /tmp/project-slate.js
+
+      - name: Rival strategy smoke checks
+        run: |
+          grep -q "const VERSION='4.0c.2';" index.html
+          grep -q "const AI_RELEASE_STRATEGY=" index.html
+          grep -q "function aiChooseReleaseWeek" index.html
+          grep -q "function reviewAIReleaseCalendar" index.html
+          grep -q "function processAIRivalTheatricalStrategy" index.html
+          grep -q "function aiApplyTheatricalMove" index.html
+          grep -q "function aiWindDownWeakRun" index.html
+          grep -q "processAIRivalTheatricalStrategy(week,rows)" index.html
+          grep -q "reviewAIReleaseCalendar();checkPlayerReleaseCompetition()" index.html
+          grep -q "x.id!==excludeId&&x.releaseWeek===week" index.html
+          git diff --check
+
+      - name: Commit update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "v4.0c.2 add rival release strategy"
+          git push
