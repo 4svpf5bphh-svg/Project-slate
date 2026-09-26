@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0b.2</title>
+<title>Project Slate — Premium Presentation v4.0b.2.1</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0b.2';
+const VERSION='4.0b.2.1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3068,7 +3068,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0b.2-capital-allocation',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0b.2.1-rough-cut-deadlock-hotfix',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -4227,7 +4227,21 @@ function applyNavigationScroll(){
  pendingScrollMode=null;pendingScrollRestore=0;
 }
 function push(screen,detail=null){const y=(typeof window!=='undefined'&&window.scrollY)||0;state.history.push({screen:state.screen,detail:deep(state.detail),scrollY:y});state.screen=screen;state.detail=detail;requestScrollTop();save();render()}
-function back(){const p=state.history.pop();if(p){state.screen=p.screen;state.detail=p.detail;requestScrollRestore(p.scrollY||0);save();render()}}
+function routeToHardBlocker(blocker,preserveHistory=true){
+ const f=blocker?.filmId?filmById(blocker.filmId):null;if(!f)return false;
+ const already=state.detail?.type==='film'&&state.detail.id===f.id;
+ if(preserveHistory&&!already){
+  state.history=state.history||[];
+  state.history.push({screen:state.screen,detail:deep(state.detail),scrollY:(typeof window!=='undefined'&&window.scrollY)||0});
+  state.history=state.history.slice(-30);
+ }
+ state.screen='slate';state.detail={type:'film',id:f.id};requestScrollTop();return true;
+}
+function back(){
+ state.history=state.history||[];const p=state.history.pop();
+ if(p){state.screen=p.screen;state.detail=p.detail;requestScrollRestore(p.scrollY||0);save();render();return}
+ if(state.detail){state.detail=null;requestScrollTop();save();render()}
+}
 function navTo(screen){state.history=[];state.detail=null;state.screen=screen;requestScrollTop();save();render()}
 
 // Shared screenplay, packaging, fit and release-planning model
@@ -8319,7 +8333,7 @@ function surfaceDecisionInterrupt(){
  if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;state.history=[];return true}
  if(surfacePendingLegendUnlock())return true;if(surfacePendingFilmWrap())return true;if(surfacePendingStudioMoment())return true;
  if(typeof ensureDesk==='function'){const item=ensureDesk().items.find(x=>!x.resolved&&x.requiresAction);if(item){state.screen='studio';state.uiStudioTab='desk';state.detail=null;state.history=[];requestScrollTop();return true}}
- rebuildDecisions();const d=state.decisions.find(x=>['production','post','marketing','campaign'].includes(x.type));if(d){const f=filmById(d.filmId);state.screen='slate';state.detail={type:'film',id:f.id};state.history=[];requestScrollTop();return true}
+ rebuildDecisions();const d=state.decisions.find(x=>['production','post','marketing','campaign'].includes(x.type));if(d){routeToHardBlocker(d,true);return true}
  return false;
 }
 function continueToNextDecision(){
@@ -8401,7 +8415,7 @@ function surfaceCalendarInterrupt(){
  if(surfacePendingStudioMoment())return true;
  if(typeof nextUrgentDeskItem==='function'){const urgent=nextUrgentDeskItem();if(urgent){state.screen='studio';state.uiStudioTab='desk';state.detail=null;state.history=[];requestScrollTop();return true}}
  const blocker=calendarHardBlocker();
- if(blocker){const f=filmById(blocker.filmId);state.screen='slate';state.detail={type:'film',id:f.id};state.history=[];requestScrollTop();return true}
+ if(blocker){routeToHardBlocker(blocker,true);return true}
  return false;
 }
 function continueTime(){
@@ -8409,7 +8423,7 @@ function continueTime(){
  if(blocker){
   const f=filmById(blocker.filmId),marketing=blocker.type==='marketing',post=blocker.type==='post';
   showToast(marketing?"Plan the film's campaign and release before continuing.":post?'Review the rough cut and choose an intervention or lock picture before continuing.':'Resolve the active production decision before continuing.');
-  state.screen='slate';state.detail={type:'film',id:f.id};requestScrollTop();save();render();return;
+   routeToHardBlocker(blocker,true);save();render();return;
  }
  const start=state.calendarDay,cap=start+7;
  for(let day=start+1;day<=cap;day++){
@@ -10215,13 +10229,29 @@ function filmTimelineHTML(f){
  return `<div class="section-title"><h2>Film history</h2><span class="small">The story of this production, not just the final numbers</span></div><div class="film-timeline">${items.map(x=>`<div class="film-timeline-row timeline-${x.kind}"><span>${icon[x.kind]||'•'}</span><div>${x.label}</div></div>`).join('')}</div>`;
 }
 
+function postRecoveryUI(f,err){
+ const p=f.post||{},runtime=Number.isFinite(p.runtime)?p.runtime:'—';
+ let weak='Cut diagnostics unavailable';
+ try{const dims=roughDimensions(f),w=dims.at(-1);if(w)weak=w[0]+' · '+Math.round(w[1]);}catch(_){}
+ try{console.error('Project Slate post renderer recovered',err)}catch(_){}
+ const musicReady=!!f.soundtrack?.committed;
+ return '<div class="card dangerline"><div class="badge">POST-PRODUCTION SAFE MODE</div><div class="body" style="margin-top:8px"><strong>The rough-cut screen hit a recoverable display error.</strong><br>Your career and film state are intact. Use the controls below to clear the checkpoint, or use Back / the main navigation normally.</div></div>'+
+ '<div class="grid cols2" style="margin-top:12px"><div class="card"><div class="badge">Current runtime</div><div class="kpi">'+runtime+(runtime==='—'?'':' min')+'</div></div><div class="card"><div class="badge">Weakest current area</div><div class="body">'+weak+'</div></div></div>'+
+ (!musicReady?'<button id="recoverPostMusic" class="btn block" style="margin-top:12px">Use original score for recovery</button>':'<div class="card goodline" style="margin-top:12px"><strong>Music plan committed</strong><div class="small">Picture lock is available below.</div></div>')+
+ '<button id="lockPicture" class="btn primary block" style="margin-top:12px">Lock current cut and continue</button>';
+}
+function guardedPostUI(f){
+ try{return postUI(f)}
+ catch(err){return postRecoveryUI(f,err)}
+}
+
 function filmScreen(id){
  const f=filmById(id),s=scriptById(f.scriptId);
  if(!f)return studioScreen();
  let body='';
  if(f.stage==='development')body=developmentUI(f,s);
  else if(f.stage==='production')body=productionUI(f);
- else if(f.stage==='post')body=postUI(f);
+ else if(f.stage==='post')body=guardedPostUI(f);
  else if(f.stage==='marketing')body=marketingUI(f);
  else if(f.stage==='scheduled')body=scheduledUI(f);
  else if(f.stage==='cinema')body=cinemaUI(f);
@@ -10891,6 +10921,7 @@ function bind(){
  document.querySelectorAll('[data-music-strategy]').forEach(b=>b.onclick=()=>selectSoundtrackStrategy(filmById(currentFilmId),b.dataset.musicStrategy));
  document.querySelectorAll('[data-music-track]').forEach(b=>b.onclick=()=>selectSoundtrackTrack(filmById(currentFilmId),b.dataset.musicTrack));
  const musicCommit=document.getElementById('commitSoundtrack');if(musicCommit)musicCommit.onclick=()=>commitSoundtrack(filmById(currentFilmId));
+ const recoverPostMusic=document.getElementById('recoverPostMusic');if(recoverPostMusic)recoverPostMusic.onclick=()=>{const f=filmById(currentFilmId),p=ensurePostState(f);p.musicDraft={strategy:'original',trackId:null};commitSoundtrack(f)};
  const lockPicture=document.getElementById('lockPicture');if(lockPicture)lockPicture.onclick=()=>lockCut(filmById(currentFilmId));
  document.querySelectorAll('[data-campaign]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);f.campaign=b.dataset.campaign;if(f.releaseWeek!==null&&!validReleaseWeeks(f).includes(f.releaseWeek))f.releaseWeek=null;save();render()});
  document.querySelectorAll('[data-trailer]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureMarketingState(f).trailer=b.dataset.trailer;save();render()});
