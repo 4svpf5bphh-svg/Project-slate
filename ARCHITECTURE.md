@@ -1,6 +1,6 @@
 # Project Slate Architecture
 
-v4.0d.4 modularises the previous single-file build without intentionally changing simulation behaviour.
+v4.0d.4 modularised the previous single-file build without intentionally changing simulation behaviour. v4.1a adds The Lot as the first feature built on that structure.
 
 ## Runtime order
 - 00_bootstrap_data.js — build/version, seed data, foundational constants
@@ -17,6 +17,7 @@ v4.0d.4 modularises the previous single-file build without intentionally changin
 - 72_open_doors.js — late-career opportunities/emerging talent
 - 73_hollywood_history.js — eras, anniversaries, Hall of Slate
 - 74_corporate.js — late-game corporate systems
+- 75_lot_core.js — alternate-Hollywood identities, personality, relationships, memories and incidents
 - 80–87_ui_*.js — UI by domain
 - 90_bindings.js — DOM actions
 - 99_boot.js — route renderer/final bootstrap
