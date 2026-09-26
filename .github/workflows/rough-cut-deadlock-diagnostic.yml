@@ -12,17 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect post render and navigation bindings
+      - name: Inspect post UI source
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
           s=Path("index.html").read_text(encoding="utf-8")
-          terms=["function render(","function bind(","dataset.nav","backBtn)","getElementById('backBtn')","getElementById(\"backBtn\")","function filmDetail","function filmScreen","f.stage==='post'","postScreen","postDetail","Rough cut ready","firstDecisionMade"]
-          for term in terms:
-              print(f"\n===== {term} =====")
-              hits=list(re.finditer(re.escape(term),s,re.I))
-              print("count",len(hits))
-              for m in hits[:20]:
-                  print("\n---\n"+s[max(0,m.start()-2500):m.start()+9000])
+          for term in ["postUI","Post-production","Picture lock","lockPicture","firstDecisionMade","syncOperationalDeskItems","globalAdvanceWeek","globalAdvanceNextEvent","globalAdvanceNextDecision"]:
+              print("\n===== "+term+" =====")
+              for m in list(re.finditer(re.escape(term),s,re.I))[:30]:
+                  print("\n---\n"+s[max(0,m.start()-2600):m.start()+11000])
           PY
