@@ -1,47 +1,25 @@
-// Project Slate v4.1a — THE LOT FOUNDATION
-// Alternate-Hollywood people simulation. Core talent records retain their reference names;
-// The Lot adds fictional counterpart identities and invented in-universe behaviour.
-
-const LOT_ALIAS_OVERRIDES={
- 'Christopher Nolan':'Christopher Bolan','Greta Gerwig':'Greta Gerwin','Denis Villeneuve':'Denis Villenard','Jordan Peele':'Jordan Peale',
- 'David Fincher':'David Fischer','Steven Spielberg':'Steven Silverberg','Martin Scorsese':'Martin Corsese','James Gunn':'James Gann',
- 'Florence Pugh':'Florence Pruitt','Zendaya':'Zendeya','Timothée Chalamet':'Timothée Chalamont','Margot Robbie':'Margot Robins',
- 'Ryan Gosling':'Ryan Goss','Emma Stone':'Emma Stowe','Daniel Kaluuya':'Daniel Kaluza','Pedro Pascal':'Pedro Pascale',
- 'Anya Taylor-Joy':'Anya Taylor-Roy','Robert Pattinson':'Robert Pattenson','Jenna Ortega':'Jenna Ortego','Cillian Murphy':'Cillian Murray',
- 'Denzel Washington':'Denzel Westington','Sylvester Stallone':'Sylvester Stallan','Arnold Schwarzenegger':'Arnold Schwarzman',
- 'Bruce Willis':'Bruce Wills','Jason Statham':'Jason Stratham','Chris Pratt':'Chris Bratt','Emily Blunt':'Emily Brant',
- 'Andrew Garfield':'Andrew Garford','Adam Driver':'Adam Drayver','Nicole Kidman':'Nicole Kidmore','Megan Fox':'Megan Fawkes'
-};
+// Project Slate v4.1b — THE LOT: CONSEQUENCES
+// Real talent names remain canonical throughout Project Slate. The Lot supplies
+// fictional in-game personality, relationships, memories and alternate-Hollywood events.
 
 function ensureLotState(st=state){
- st.lot=st.lot||{version:1,profiles:{},relationships:{},memories:[],stories:[],history:[],lastIncidentWeek:0};
+ st.lot=st.lot||{version:2,profiles:{},relationships:{},memories:[],stories:[],history:[],lastIncidentWeek:0};
  st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];
+ if((st.lot.version||1)<2){
+  Object.entries(st.lot.profiles).forEach(([id,p])=>{const t=(st.talent||[]).find(x=>x.id===id);if(t&&p)p.alias=t.name});
+  st.lot.version=2;
+ }
  return st.lot;
 }
-function lotAlterSurname(name,id=''){
- const parts=String(name||'').trim().split(/\s+/);if(parts.length===1){const n=parts[0];return n.length>4?n.slice(0,-2)+(n.at(-2)==='a'?'e':'a')+n.at(-1):n+'a'}
- const surname=parts.pop();let s=surname;
- const swaps=[[/son$/i,'sen'],[/ton$/i,'ten'],[/ing$/i,'in'],[/ley$/i,'lin'],[/man$/i,'mann'],[/er$/i,'ers'],[/ez$/i,'es'],[/a$/i,'o'],[/y$/i,'ie'],[/t$/i,'d'],[/s$/i,'z'],[/n$/i,'m']];
- for(const [re,to] of swaps){if(re.test(s)){s=s.replace(re,to);return [...parts,s].join(' ')}}
- const r=hash('lot-alias|'+id+'|'+surname)%3;
- if(s.length>4)s=r===0?s.slice(0,-1)+'e':r===1?s.slice(0,-1)+'n':s.slice(0,-2)+s.at(-1)+s.at(-2);
- else s=s+'e';
- return [...parts,s].join(' ');
-}
-function lotTalentName(t){
- if(!t)return 'Unknown';
- if(t.isRealPerson===false)return t.name;
- const real=t.name||'Unknown';
- return LOT_ALIAS_OVERRIDES[real]||lotAlterSurname(real,t.id);
-}
+function lotTalentName(t){return t?.name||'Unknown'}
 function lotTraitValue(t,key,base=50,spread=46){
  const r=makeRng(hash((state.seed||1)+'|lot-trait|'+t.id+'|'+key));return Math.round(clamp(base+(r()-.5)*spread,5,98));
 }
 function ensureLotProfile(t){
- if(!t)return null;const lot=ensureLotState(),old=lot.profiles[t.id];if(old)return old;
+ if(!t)return null;const lot=ensureLotState(),old=lot.profiles[t.id];if(old){old.alias=t.name;return old;}
  const professionalBase=t.type==='Actor'?(t.reliability||70):(t.budgetControl||72),fame=t.type==='Actor'?(t.star||55):(t.commercial||55);
  const p={
-  talentId:t.id,alias:lotTalentName(t),createdWeek:state.week,
+  talentId:t.id,alias:t.name,createdWeek:state.week,
   traits:{
    professionalism:lotTraitValue(t,'professionalism',professionalBase*.72+20,38),
    ego:lotTraitValue(t,'ego',42+fame*.28,52),
@@ -81,6 +59,67 @@ function lotRelationshipLabel(rel){
 function lotAdjustRelationship(a,b,delta={},memoryId=null){
  const rel=lotRelationship(a,b);if(!rel)return null;['affection','respect','trust','tension','grudge'].forEach(k=>{if(delta[k])rel[k]=Math.round(clamp((rel[k]||0)+delta[k],0,100))});rel.lastWeek=state.week;if(memoryId)rel.memories.unshift(memoryId);rel.memories=rel.memories.slice(0,12);return rel;
 }
+
+function lotRelationshipScore(rel){
+ if(!rel)return 0;
+ return clamp((rel.affection-50)*.10+(rel.trust-50)*.08+(rel.respect-55)*.06-(rel.tension-20)*.10-(rel.grudge||0)*.12,-18,14);
+}
+function lotAttachedTalentIds(f){
+ return [...new Set([f?.directorId,...(f?.cast||[]),...(f?.supportingCastIds||[]),f?.supportingCastId].filter(Boolean))];
+}
+function lotCastingModifier(t,f){
+ const others=lotAttachedTalentIds(f).filter(id=>id!==t.id).map(talentById).filter(Boolean);
+ if(!others.length)return {score:0,strongest:null};
+ let score=0,strongest=null;
+ others.forEach(other=>{
+  const rel=lotRelationship(t,other),raw=lotRelationshipScore(rel),delta=clamp(raw*.62,-10,7);
+  score+=delta;
+  if(!strongest||Math.abs(delta)>Math.abs(strongest.delta))strongest={id:other.id,name:other.name,delta,label:lotRelationshipLabel(rel)};
+ });
+ return {score:clamp(score,-14,10),strongest};
+}
+function lotPackageDynamics(f){
+ const ids=lotAttachedTalentIds(f),pairs=[];
+ for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){
+  const a=talentById(ids[i]),b=talentById(ids[j]);if(!a||!b)continue;
+  const rel=lotRelationship(a,b);pairs.push({a,b,rel,score:lotRelationshipScore(rel)});
+ }
+ if(!pairs.length)return {score:0,chemistry:0,performances:0,stability:0,morale:0,tone:'neutral',strongest:null};
+ const avg=pairs.reduce((n,x)=>n+x.score,0)/pairs.length;
+ const leads=(f?.cast||[]).map(talentById).filter(Boolean),leadPair=leads.length>=2?pairs.find(x=>(x.a.id===leads[0].id&&x.b.id===leads[1].id)||(x.a.id===leads[1].id&&x.b.id===leads[0].id)):null;
+ const directorId=f?.directorId,dirPairs=pairs.filter(x=>x.a.id===directorId||x.b.id===directorId),dirAvg=dirPairs.length?dirPairs.reduce((n,x)=>n+x.score,0)/dirPairs.length:avg;
+ const leadScore=leadPair?.score??avg,strongest=pairs.slice().sort((a,b)=>Math.abs(b.score)-Math.abs(a.score))[0]||null;
+ const tone=(avg<=-4||strongest?.score<=-8)?'bad':(avg>=4||strongest?.score>=7)?'good':'neutral';
+ return {score:+avg.toFixed(2),chemistry:Math.round(clamp(leadScore*.36,-6,5)),performances:Math.round(clamp(dirAvg*.20,-4,3)),stability:Math.round(clamp(avg*.22,-5,4)),morale:Math.round(clamp(avg*.26,-5,5)),tone,strongest};
+}
+function lotPackageSignal(f){
+ const x=lotPackageDynamics(f),p=x.strongest;if(!p||x.tone==='neutral')return null;
+ const names=`${p.a.name} and ${p.b.name}`,label=lotRelationshipLabel(p.rel).toLowerCase();
+ if(x.tone==='bad')return {tone:'bad',text:`The Lot: ${names} carry a ${label} relationship into this package, creating a real people-risk around chemistry and set stability.`};
+ return {tone:'good',text:`The Lot: ${names} bring a ${label} relationship into the package, giving the production some existing trust and chemistry to build on.`};
+}
+function lotApplyIncidentConsequences(a,b,type,intensity,headline){
+ if(typeof playerFilms!=='function'||typeof applyProductionImpact!=='function')return;
+ const positive=type==='friendship';
+ playerFilms().filter(f=>f.stage==='production'&&lotAttachedTalentIds(f).includes(a.id)&&lotAttachedTalentIds(f).includes(b.id)).forEach(f=>{
+  const actorPair=f.directorId!==a.id&&f.directorId!==b.id;
+  const impact=positive
+   ?{chemistry:actorPair?Math.min(3,intensity):1,performances:intensity>=3?1:0,stability:1,morale:Math.min(3,intensity)}
+   :{chemistry:actorPair?-Math.min(4,intensity):-1,performances:-Math.min(2,Math.ceil(intensity/2)),stability:-Math.min(3,intensity),morale:-Math.min(4,intensity)};
+  applyProductionImpact(f,{...impact,note:`The Lot: ${headline}`});
+  f.lotConsequences=f.lotConsequences||[];f.lotConsequences.unshift({week:state.week,headline,type,intensity,participants:[a.id,b.id],impact});f.lotConsequences=f.lotConsequences.slice(0,12);
+  f.history=f.history||[];f.history.push(`Week ${state.week}: The Lot — ${headline}`);
+ });
+}
+function lotFilmJournalLine(f){
+ const ids=new Set(lotAttachedTalentIds(f)),lot=ensureLotState();
+ const stories=lot.stories.filter(s=>s.active&&s.participants?.length>=2&&s.participants.every(id=>ids.has(id))).sort((a,b)=>(b.heat||0)-(a.heat||0));
+ const s=stories[0];if(!s)return null;
+ const people=s.participants.map(id=>talentById(id)?.name).filter(Boolean).join(' and ');
+ if(s.type==='friendship')return `The Lot cameras have picked up genuine off-camera warmth between ${people}; on set, that ease is starting to show in the way they work together.`;
+ return `The off-camera story between ${people} has followed the production onto set. The unit is still working, but the tension is now part of the film's day-to-day atmosphere.`;
+}
+
 function lotRemember({type='moment',participants=[],headline,detail='',intensity=1,publicEvent=false,filmId=null,storyId=null}){
  const lot=ensureLotState(),id='LM'+(lot.memories.length+1)+'W'+state.week,m={id,week:state.week,day:typeof currentCalendarDay==='function'?currentCalendarDay():null,type,participants:[...participants],headline,detail,intensity,public:publicEvent,filmId,storyId};
  lot.memories.unshift(m);lot.memories=lot.memories.slice(0,240);
@@ -128,6 +167,7 @@ function lotApplyIncident(a,b,tier,r){
  lotAdjustRelationship(a,b,delta,mem.id);
  const updated=lotRelationship(a,b);
  lotStory({type,participants:[a.id,b.id],headline,summary,detail,intensity,durability:intensity>=4?90:intensity>=3?45:24,publicEvent:intensity>=2,memoryId:mem.id});
+ lotApplyIncidentConsequences(a,b,type,intensity,headline);
  return {headline,summary,detail,tier,intensity,relationship:updated};
 }
 function lotAgeStories(){
@@ -153,7 +193,7 @@ function lotKnownRelationships(t,limit=5){
 }
 function lotTalentPanel(t){
  const p=ensureLotProfile(t),labels=lotPersonaLabels(t),mem=lotRecentMemories(t),rels=lotKnownRelationships(t),stories=lotActiveStoriesForTalent(t);
- return `<div class="section-title"><h2>The Lot</h2><span class="small">Alternate-Hollywood identity · behaviour in this universe is fictional</span></div><div class="card lot-profile"><div class="lot-profile-head"><div><div class="badge">THE LOT IDENTITY</div><div class="lot-alias">${p.alias}</div><div class="small">${t.isRealPerson?`Played in this universe by ${t.name}`:'Original Project Slate talent'}</div></div><span class="pill ${stories.length?'warn':'blue'}">${stories.length?stories.length+' active stor'+(stories.length===1?'y':'ies'):'No active drama'}</span></div><div class="lot-traits">${labels.map(x=>`<span>${x}</span>`).join('')}</div>${rels.length?`<div class="lot-rel-list">${rels.map(x=>`<div class="listrow"><span>${lotTalentName(x.other)}</span><strong>${x.label}</strong></div>`).join('')}</div>`:''}${mem.length?`<div class="lot-memory-list">${mem.map(m=>`<div class="lot-memory"><strong>${m.headline}</strong><span>W${m.week} · ${m.intensity>=4?'Legendary nonsense':m.intensity>=3?'Absurd':m.intensity>=2?'Hollywood drama':'Off-camera life'}</span></div>`).join('')}</div>`:''}</div>`;
+ return `<div class="section-title"><h2>The Lot</h2><span class="small">Fictional in-game personality, relationships and alternate-Hollywood behaviour</span></div><div class="card lot-profile"><div class="lot-profile-head"><div><div class="badge">THE LOT</div><div class="lot-alias">${t.name}</div><div class="small">Real talent name · all simulated behaviour and events are fictional to this Project Slate career</div></div><span class="pill ${stories.length?'warn':'blue'}">${stories.length?stories.length+' active stor'+(stories.length===1?'y':'ies'):'No active drama'}</span></div><div class="lot-traits">${labels.map(x=>`<span>${x}</span>`).join('')}</div>${rels.length?`<div class="lot-rel-list">${rels.map(x=>`<div class="listrow"><span>${x.other.name}</span><strong>${x.label}</strong></div>`).join('')}</div>`:''}${mem.length?`<div class="lot-memory-list">${mem.map(m=>`<div class="lot-memory"><strong>${m.headline}</strong><span>W${m.week} · ${m.intensity>=4?'Legendary nonsense':m.intensity>=3?'Absurd':m.intensity>=2?'Hollywood drama':'Off-camera life'}</span></div>`).join('')}</div>`:''}</div>`;
 }
 
 // Lazily seed profiles after all simulation modules have loaded.
