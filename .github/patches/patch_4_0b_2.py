@@ -137,8 +137,8 @@ one("<div class=\"listrow\"><span>Active slate</span><strong>${moneyFine(b.slate
 one("<div class=\"section-title\"><h2>Emergency bridge finance</h2></div>",
     "  ${capitalAllocationPanel()}\n  <div class=\"section-title\"><h2>Emergency bridge finance</h2></div>",
     "finance capital allocation panel")
-one("  ${typeof ownedStreamingCorporatePanel==='function'?ownedStreamingCorporatePanel():''}",
-    "  ${typeof ownedStreamingCorporatePanel==='function'?ownedStreamingCorporatePanel():''}\n  ${capitalAssetsCorporatePanel()}",
+one("${typeof ownedStreamingCorporatePanel==='function'?ownedStreamingCorporatePanel():''}",
+    "${typeof ownedStreamingCorporatePanel==='function'?ownedStreamingCorporatePanel():''}\n  ${capitalAssetsCorporatePanel()}",
     "corporate capital panel")
 one("document.querySelectorAll('[data-repay]').forEach(b=>b.onclick=()=>repayBridge(+b.dataset.repay||1));",
     "document.querySelectorAll('[data-repay]').forEach(b=>b.onclick=()=>repayBridge(+b.dataset.repay||1));\n document.querySelectorAll('[data-capital-asset]').forEach(b=>b.onclick=()=>buyCapitalAsset(b.dataset.capitalAsset));",
