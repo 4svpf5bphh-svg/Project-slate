@@ -12,23 +12,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect awards race UI and nominations
+      - name: Locate awards UI
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           s=Path("index.html").read_text(encoding="utf-8")
           for term in [
-            "function buildAwardsNominations(",
-            "function awardsScreen(",
-            "function awardsHub(",
-            "function awardsNominationRecord(",
-            "function triggerAwardsNominations(",
-            "function ceremonyScreen(",
-            "function awardsPushUI(",
-            "data-awards-push"
+            "Focused awards",
+            "Full-scale",
+            "awardsPushCost(",
+            "commitAwardsPush(",
+            "uiStudioTab==='awards'",
+            "uiStudioTab === 'awards'",
+            "studioTab:'awards'",
+            "Awards season",
+            "awards archive",
+            "Awards consideration"
           ]:
               print("\n===== "+term+" =====")
-              i=s.find(term)
-              print("index",i)
-              if i>=0: print(s[max(0,i-1800):i+26000])
+              hits=list(re.finditer(re.escape(term),s,re.I))
+              print("count",len(hits))
+              for m in hits[:20]:
+                  print("\n---\n"+s[max(0,m.start()-5000):m.start()+12000])
           PY
