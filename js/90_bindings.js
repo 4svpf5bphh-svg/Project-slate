@@ -51,7 +51,8 @@ function bind(){
  document.querySelectorAll('[data-news-id]').forEach(b=>b.onclick=()=>push(state.screen,{type:'news',id:b.dataset.newsId}));
  document.querySelectorAll('[data-rival]').forEach(b=>b.onclick=()=>push('industry',{type:'rival',id:b.dataset.rival}));
  document.querySelectorAll('[data-industry-tab]').forEach(b=>b.onclick=()=>{state.industryTab=b.dataset.industryTab;save();render()});
- document.querySelectorAll('[data-studio-tab]').forEach(b=>b.onclick=()=>{state.uiStudioTab=b.dataset.studioTab;save();render()});
+ document.querySelectorAll('[data-studio-tab]').forEach(b=>b.onclick=()=>{const dest=b.dataset.studioTab;if(['finance','identity','growth','corporate','audit'].includes(dest)){state.uiStudioTab='business';state.uiBusinessTab=dest}else state.uiStudioTab=dest;save();render()});
+ document.querySelectorAll('[data-business-tab]').forEach(b=>b.onclick=()=>{state.uiStudioTab='business';state.uiBusinessTab=b.dataset.businessTab;save();render()});
  document.querySelectorAll('[data-desk-tab]').forEach(b=>b.onclick=()=>{state.uiDeskTab=b.dataset.deskTab;save();render()});
  document.querySelectorAll('[data-legacy-tab]').forEach(b=>b.onclick=()=>{state.uiLegacyTab=b.dataset.legacyTab;save();render()});
  document.querySelectorAll('[data-open-legacy]').forEach(b=>b.onclick=()=>{state.uiStudioTab='legacy';state.uiLegacyTab=b.dataset.openLegacy||'overview';save();render()});
