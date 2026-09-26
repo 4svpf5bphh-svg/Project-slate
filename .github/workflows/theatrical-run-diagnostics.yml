@@ -12,23 +12,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect theatrical run systems
+      - name: Inspect theatrical settlement and moments
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
           s=Path("index.html").read_text(encoding="utf-8")
-          terms=[
-            "function releaseScreen","function cinemaUI","function settleCinema",
-            "cinemaWeek","weeklyResults","queueStudioMoment","opening weekend",
-            "box office","uiReleaseTab","releaseProfile","legs","drop",
-            "function advanceCinema","function processCinema","function settleBox",
-            "function nav","Release</"
-          ]
-          for term in terms:
-              print(f"\n===== {term} =====")
-              hits=list(re.finditer(re.escape(term),s,re.I))
-              print("count",len(hits))
-              for m in hits[:28]:
-                  print("\n---\n"+s[max(0,m.start()-2200):m.start()+9500])
+
+          names=[]
+          for m in re.finditer(r"function\s+([A-Za-z0-9_]+)\s*\(",s):
+              name=m.group(1)
+              if re.search(r"(cinema|box|theatr|release|weekend)",name,re.I):
+                  names.append((name,m.start()))
+          print("FUNCTIONS", [x[0] for x in names])
+          for name,i in names:
+              if name in ["releaseScreen","cinemaUI","boxScreen"]: continue
+              brace=s.find("{",i);depth=0;quote=None;esc=False;j=brace
+              while j<len(s):
+                  c=s[j]
+                  if quote:
+                      if esc: esc=False
+                      elif c=="\\": esc=True
+                      elif c==quote: quote=None
+                  else:
+                      if c in ("'", '"', "`"): quote=c
+                      elif c=="{": depth+=1
+                      elif c=="}":
+                          depth-=1
+                          if depth==0:
+                              j+=1;break
+                  j+=1
+              body=s[i:j]
+              if any(k in body for k in ["weeklyResults","queueStudioMoment","cinemaWeek","releaseProfile","drop"]):
+                  print(f"\n=== {name} ===\n{body}\n")
+
+          print("\n=== CINEMA MOMENT CONTEXTS ===")
+          for m in re.finditer(r"queueStudioMoment\(",s):
+              ctx=s[max(0,m.start()-1800):m.start()+5200]
+              if re.search(r"(cinema|box|weekend|gross|opening|theatrical)",ctx,re.I):
+                  print("\n---\n"+ctx)
           PY
