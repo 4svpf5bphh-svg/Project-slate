@@ -1718,7 +1718,7 @@ function finishFilm(f){
  state.reputation.creative=clamp(state.reputation.creative+(f.review.critics-65)*.08,20,95);
  state.reputation.commercial=clamp(state.reputation.commercial+(profit>0?2:-2)+(f.finalGross>120?2:0),20,95);
  state.reputation.talent=clamp(state.reputation.talent+(impact>75?2:impact<55?-1:0),20,95);
- updateRelationshipsAfterFilm(f,profit);buildFilmLegacy(f,talentBefore);if(typeof updateCareerCycle==='function')updateCareerCycle();queueFilmWrap(f);if(typeof checkStudioMilestones==='function')checkStudioMilestones();
+ updateRelationshipsAfterFilm(f,profit);if(typeof lotRegisterFilmOutcome==='function')lotRegisterFilmOutcome(f,profit);buildFilmLegacy(f,talentBefore);if(typeof updateCareerCycle==='function')updateCareerCycle();queueFilmWrap(f);if(typeof checkStudioMilestones==='function')checkStudioMilestones();
  state.completed.unshift(f.id);addNews(state,`${f.title} closes its theatrical run at ${money(f.finalGross)} worldwide, leaving ${state.studio.name} with ${profit>=0?'a recorded profit of':'a recorded loss of'} ${money(Math.abs(profit))}.`,'Your Studio');
 }
 function boxPressureForWeek(week,genre,excludeId=null){
@@ -2636,7 +2636,7 @@ function finishAIFilm(f){
     }
   }
  }
- ensureIPAsset(f);ensureAfterlifeState(f);registerAudienceOutcome(f,f.estimatedProfit);registerStudioFilmImpact(f,f.estimatedProfit);maybeGenerateAISequel(f,rv);
+ ensureIPAsset(f);ensureAfterlifeState(f);registerAudienceOutcome(f,f.estimatedProfit);registerStudioFilmImpact(f,f.estimatedProfit);if(typeof lotRegisterFilmOutcome==='function')lotRegisterFilmOutcome(f,f.estimatedProfit);maybeGenerateAISequel(f,rv);
  const result=f.estimatedProfit>15?'a major profit':f.estimatedProfit>3?'a profit':f.estimatedProfit>.5?'a minor profit':f.estimatedProfit>-.5?'roughly break-even':f.estimatedProfit>-4?'a minor loss':f.estimatedProfit>-15?'a loss':'a major loss';
  addNews(state,`${f.studio}'s ${f.title} closes at ${money(f.finalGross)} worldwide, an estimated ${result}.`,'Trade Report');
 }
