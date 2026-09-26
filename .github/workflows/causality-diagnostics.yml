@@ -2,43 +2,40 @@ name: one-shot v4.0d.1 causality diagnostics
 on:
   push:
     branches: [main]
-
 permissions:
   contents: read
-
 jobs:
   inspect:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect exact clarity hooks
+      - name: Exact functions
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           s=Path("index.html").read_text(encoding="utf-8")
-          for term in [
-            "function talentDeclineForRole(",
-            "function talentProjectInterest(",
-            "function deskItemHTML(",
-            "function addDesk",
-            "function ensureDesk(",
-            "function buildFilmLegacy(",
-            "function filmDetailScreen(",
-            "function filmDetail(",
-            "function filmTimelineEntries(",
-            "function reviewUI(",
-            "function reviewScreen(",
-            "function producerStrategy(",
-            "function effectsApproach(",
-            "function setProducer",
-            "function setEffects",
-            "function generateTitle(",
-            "function createScript"
-          ]:
-              print("\n===== "+term+" =====")
-              i=s.find(term)
-              print("index",i)
-              if i>=0: print(s[max(0,i-1800):i+22000])
+          def emit(name):
+              token="function "+name+"("
+              i=s.find(token)
+              print("\n###OUT "+name+"###")
+              if i<0:
+                  print("NOT FOUND"); return
+              b=s.find("{",i);d=0;q=None;esc=False;j=b
+              while j<len(s):
+                  c=s[j]
+                  if q:
+                      if esc: esc=False
+                      elif c=="\\": esc=True
+                      elif c==q: q=None
+                  else:
+                      if c in ("'", '"', "`"): q=c
+                      elif c=="{": d+=1
+                      elif c=="}":
+                          d-=1
+                          if d==0: j+=1; break
+                  j+=1
+              print(s[i:j])
+          for n in ["deskItemHTML","buildFilmLegacy","filmTimelineEntries","reviewUI","filmDetail","filmUI","filmScreen","completeFilm","resolveReview"]:
+              emit(n)
           PY
