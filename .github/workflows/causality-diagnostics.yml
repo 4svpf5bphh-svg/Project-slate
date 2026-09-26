@@ -10,14 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Exact legacy and review hooks
+      - name: Inspect narrative and desk hooks
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
           s=Path("index.html").read_text(encoding="utf-8")
-          names=[m.group(1) for m in re.finditer(r"function\s+([A-Za-z0-9_]+)\s*\(",s) if re.search(r"(legacy|review|complete|wrap|desk|finance|title)",m.group(1),re.I)]
-          print("###NAMES###",names)
           def emit(name):
               token="function "+name+"(";i=s.find(token);print("\n###OUT "+name+"###")
               if i<0: print("NOT FOUND");return
@@ -50,6 +47,6 @@ jobs:
                           if d==0: j+=1;break
                   j+=1
               print(s[i:j])
-          for n in ["buildFilmLegacy","wrapUI","filmWrapMoment","reviewScreen","generateReview","openReviews","financeScreen","studioDeskBody"]:
+          for n in ["makeReview","filmWrapVerdictCopy","filmWrapProductionMoment","filmWrapCampaignMoment","filmWrapBoxOfficeMoment","filmWrapTradeVerdict","filmWrapMomentScreen","generateStudioDeskWeek","pushDeskItem","syncOperationalDeskItems"]:
               emit(n)
           PY
