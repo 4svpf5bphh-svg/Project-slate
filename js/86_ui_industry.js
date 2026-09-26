@@ -21,6 +21,14 @@ function rivalPerformance(r){
  const treasury=aiTreasurySnapshot(r);
  return {films,done,pnl,gross,wins,losses,status,recent,creative,debt:r.debt||0,cash:r.cash||0,reserve:treasury.reserve,available:treasury.available};
 }
+function rivalDetenteHTML(r){
+ if(typeof rivalDetenteOffer!=='function')return '';
+ const d=rivalDetenteOffer(r);if(!d||(!d.eligible&&!d.lastResult))return '';
+ const cls=d.rivalry.rank>=3?'dangerline':d.rivalry.rank>=2?'attention':'';
+ const detail=d.lastResult?d.lastResult.headline:'A private reset is possible if both sides decide the rivalry is becoming counterproductive.';
+ const action=d.available?'<button class="btn block" style="margin-top:10px" data-rival-detente="'+r.id+'">Seek private détente</button>':'<div class="small" style="margin-top:9px">'+d.reason+'</div>';
+ return '<div class="section-title"><h2>Executive relationship</h2><span class="small">Competition can be shaped without pretending the history never happened</span></div><div class="card rival-detente-card '+cls+'"><div class="row"><div><strong>'+r.head.name+' · '+rivalDisposition(r)+'</strong><div class="small">'+detail+'</div></div><span class="pill '+d.rivalry.tone+'">'+d.rivalry.label+'</span></div>'+action+'</div>';
+}
 function rivalProfile(id){
  const r=rivalById(id),p=rivalPerformance(r),recent=[...p.done].sort((a,b)=>(b.releaseWeek||0)-(a.releaseWeek||0)).slice(0,6),active=p.films.filter(f=>f.stage!=='complete'),sig=rivalSignature(r),intent=rivalCurrentIntent(r),genreCounts={};p.done.forEach(f=>genreCounts[f.genre]=(genreCounts[f.genre]||0)+1);const fav=Object.entries(genreCounts).sort((a,b)=>b[1]-a[1])[0];
  return topbar('Studio Profile',r.name)+`<main class="screen">${backHead('Studio Profile',sig.label)}
@@ -28,7 +36,7 @@ function rivalProfile(id){
  <div class="card rival-intent-card ${intent.tone==='bad'?'dangerline':intent.tone==='warn'?'attention':''}" style="margin-top:12px"><div class="row"><div><div class="badge">CURRENT INTENT</div><strong>${intent.label}</strong></div><span class="pill ${intent.tone}">${r.head.personality}</span></div><div class="body" style="margin-top:7px">${intent.short}</div></div>
  <div class="grid cols4" style="margin-top:12px"><div class="card"><div class="badge">Trade estimate</div><div class="kpi">${p.status}</div></div><div class="card"><div class="badge">Completed films</div><div class="kpi">${p.done.length}</div></div><div class="card"><div class="badge">Estimated film P/L</div><div class="kpi" style="font-size:17px">${moneyRange(p.pnl)}</div></div><div class="card"><div class="badge">Wins / losses</div><div class="kpi">${p.wins} / ${p.losses}</div></div></div>
  <div class="grid cols4" style="margin-top:12px"><div class="card"><div class="badge">Recent commercial form</div><div class="kpi">${p.recent>8?'Hot':p.recent<-8?'Cold':'Mixed'}</div></div><div class="card"><div class="badge">Creative reputation</div><div class="kpi">${Math.round(p.creative)}</div></div><div class="card"><div class="badge">Debt pressure</div><div class="kpi">${p.debt>25?'High':p.debt>8?'Moderate':'Low'}</div></div><div class="card"><div class="badge">Liquidity</div><div class="kpi">${p.available>25?'Deep':p.available>10?'Healthy':p.available>2?'Tight':'Restricted'}</div></div></div>
- ${rivalryProfileHTML(r)}
+ ${rivalryProfileHTML(r)}${rivalDetenteHTML(r)}
  <div class="section-title"><h2>Current slate</h2></div><div class="grid">${active.length?active.map(f=>`<div class="card click" data-industry-film="${f.id}"><div class="film-card-layout">${filmKeyArtHTML(f,'thumb')}<div class="film-card-copy"><div class="row"><div><strong>${f.title}</strong><div class="small">${f.genre} · ${fmtStage(f.stage)}</div></div>${f.releaseWeek?`<span class="pill">${typeof releaseDayForWeek==='function'?calendarShortDate(releaseDayForWeek(f.releaseWeek)):'W'+f.releaseWeek}</span>`:''}</div>${f.releaseWeek?`<div class="small" style="margin-top:6px">${distributionLabel(f)}</div>`:''}</div></div></div>`).join(''):`<div class="card body">No active projects.</div>`}</div>
  <div class="section-title"><h2>Recent releases</h2></div><div class="grid">${recent.length?recent.map(f=>`<div class="card click ${f.estimatedProfit>3?'goodline':f.estimatedProfit<-4?'dangerline':''}" data-industry-film="${f.id}"><div class="film-card-layout">${filmKeyArtHTML(f,'thumb')}<div class="film-card-copy"><div class="row"><div><strong>${f.title}</strong><div class="small">${money(f.finalGross)} WW · ${aiFilmResultLabel(f)}</div></div><strong style="font-size:12px">${moneyRange(f.estimatedProfit||0)}</strong></div></div></div></div>`).join(''):`<div class="card body">No completed films yet.</div>`}</div>
  </main>${nav()}`;
