@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0d.2</title>
+<title>Project Slate — Premium Presentation v4.0d.2.1</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -658,6 +658,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .desk-digest-detail{padding:0 12px 12px 30px}
 @media(max-width:720px){.desk-thread-grid{grid-template-columns:1fr}.desk-command-grid{grid-template-columns:repeat(3,1fr)}.desk-command-grid strong{font-size:18px}.desk-upcoming-row{grid-template-columns:30px minmax(0,1fr)}.desk-upcoming-kind{grid-column:2;margin-top:-4px}}
 
+
+/* v4.0d.2.1 — Studio Desk becomes the Studio hub */
+.desk-brand-hero{margin-bottom:12px}
+.desk-briefing-command{margin-top:12px}
+.desk-section-hero{border:1px solid var(--border);border-radius:18px;padding:17px;background:linear-gradient(135deg,#1d2230,#15191f);margin-top:4px}
+.desk-section-hero .kpi{margin-top:5px}.desk-section-hero .body{margin-top:7px;max-width:760px}
+.desk-thread-grid-full{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pulse-desk-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.pulse-desk-hot{min-width:210px}.pulse-desk-hot strong,.pulse-desk-hot span{display:block}.pulse-desk-hot strong{margin:4px 0}
+.pulse-board-full{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pulse-like-strip{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0 2px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
+.pulse-like-strip strong{font-size:13px}.pulse-like-strip span{font-size:10px;color:var(--muted)}
+.pulse-detail-likes{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10)}
+.pulse-detail-likes strong{font-size:19px}.pulse-detail-likes span{font-size:11px;color:var(--muted)}
+.desk-digest-actions{display:flex;justify-content:flex-end;gap:8px;margin:12px 0 8px}
+@media(max-width:720px){.desk-thread-grid-full,.pulse-board-full{grid-template-columns:1fr}.pulse-desk-hero{display:block}.pulse-desk-hot{margin-top:12px}.pulse-like-strip{align-items:flex-start;flex-direction:column;gap:2px}}
+
 </style>
 </head>
 <body>
@@ -665,7 +682,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0d.2';
+const VERSION='4.0d.2.1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3134,7 +3151,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0d.2-signal-noise',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0d.2.1-desk-hub',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -4029,7 +4046,7 @@ function migrateState(x){
  });x.studioGrowth=x.studioGrowth||{fans:.04,recognition:12,upgrades:{production:0,casting:0,publicity:0},history:[]};ensureStudioGrowth(x);x.talentDrama=x.talentDrama||[];x.ids=x.ids||{};x.ids.talent=x.ids.talent||0;x.ids.news=x.ids.news||0;(x.talent||[]).forEach(ensureTalentCareer);x.news=(x.news||[]).map(n=>normalizeNewsItem(x,n));
  x.writers=x.writers&&x.writers.length?x.writers:writerSeed.map((w,i)=>({id:'W'+(i+1),name:w[0],structure:w[1],character:w[2],dialogue:w[3],commercial:w[4],fee:w[5],genres:w[6],tag:w[7],momentum:55+(i*7)%35,credits:[],relationship:0}));
  x.uiScriptTab=x.uiScriptTab||'market';
- x.uiStudioTab=x.uiStudioTab||'overview';x.uiLegacyTab=x.uiLegacyTab||(x.uiStudioTab==='milestones'?'milestones':x.uiStudioTab==='legends'?'legends':'overview');if(x.uiStudioTab==='milestones'||x.uiStudioTab==='legends')x.uiStudioTab='legacy';x.uiSlateTab=x.uiSlateTab||'pipeline';x.uiReleaseTab=x.uiReleaseTab||'box';
+ x.uiStudioTab=x.uiStudioTab||'desk';if(x.uiStudioTab==='overview')x.uiStudioTab='desk';x.uiDeskTab=x.uiDeskTab||'briefing';x.uiLegacyTab=x.uiLegacyTab||(x.uiStudioTab==='milestones'?'milestones':x.uiStudioTab==='legends'?'legends':'overview');if(x.uiStudioTab==='milestones'||x.uiStudioTab==='legends')x.uiStudioTab='legacy';x.uiSlateTab=x.uiSlateTab||'pipeline';x.uiReleaseTab=x.uiReleaseTab||'box';
  x.uiPeopleFilter=x.uiPeopleFilter||'all';x.uiPeopleSearch=x.uiPeopleSearch||'';
  x.uiWriterDrafts=x.uiWriterDrafts||{
   concept:{title:'',genre:'Psychological Horror',logline:'',synopsis:'',audience:'Mainstream Adults',scale:'mid',positioning:'balanced',tone:'balanced',rating:'mainstream',emphasis:'balanced',writerId:null},
@@ -4072,7 +4089,7 @@ function initialState(){
   finance:{bridgeDebt:0,weeklyInterest:.012,totalInterest:0,quote:0},
   screenplayEconomy:{history:[],lastWeek:0,turnarounds:0,lastTurnaroundWeek:0},
   notifications:[],notificationKeys:[],activeNotificationId:null,
-  industryTab:'news',uiStudioTab:'overview',uiLegacyTab:'overview',uiSlateTab:'pipeline',uiReleaseTab:'box',
+  industryTab:'news',uiStudioTab:'desk',uiDeskTab:'briefing',uiLegacyTab:'overview',uiSlateTab:'pipeline',uiReleaseTab:'box',
   uiPeopleFilter:'all',uiPeopleSearch:'',
   collaborations:{},careerThreads:{active:[],history:[],nextId:1,lastUpdatedWeek:0},pressMemory:{},executivePersona:{history:[],lastPrimary:null,lastEvaluatedWeek:0},industryMood:{history:[],lastQuarter:0},fastForward:{uses:0,lastFromDay:null,lastToDay:null},challengerState:{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null},industryOpportunities:{lastOfferWeek:0,history:[],accepted:0},emergingTalentState:{lastIntroductionWeek:0,history:[]},corporateState:{status:'private',founderOwnership:100,investorConfidence:62,ipoDeclinedUntil:0,ipoWeek:null,ipoProceeds:0,lastReviewWeek:0,lastOfferWeek:0,lastFundamental:null,lastMarketCap:null,lastSharePrice:null,history:[],quarterly:[],boardPressure:false,streamingPlatform:{status:'none',name:null,model:null,launchWeek:null,launchCost:0,subscribers:0,peakSubscribers:0,lastQuarterSubscribers:0,lastQuarterWeek:0,exclusiveFilmIds:[],history:[],quarterly:[],lifetimeRevenue:0,lifetimeOperatingCost:0,currentQuarterRevenue:0,currentQuarterCost:0,lastWeeklyRevenue:0,lastWeeklyCost:0,lastWeeklyNet:0,lastExclusiveWeek:null,notifiedWeek:0,declinedUntil:0,woundDownWeek:null}},studioHistory:{anniversaries:[],rivalLeadership:[],hallSnapshots:[],retrospectives:[],lastLeadershipChangeWeek:0},industryRipples:[],audienceMarket:null,portraitCache:{},talentWatchlist:[],yearbooks:[],awardsArchive:[],awardsNominationsArchive:[],pendingAwardsNominations:null,awardsCeremonyStep:0,pendingCeremony:null,availabilityWatches:[],studioIdentity:{history:[],lastPrimary:null,lastEvaluatedWeek:0},pendingFilmWraps:[],activeFilmWrapId:null,uiFilmWrapStep:0,studioMomentQueue:[],activeStudioMoment:null,boxOfficeMemory:{leaderId:null,streak:0,lastWeek:0},economy:{lifetimeOverhead:0,lifetimeCatalogue:0,lifetimeAncillary:0,lastWeeklyOverhead:0,lastCatalogueReceipts:0},studioGrowth:{fans:.04,recognition:12,upgrades:{production:0,casting:0,publicity:0,development:0,post:0},history:[]},studioMilestones:{completed:{},history:[],lastCheckedWeek:0,initialized:false},legends:{unlocked:{},history:[],pending:[],initialized:false},activeLegendUnlockId:null,talentDrama:[],
   uiPickerSearch:'',uiPickerSort:'fit',uiPickerAvailable:false,uiStudioNameDraft:'',uiBrandDraft:{theme:'violet',mark:'aperture',wordmark:'modern'},
@@ -4264,8 +4281,8 @@ function openNotificationTarget(n){
   const y=(typeof window!=='undefined'&&window.scrollY)||0;
   state.history=state.history||[];
   state.history.push({screen:state.screen,detail:deep(state.detail),scrollY:y});
-  state.screen=targetScreen;state.detail=targetDetail;if(t.studioTab)state.uiStudioTab=t.studioTab;if(t.legacyTab)state.uiLegacyTab=t.legacyTab;requestScrollTop();
- }else{if(t.studioTab)state.uiStudioTab=t.studioTab;if(t.legacyTab)state.uiLegacyTab=t.legacyTab}
+  state.screen=targetScreen;state.detail=targetDetail;if(t.studioTab)state.uiStudioTab=t.studioTab;if(t.studioTab==='desk')state.uiDeskTab='briefing';if(t.legacyTab)state.uiLegacyTab=t.legacyTab;requestScrollTop();
+ }else{if(t.studioTab)state.uiStudioTab=t.studioTab;if(t.studioTab==='desk')state.uiDeskTab='briefing';if(t.legacyTab)state.uiLegacyTab=t.legacyTab}
  if(t.deskId){const item=state.desk?.items?.find(x=>x.id===t.deskId);if(item)item.expanded=true}
  save();render();
 }
@@ -8643,7 +8660,7 @@ function surfaceDecisionInterrupt(){
  if(state.pendingCeremony){state.screen='ceremony';state.detail=null;state.history=[];return true}
  if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;state.history=[];return true}
  if(surfacePendingLegendUnlock())return true;if(surfacePendingFilmWrap())return true;if(surfacePendingStudioMoment())return true;
- if(typeof ensureDesk==='function'){const item=ensureDesk().items.find(x=>!x.resolved&&x.requiresAction);if(item){state.screen='studio';state.uiStudioTab='desk';state.detail=null;state.history=[];requestScrollTop();return true}}
+ if(typeof ensureDesk==='function'){const item=ensureDesk().items.find(x=>!x.resolved&&x.requiresAction);if(item){state.screen='studio';state.uiStudioTab='desk';state.uiDeskTab='briefing';state.detail=null;state.history=[];requestScrollTop();return true}}
  rebuildDecisions();const d=state.decisions.find(x=>['production','post','marketing','campaign'].includes(x.type));if(d){routeToHardBlocker(d,true);return true}
  return false;
 }
@@ -8847,7 +8864,7 @@ function surfaceCalendarInterrupt(){
  if(surfacePendingLegendUnlock())return true;
  if(surfacePendingFilmWrap())return true;
  if(surfacePendingStudioMoment())return true;
- if(typeof nextUrgentDeskItem==='function'){const urgent=nextUrgentDeskItem();if(urgent){state.screen='studio';state.uiStudioTab='desk';state.detail=null;state.history=[];requestScrollTop();return true}}
+ if(typeof nextUrgentDeskItem==='function'){const urgent=nextUrgentDeskItem();if(urgent){state.screen='studio';state.uiStudioTab='desk';state.uiDeskTab='briefing';state.detail=null;state.history=[];requestScrollTop();return true}}
  const blocker=calendarHardBlocker();
  if(blocker){routeToHardBlocker(blocker,true);return true}
  return false;
@@ -9987,7 +10004,11 @@ function ensureFilmSocial(f){
   const actors=packageActors(f),star=actors.reduce((a,t)=>a+(t.star||45),0)/Math.max(1,actors.length);
   f.socialPulse={volume:Math.round(clamp(stageBase+(m.buzz||0)*.25+(f.marketing||0)*.18+Math.max(0,star-55)*.08,5,72)),sentiment:Math.round(clamp(50+(m.sentiment||0)*1.2,24,78)),fandom:Math.round(clamp(18+star*.18+Math.max(0,m.sentiment||0)*.35,12,70)),controversy:6,delta:0,lastWeek:state.week,topics:[],history:[],feed:[],moves:[]};
  }
- const p=f.socialPulse;p.topics=p.topics||[];p.history=p.history||[];p.feed=p.feed||[];p.moves=p.moves||[];if(p.delta===undefined)p.delta=0;if(p.controversy===undefined)p.controversy=6;
+ const p=f.socialPulse;
+ p.topics=p.topics||[];p.history=p.history||[];p.feed=p.feed||[];p.moves=p.moves||[];
+ if(p.delta===undefined)p.delta=0;if(p.controversy===undefined)p.controversy=6;
+ if(!Number.isFinite(p.likes))p.likes=Math.max(500,Math.round((p.volume||0)*900+(p.fandom||0)*650+Math.max(0,(p.sentiment||50)-45)*650));
+ if(!Number.isFinite(p.likesThisWeek))p.likesThisWeek=0;
  return p;
 }
 function socialTopic(f,topic){const p=ensureFilmSocial(f);if(!p||!topic)return;p.topics=[topic,...p.topics.filter(x=>x!==topic)].slice(0,3)}
@@ -10003,6 +10024,8 @@ function recordPulseMove(f,reason,before,after){
 function applyPulseDelta(f,{volume=0,sentiment=0,fandom=0,controversy=0,topic=null}={},reason='Audience reaction'){
  if(!f)return;const p=ensureFilmSocial(f),before=pulseSnapshot(p);
  p.volume=clamp(p.volume+volume,0,100);p.sentiment=clamp(p.sentiment+sentiment,0,100);p.fandom=clamp(p.fandom+fandom,0,100);p.controversy=clamp(p.controversy+controversy,0,100);p.delta+=volume;if(topic)socialTopic(f,topic);
+ const likeBurst=Math.max(0,Math.round(Math.max(0,volume)*500+Math.max(0,sentiment)*350+Math.max(0,fandom)*250));
+ if(likeBurst){p.likes+=likeBurst;p.likesThisWeek=(p.likesThisWeek||0)+likeBurst}
  recordPulseMove(f,reason,before,pulseSnapshot(p));
 }
 function deskMarketing(f,{buzz=0,sentiment=0,expectations=0}={}){if(!f)return;const m=ensureMarketingState(f);m.buzz=clamp((m.buzz||0)+buzz,-20,45);m.sentiment=clamp((m.sentiment||0)+sentiment,-20,30);m.expectations=clamp((m.expectations||0)+expectations,-10,45);f.buzz=clamp((f.buzz??50)+buzz,0,100)}
@@ -10055,17 +10078,20 @@ function updateSocialPulseWeek(){
   const overexposure=Math.max(0,p.volume-72)*.18+Math.max(0,(m.expectations||0)-18)*.10;
   const targetV=clamp(stageBase+(f.marketing||0)*.26+(m.buzz||0)*.68+p.fandom*.055+p.controversy*.20,5,96);
   const targetS=clamp(50+(m.sentiment||0)*1.45+reviewLift-p.controversy*.22-overexposure,10,92);
-  const r=makeRng(hash((state.seed||1)+'|social-v375|'+f.id+'|'+state.week));
+  const r=makeRng(hash((state.seed||1)+'|social-v4021|'+f.id+'|'+state.week));
   p.volume=Math.round(clamp(p.volume*.78+targetV*.22+(r()-.5)*7,3,100));
   p.sentiment=Math.round(clamp(p.sentiment*.84+targetS*.16+(r()-.5)*6,5,98));
   if(p.sentiment>=72&&r()<.32)p.fandom+=1;else if((p.sentiment<40||overexposure>5)&&r()<.42)p.fandom-=1;
   p.fandom=Math.round(clamp(p.fandom,8,98));
   const controversyDecay=p.controversy>=45?(r()<.45?1:0):(r()<.70?1:0);p.controversy=Math.round(clamp(p.controversy-controversyDecay+(r()<.07?2:0),0,100));
   p.delta=p.volume-prev;p.lastWeek=state.week;
+  const stageLike=f.stage==='cinema'?2.15:f.stage==='scheduled'?1.45:f.stage==='marketing'?1.05:f.stage==='post'?0.72:0.45;
+  const approval=Math.max(0,p.sentiment-35),likeBase=(p.volume*72+p.fandom*48+approval*42)*stageLike;
+  const gained=Math.max(0,Math.round(likeBase*(.88+r()*.24)));p.likes=(p.likes||0)+gained;p.likesThisWeek=gained;
   const after=pulseSnapshot(p),meaningful=pulseMoveChanges(before,after).some(x=>Math.abs(parseInt(x.match(/[+-]?\d+/)?.[0]||0))>=2);
   if(meaningful){const reason=p.controversy>=32?'Ongoing controversy':f.review?.audience?'Audience reaction after release':(m.buzz||0)>=12?'Campaign carryover':'Organic audience movement';recordPulseMove(f,reason,before,after)}
   organicSocialSignal(f,p,r);
-  p.history.unshift({week:state.week,volume:p.volume,sentiment:p.sentiment,fandom:p.fandom,controversy:p.controversy});p.history=p.history.slice(0,12);rows.push({filmId:f.id,volume:p.volume,sentiment:p.sentiment});
+  p.history.unshift({week:state.week,volume:p.volume,sentiment:p.sentiment,fandom:p.fandom,controversy:p.controversy,likes:p.likes,likesThisWeek:p.likesThisWeek});p.history=p.history.slice(0,12);rows.push({filmId:f.id,volume:p.volume,sentiment:p.sentiment,likes:p.likes});
  });
  state.pulse.lastWeek=state.week;state.pulse.history.unshift({week:state.week,rows});state.pulse.history=state.pulse.history.slice(0,26);
 }
@@ -10362,7 +10388,7 @@ function archiveDeskItem(id){const d=ensureDesk(),key=String(id),i=d.items.findI
 function openDeskItemTarget(id){
  const item=deskItemById(id,ensureDesk());if(!item)return;item.read=true;item.expanded=false;
  const t=item.destination||inferNotificationDestination(item.notificationKey||'',item.filmId,item.type,null);
- state.screen=t?.screen||'studio';state.detail=t?.detail||null;if(t?.studioTab)state.uiStudioTab=t.studioTab;if(t?.legacyTab)state.uiLegacyTab=t.legacyTab;requestScrollTop();save();render();
+ state.screen=t?.screen||'studio';state.detail=t?.detail||null;if(t?.studioTab)state.uiStudioTab=t.studioTab;if(t?.studioTab==='desk')state.uiDeskTab='briefing';if(t?.legacyTab)state.uiLegacyTab=t.legacyTab;requestScrollTop();save();render();
 }
 function socialSentimentLabel(v){return v>=75?'Enthusiastic':v>=62?'Positive':v>=48?'Mixed-positive':v>=38?'Divided':'Negative'}
 function socialVolumeLabel(v){return v>=82?'Exploding':v>=66?'Very high':v>=50?'High':v>=32?'Moderate':'Low'}
@@ -10395,9 +10421,15 @@ function pulseSummaryLine(p){
  if(read.label==='Cult intensity')return `The audience is smaller, but the people who care are unusually invested.`;
  return `${sent} sentiment with a ${fans} core audience. Conversation is ${p.volume>=62?'moving beyond paid media':p.volume>=42?'starting to build organically':'still relatively quiet'}.`;
 }
+function compactLikes(n){
+ n=Math.max(0,Math.round(Number(n)||0));
+ if(n>=1000000)return `${(n/1000000).toFixed(n>=10000000?0:1)}M`;
+ if(n>=1000)return `${(n/1000).toFixed(n>=100000?0:1)}K`;
+ return String(n);
+}
 function pulseFilmHTML(x){
  const p=x.p,feed=(p.feed||[]).slice(0,1),read=pulseInterpretation(p),sent=pulseMetricRead('sentiment',p.sentiment),tone=read.cls==='bad'?'bad':read.cls==='warn'?'warn':read.cls==='good'?'good':'cool';
- return `<button class="pulse-social-card pulse-tone-${tone}" data-pulse-film="${x.f.id}"><div class="pulse-card-top"><span class="pulse-brand">PULSE</span><span class="pulse-stage">${fmtStage(x.f.stage)}</span></div><div class="pulse-card-title">${x.f.title}</div><div class="pulse-card-main"><div class="pulse-card-number"><strong>${p.volume}</strong><span>conversation</span><em>${x.trend}</em></div><span class="pulse-status pulse-status-${tone}">${read.label}</span></div><div class="pulse-social-summary">${pulseSummaryLine(p)}</div>${feed.length?`<div class="pulse-chatter-preview"><span>◉</span><p>${feed[0].text}</p></div>`:''}<div class="pulse-card-foot"><span>${sent[0]} sentiment</span><b>Open Pulse →</b></div></button>`;
+ return `<button class="pulse-social-card pulse-tone-${tone}" data-pulse-film="${x.f.id}"><div class="pulse-card-top"><span class="pulse-brand">PULSE</span><span class="pulse-stage">${fmtStage(x.f.stage)}</span></div><div class="pulse-card-title">${x.f.title}</div><div class="pulse-card-main"><div class="pulse-card-number"><strong>${p.volume}</strong><span>conversation</span><em>${x.trend}</em></div><span class="pulse-status pulse-status-${tone}">${read.label}</span></div><div class="pulse-like-strip"><strong>♥ ${compactLikes(p.likes)}</strong><span>${p.likesThisWeek?`+${compactLikes(p.likesThisWeek)} this week`:'audience likes'}</span></div><div class="pulse-social-summary">${pulseSummaryLine(p)}</div>${feed.length?`<div class="pulse-chatter-preview"><span>◉</span><p>${feed[0].text}</p></div>`:''}<div class="pulse-card-foot"><span>${sent[0]} sentiment</span><b>Open Pulse →</b></div></button>`;
 }
 function pulseMetricCard(label,value,kind,copy){
  const read=pulseMetricRead(kind,value),tone=read[1];
@@ -10406,25 +10438,46 @@ function pulseMetricCard(label,value,kind,copy){
 function pulseDetailScreen(id){
  const f=filmById(id);if(!f)return studioScreen();const p=ensureFilmSocial(f),read=pulseInterpretation(p),topics=p.topics||[],moves=(p.moves||[]).slice(0,10),feed=(p.feed||[]).slice(0,10),tone=read.cls==='bad'?'bad':read.cls==='warn'?'warn':read.cls==='good'?'good':'cool';
  return topbar('Pulse',`${f.title} · audience conversation`)+`<main class="screen pulse-detail-screen">${backHead(f.title,'Audience Pulse · live conversation around the film')}
- <section class="pulse-detail-hero pulse-tone-${tone}"><div class="pulse-card-top"><span class="pulse-brand">PULSE</span><span class="pulse-stage">${fmtStage(f.stage)}</span></div><div class="pulse-detail-hero-grid"><div><div class="pulse-detail-score"><strong>${p.volume}</strong><span>conversation</span></div><div class="pulse-detail-status">${read.label}</div></div><p>${pulseSummaryLine(p)}</p></div></section>
- <div class="section-title"><h2>Signals</h2><span class="small">Four different things — no single score tells the whole story</span></div><div class="pulse-detail-grid">${pulseMetricCard('Conversation',p.volume,'volume','How much people are talking')}${pulseMetricCard('Sentiment',p.sentiment,'sentiment','How positive the tone is')}${pulseMetricCard('Fan intensity',p.fandom,'fandom','How invested the core audience is')}${pulseMetricCard('Controversy',p.controversy,'controversy','How much conflict is driving attention')}</div>
+ <section class="pulse-detail-hero pulse-tone-${tone}"><div class="pulse-card-top"><span class="pulse-brand">PULSE</span><span class="pulse-stage">${fmtStage(f.stage)}</span></div><div class="pulse-detail-hero-grid"><div><div class="pulse-detail-score"><strong>${p.volume}</strong><span>conversation</span></div><div class="pulse-detail-status">${read.label}</div></div><p>${pulseSummaryLine(p)}</p></div><div class="pulse-detail-likes"><strong>♥ ${compactLikes(p.likes)}</strong><span>cumulative likes${p.likesThisWeek?` · +${compactLikes(p.likesThisWeek)} this week`:''}</span></div></section>
+ <div class="section-title"><h2>Signals</h2><span class="small">Likes are cumulative affection; the four scores describe the shape of the conversation</span></div><div class="pulse-detail-grid">${pulseMetricCard('Conversation',p.volume,'volume','How much people are talking')}${pulseMetricCard('Sentiment',p.sentiment,'sentiment','How positive the tone is')}${pulseMetricCard('Fan intensity',p.fandom,'fandom','How invested the core audience is')}${pulseMetricCard('Controversy',p.controversy,'controversy','How much conflict is driving attention')}</div>
  ${topics.length?`<div class="section-title"><h2>What is sticking</h2><span class="small">Topics the audience keeps returning to</span></div><div class="pulse-topic-cloud">${topics.map(t=>`<span>#${t}</span>`).join('')}</div>`:''}
  <div class="section-title"><h2>Why Pulse moved</h2><span class="small">Recent causes, newest first</span></div><div class="pulse-movement-list">${moves.length?moves.map(m=>`<div class="pulse-movement-row"><div><strong>${m.reason}</strong><span>${m.day&&typeof calendarDateLabel==='function'?calendarDateLabel(m.day):m.week?`Week ${m.week}`:'Recent movement'}</span></div><b>${m.changes.join(' · ')}</b></div>`).join(''):`<div class="card body">No meaningful movement has been recorded yet. Pulse will start building as campaign beats and audience reactions create something worth talking about.</div>`}</div>
  <div class="section-title"><h2>Live chatter</h2><span class="small">A flavour of the conversation, not a literal feed</span></div><div class="pulse-feed-list">${feed.length?feed.map(x=>`<div class="pulse-feed-post pulse-feed-${x.tone||'neutral'}"><div class="pulse-feed-avatar">◉</div><div><strong>${x.tone==='good'?'Positive signal':x.tone==='warn'?'Heated signal':'Audience signal'}</strong><p>${x.text}</p><span>${x.week?`Week ${x.week}`:'This week'}</span></div></div>`).join(''):`<div class="card body">No distinct audience chatter has surfaced yet.</div>`}</div>
  </main>${nav()}`;
 }
-
-function studioDeskBody(){
+function deskSubnav(){
+ const tab=state.uiDeskTab||'briefing',d=ensureDesk(),open=d.items.filter(x=>!x.resolved&&x.requiresAction).length,threads=ensureCareerThreads().active.length,pulse=studioPulseRows().length,briefs=d.items.filter(x=>!x.read&&deskSignalScore(x)<62&&!(!x.resolved&&x.requiresAction)).length;
+ return sectionTabs([['briefing',open?`Briefing · ${open}`:'Briefing'],['threads',threads?`Threads · ${threads}`:'Threads'],['pulse',pulse?`Pulse · ${pulse}`:'Pulse'],['digest',briefs?`Digest · ${briefs}`:'Digest']],tab,'data-desk-tab');
+}
+function deskBriefingBody(){
  const d=ensureDesk();expireDeskItems();syncOperationalDeskItems();
- const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0));
- const open=ranked.filter(x=>!x.resolved&&x.requiresAction),unread=d.items.filter(x=>!x.read),signals=ranked.filter(x=>!open.includes(x)&&deskSignalScore(x)>=62),background=ranked.filter(x=>!open.includes(x)&&!signals.includes(x)),pulse=studioPulseRows(),archivable=d.items.filter(x=>x.read&&x.resolved).length,threads=activeCareerThreads(3),upcoming=studioUpcomingEvents(4,35),signalUnread=signals.filter(x=>!x.read).length,briefUnread=background.filter(x=>!x.read).length;
- return `<div class="desk-hero"><div class="hero"><div class="badge">THE STUDIO DESK · SIGNAL vs NOISE</div><div class="kpi" style="margin-top:5px">${open.length} response${open.length===1?'':'s'} waiting</div><div class="body" style="margin-top:8px">The Desk now separates decisions, meaningful signals and background industry traffic. Routine chatter still exists, but it no longer competes visually with something that can change the studio.</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${signalUnread}</strong></div><div><span>Digest unread</span><strong>${briefUnread}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
+ const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0)),open=ranked.filter(x=>!x.resolved&&x.requiresAction),signals=ranked.filter(x=>!open.includes(x)&&deskSignalScore(x)>=62),unread=d.items.filter(x=>!x.read),archivable=d.items.filter(x=>x.read&&x.resolved).length,upcoming=studioUpcomingEvents(4,35),active=activePlayerFilms(),standing=playerStudioStanding(),growth=ensureStudioGrowth();
+ return `<div class="studio-brand-hero desk-brand-hero"><div>${playerStudioLogoHTML('lg',true)}<div class="small" style="margin-top:10px">Studio command centre · ${studioIdentityPrimary().label}</div></div><div class="grid cols4 studio-brand-stats"><div><div class="kpi">#${standing.rank}</div><div class="small">Industry rank</div></div><div><div class="kpi">${Math.round(growth.recognition)}</div><div class="small">Recognition</div></div><div><div class="kpi">${active.length}</div><div class="small">Active projects</div></div><div><div class="kpi">${money(state.cash)}</div><div class="small">Cash</div></div></div></div>
+ <div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} response${open.length===1?'':'s'} waiting`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'These are the decisions currently waiting on you. Background information will not block the calendar.':'No player response is currently required. You can move the calendar without clearing routine traffic.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${signals.filter(x=>!x.read).length}</strong></div><div><span>Unread total</span><strong>${unread.length}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
  <div class="section-title"><h2>Up next</h2><span class="small">Major studio checkpoints · next five weeks</span></div>${deskUpcomingHTML(upcoming)}
- <div class="section-title"><h2>Needs a response</h2><span class="small">Urgent crises and hard lifecycle blockers interrupt Continue; everything else can wait here</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>No response is waiting.</strong><div class="small" style="margin-top:5px">You can keep moving without clearing background traffic.</div></div>`}</div>
- ${threads.length?`<div class="section-title desk-section"><h2>Active storylines</h2><span class="small">Persistent threads shaping how the industry reads your studio</span></div><div class="desk-thread-grid">${threads.map(deskThreadHTML).join('')}</div>`:''}
- <div class="section-title desk-section"><h2>Signals worth knowing</h2><span class="small">Higher-consequence information, separated from routine chatter</span></div><div class="desk-stack">${signals.length?signals.slice(0,12).map(deskItemHTML).join(''):`<div class="card body">No major signal is competing for your attention right now.</div>`}</div>
- <div class="section-title desk-section pulse-section-title"><h2>Pulse</h2><span class="small">Audience conversation · tap a film to drill in</span></div><div class="pulse-board">${pulse.length?pulse.map(pulseFilmHTML).join(''):`<div class="card pulse-empty"><span class="pulse-brand">PULSE</span><div class="body" style="margin-top:8px">Audience conversation starts to appear once a film reaches production. It becomes more meaningful as trailers, publicity and real audiences give people something to react to.</div></div>`}</div>
- <div class="section-title desk-section"><h2>Industry digest</h2><div style="display:flex;gap:8px;align-items:center"><span class="small">Background context · compressed by week</span>${unread.length?`<button class="btn ghost" id="deskMarkAllRead2">Mark all read</button>`:''}${archivable?`<button class="btn ghost" id="deskArchiveRead2">Archive read</button>`:''}</div></div>${deskDigestHTML(background)}`;
+ <div class="section-title"><h2>Needs a response</h2><span class="small">Urgent crises and lifecycle blockers interrupt Continue; optional calls wait here</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>No response is waiting.</strong><div class="small" style="margin-top:5px">Keep building, releasing or advancing time.</div></div>`}</div>
+ <div class="section-title desk-section"><h2>Signals worth knowing</h2><span class="small">Higher-consequence information only</span></div><div class="desk-stack">${signals.length?signals.slice(0,8).map(deskItemHTML).join(''):`<div class="card body">No major signal is competing for your attention right now.</div>`}</div>`;
+}
+function deskThreadsBody(){
+ const box=ensureCareerThreads(),active=activeCareerThreads(6),recent=(box.history||[]).slice(0,12);
+ return `<div class="desk-section-hero"><div><div class="badge">ACTIVE THREADS</div><div class="kpi">${active.length} live ${active.length===1?'story':'stories'}</div><div class="body">These are the relationships, rivalries, successes, failures and pressures that persist across weeks. They are the studio's current narrative, not one-off notifications.</div></div></div>
+ <div class="section-title"><h2>In play</h2><span class="small">Highest-consequence threads first</span></div><div class="desk-thread-grid desk-thread-grid-full">${active.length?active.map(deskThreadHTML).join(''):`<div class="card body">No persistent thread has taken hold yet. Repeated rival clashes, trusted collaborators, financial pressure and major film outcomes can all become ongoing stories.</div>`}</div>
+ <div class="section-title"><h2>Recently resolved</h2><span class="small">Stories that stopped driving the current industry narrative</span></div><div class="card">${recent.length?recent.map(t=>`<div class="listrow"><div><strong>${t.title}</strong><div class="small">${t.resolution||'The story moved on.'}</div></div><span class="small">W${t.resolvedWeek||t.lastUpdatedWeek||'—'}</span></div>`).join(''):`<div class="body">No thread has resolved yet.</div>`}</div>`;
+}
+function deskPulseBody(){
+ const rows=studioPulseRows(),totalLikes=rows.reduce((n,x)=>n+(ensureFilmSocial(x.f).likes||0),0),hot=[...rows].sort((a,b)=>(b.p.volume||0)-(a.p.volume||0))[0];
+ return `<div class="desk-section-hero pulse-desk-hero"><div><div class="pulse-brand">PULSE</div><div class="kpi">${rows.length?`${compactLikes(totalLikes)} combined likes`:'Audience signal waiting'}</div><div class="body">Pulse is the public-facing layer of the slate: conversation, sentiment, fan intensity, controversy and cumulative likes. Likes rise when attention is paired with genuine positive engagement; controversy can drive conversation without producing the same affection.</div></div>${hot?`<div class="card pulse-desk-hot"><span class="small">Hottest conversation</span><strong>${hot.f.title}</strong><span>${hot.p.volume} conversation · ♥ ${compactLikes(hot.p.likes)}</span></div>`:''}</div>
+ <div class="section-title"><h2>Film Pulse</h2><span class="small">Tap any film for movement history and live chatter</span></div><div class="pulse-board pulse-board-full">${rows.length?rows.map(pulseFilmHTML).join(''):`<div class="card pulse-empty"><span class="pulse-brand">PULSE</span><div class="body" style="margin-top:8px">Audience conversation starts once a film reaches production and becomes more meaningful as campaign material and real audiences arrive.</div></div>`}</div>`;
+}
+function deskDigestBody(){
+ const d=ensureDesk(),ranked=d.items.slice().sort((a,b)=>(b.week||0)-(a.week||0)),open=ranked.filter(x=>!x.resolved&&x.requiresAction),background=ranked.filter(x=>!open.includes(x)&&deskSignalScore(x)<62),unread=background.filter(x=>!x.read),archivable=d.items.filter(x=>x.read&&x.resolved).length;
+ return `<div class="desk-section-hero"><div><div class="badge">INDUSTRY DIGEST</div><div class="kpi">${unread.length} unread background ${unread.length===1?'brief':'briefs'}</div><div class="body">Routine trade chatter, gossip and low-consequence context live here. Useful when you want texture; safe to ignore when you want to keep making films.</div></div></div>
+ <div class="desk-digest-actions">${unread.length?`<button class="btn" id="deskMarkAllRead2">Mark all read</button>`:''}${archivable?`<button class="btn ghost" id="deskArchiveRead2">Archive read</button>`:''}</div>${deskDigestHTML(background)}`;
+}
+function studioDeskBody(){
+ const tab=state.uiDeskTab||'briefing';
+ const body=tab==='threads'?deskThreadsBody():tab==='pulse'?deskPulseBody():tab==='digest'?deskDigestBody():deskBriefingBody();
+ return `${deskSubnav()}${body}`;
 }
 function legendCardHTML(entry){
  const unlocked=legendUnlocked(entry.id),t=unlocked?talentById(entry.id):null,p=legendRequirementProgress(entry),tier=legendTier(entry);
@@ -10471,16 +10524,16 @@ function awardsStudioBody(){
 }
 
 function studioScreen(){
- rebuildDecisions();const tab=state.uiStudioTab||'overview',active=activePlayerFilms(),cinema=active.filter(f=>f.stage==='cinema').length,chart=currentBoxChart(),yourChart=chart.filter(x=>x.owner==='player');
- const tabItems=[['overview','Overview'],['desk',deskActionCount()?`Desk · ${deskActionCount()}`:'Desk'],['awards','Awards'],['legacy','Legacy'],['finance','Finance']];if(typeof corporateVisible==='function'&&corporateVisible())tabItems.push(['corporate','Corporate']);tabItems.push(['library','Library'],['identity','Identity'],['growth','Growth']);if(simulationAuditAccess())tabItems.push(['audit','Audit']);
+ rebuildDecisions();
+ let tab=state.uiStudioTab||'desk';if(tab==='overview'){tab='desk';state.uiStudioTab='desk'}
+ const tabItems=[['desk',deskActionCount()?`Desk · ${deskActionCount()}`:'Desk'],['awards','Awards'],['legacy','Legacy'],['finance','Finance']];if(typeof corporateVisible==='function'&&corporateVisible())tabItems.push(['corporate','Corporate']);tabItems.push(['library','Library'],['identity','Identity'],['growth','Growth']);if(simulationAuditAccess())tabItems.push(['audit','Audit']);
  const tabs=sectionTabs(tabItems,tab,'data-studio-tab');
  let body='';
  if(tab==='desk')body=studioDeskBody();
  else if(tab==='awards')body=awardsStudioBody();
  else if(tab==='legacy')body=studioLegacyBody();
  else if(tab==='finance'){
-  const ob=studioOverheadBreakdown(),idle=currentIdleCarry();
-  const runway=studioCashRunway();
+  const ob=studioOverheadBreakdown(),idle=currentIdleCarry(),runway=studioCashRunway();
   body=`<div class="grid cols4"><div class="card"><div class="badge">Cash</div><div class="kpi">${money(state.cash)}</div></div><div class="card"><div class="badge">Weekly overhead</div><div class="kpi">${moneyFine(ob.total)}</div></div><div class="card ${runway.weeks<3?'dangerline':runway.weeks<6?'attention':''}"><div class="badge">Operating runway</div><div class="kpi" style="font-size:18px">${runway.label}</div><div class="small">Net recurring burn ${moneyFine(runway.netBurn)}/week</div></div><div class="card"><div class="badge">Bridge debt</div><div class="kpi">${money(state.finance?.bridgeDebt||0)}</div></div></div>
   <div class="section-title"><h2>Weekly operating position</h2><span class="small">Before new film investment</span></div><div class="card"><div class="listrow"><span>Operating scale</span><strong>${ob.scale.label}</strong></div><div class="listrow"><span>Permanent corporate operation</span><strong>${moneyFine(ob.corporate)}</strong></div><div class="listrow"><span>Upgraded departments</span><strong>${moneyFine(ob.departments)}</strong></div><div class="listrow"><span>Active slate</span><strong>${moneyFine(ob.slate)}</strong></div><div class="listrow"><span>Current catalogue receipts</span><strong>+${moneyFine(idle.catalogue)}</strong></div><div class="listrow"><span>Idle carry</span><strong class="${idle.net>=0?'goodtext':'badtext'}">${idle.net>=0?'+':''}${moneyFine(idle.net)}/week</strong></div><div class="small" style="margin-top:8px">A successful studio carries a larger permanent organisation even between productions. Catalogue cash decays rather than funding the company indefinitely.</div></div>
   <div class="section-title"><h2>Treasury</h2></div><div class="card ${state.finance?.bridgeDebt>0?'dangerline':''}"><div class="body">${state.finance?.bridgeDebt>0?`Emergency finance remains outstanding. Keep enough cash for production, campaigns and weekly overhead before expanding the slate.`:`The studio has no bridge debt. Cash timing still matters because production and release expenditure peak at different stages.`}</div><button id="openFinance" class="btn block" style="margin-top:10px">Open detailed finance</button></div>`;
@@ -10489,24 +10542,7 @@ function studioScreen(){
  else if(tab==='library')body=studioLibraryBody();
  else if(tab==='identity')body=studioIdentityBody();
  else if(tab==='growth')body=studioGrowthUI();
- else body=`<div class="studio-brand-hero"><div>${playerStudioLogoHTML('lg',true)}<div class="small" style="margin-top:10px">Studio pulse · ${studioIdentityPrimary().label}</div></div><div class="grid cols4 studio-brand-stats">
-   <div><div class="kpi">#${playerStudioStanding().rank}</div><div class="small">Industry rank</div></div>
-   <div><div class="kpi">${Math.round(ensureStudioGrowth().recognition)}</div><div class="small">Recognition</div></div>
-   <div><div class="kpi">${active.length}</div><div class="small">Active projects</div></div>
-   <div><div class="kpi">${money(state.cash)}</div><div class="small">Cash</div></div>
-  </div></div>
-  ${executivePersonaSnapshotCard()}
-  ${careerThreadsSnapshot()}
-  ${productionDailiesSnapshot()}
-  ${studioMilestoneSnapshot()}
-  ${studioDeskSnapshot()}
-  ${homeNewsDesk()}
-  <div class="section-title"><h2>Needs attention</h2><span class="small">${state.decisions.length} items</span></div>
-  <div class="grid">${state.decisions.length?state.decisions.slice(0,6).map(d=>{const f=filmById(d.filmId);return `<div class="card click attention" data-film="${f.id}"><div class="row"><div><strong>${f.title}</strong><div class="small">${fmtStage(f.stage)}</div></div><span class="pill warn">Decision</span></div><div class="body" style="margin-top:8px">${d.text}</div></div>`}).join(''):`<div class="card goodline"><div class="body">No urgent studio decisions are waiting.</div></div>`}</div>
-  <div class="section-title"><h2>Slate snapshot</h2><button class="btn ghost" data-nav="slate">Open Slate</button></div>
-  <div class="grid cols2">${active.slice(0,4).map(f=>`<div class="card click" data-film="${f.id}"><div class="film-card-layout">${filmKeyArtHTML(f,'thumb')}<div class="film-card-copy"><div class="row"><div><strong>${f.title}</strong><div class="small">${f.genre} · ${fmtStage(f.stage)}</div></div>${stagePill(f)}</div><div class="body" style="margin-top:8px">${filmSummary(f)}</div></div></div></div>`).join('')||`<div class="card body">No active projects. Head to Develop to source material.</div>`}</div>
-  ${yourChart.length?`<div class="section-title"><h2>In cinemas</h2><button class="btn ghost" data-nav="release">Open Release</button></div><div class="grid">${yourChart.slice(0,3).map(x=>`<div class="card click goodline" data-film="${x.id}"><div class="row"><div><strong>#${x.rank} ${x.title}</strong><div class="small">Theatrical Week ${x.week}</div></div><strong>${money(x.gross)}</strong></div></div>`).join('')}</div>`:''}
-`;
+ else {state.uiStudioTab='desk';body=studioDeskBody()}
  return topbar('Studio',`${state.studio.name} · Week ${state.week}`)+`<main class="screen">${tabs}${body}</main>${nav()}`;
 }
 function financeScreen(){
@@ -11350,6 +11386,7 @@ function bind(){
  document.querySelectorAll('[data-rival]').forEach(b=>b.onclick=()=>push('industry',{type:'rival',id:b.dataset.rival}));
  document.querySelectorAll('[data-industry-tab]').forEach(b=>b.onclick=()=>{state.industryTab=b.dataset.industryTab;save();render()});
  document.querySelectorAll('[data-studio-tab]').forEach(b=>b.onclick=()=>{state.uiStudioTab=b.dataset.studioTab;save();render()});
+ document.querySelectorAll('[data-desk-tab]').forEach(b=>b.onclick=()=>{state.uiDeskTab=b.dataset.deskTab;save();render()});
  document.querySelectorAll('[data-legacy-tab]').forEach(b=>b.onclick=()=>{state.uiLegacyTab=b.dataset.legacyTab;save();render()});
  document.querySelectorAll('[data-open-legacy]').forEach(b=>b.onclick=()=>{state.uiStudioTab='legacy';state.uiLegacyTab=b.dataset.openLegacy||'overview';save();render()});
  document.querySelectorAll('[data-desk-choice]').forEach(b=>b.onclick=()=>resolveDeskChoice(b.dataset.deskId,b.dataset.deskChoice));
@@ -11368,7 +11405,7 @@ function bind(){
  document.querySelectorAll('[data-talent]').forEach(b=>b.onclick=e=>{if(e.target.closest('[data-attach-director]')||e.target.closest('[data-toggle-cast]')||e.target.closest('[data-select-support]')||e.target.closest('[data-audition]')||e.target.closest('[data-contract-talent]'))return;push(state.screen,{type:'talent',id:b.dataset.talent})});
  const bb=document.getElementById('backBtn');if(bb)bb.onclick=back;
  document.querySelectorAll('[data-pulse-film]').forEach(b=>b.onclick=()=>push('studio',{type:'pulse',id:b.dataset.pulseFilm}));
- const bell=document.getElementById('notificationBell');if(bell)bell.onclick=()=>{state.history=[];state.screen='studio';state.detail=null;state.uiStudioTab='desk';requestScrollTop();save();render()};
+ const bell=document.getElementById('notificationBell');if(bell)bell.onclick=()=>{state.history=[];state.screen='studio';state.detail=null;state.uiStudioTab='desk';state.uiDeskTab='briefing';requestScrollTop();save();render()};
  const openFinance=document.getElementById('openFinance');if(openFinance)openFinance.onclick=()=>push('studio',{type:'finance'});
  const captureSimulationAudit=document.getElementById('captureSimulationAudit');if(captureSimulationAudit)captureSimulationAudit.onclick=()=>{recordSimulationAudit('manual');save();render()};
  const exportSimulationAudit=document.getElementById('exportSimulationAudit');if(exportSimulationAudit)exportSimulationAudit.onclick=simulationAuditExport;
@@ -11495,7 +11532,7 @@ let lastPremiumRouteKey=null;
 function premiumRouteKey(){
  if(state.detail)return `detail:${state.detail.type}:${state.detail.id||state.detail.mode||''}`;
  let sub='';
- if(state.screen==='studio')sub=`:${state.uiStudioTab||'overview'}:${state.uiLegacyTab||''}`;
+ if(state.screen==='studio')sub=`:${state.uiStudioTab||'desk'}:${state.uiDeskTab||''}:${state.uiLegacyTab||''}`;
  else if(state.screen==='slate'||state.screen==='films')sub=`:${state.uiSlateTab||'pipeline'}`;
  else if(state.screen==='release'||state.screen==='box')sub=`:${state.uiReleaseTab||'box'}`;
  else if(state.screen==='industry')sub=`:${state.industryTab||'news'}`;
@@ -11657,7 +11694,7 @@ function projectSlateBootFailure(check,error){
  const details=[...(check?.failures||[]),error?.message||''].filter(Boolean);
  app.innerHTML=`<main class="screen"><div class="card dangerline"><div class="badge">PROJECT SLATE · BUILD ${VERSION}</div><h2 style="margin:8px 0">The build could not start.</h2><div class="body">A boot check caught the problem before the app fell to a blank screen.</div><div class="small" style="margin-top:10px">${details.join(' · ')||'Unknown boot error'}</div></div></main>`;
 }
-window.ProjectSlate={reset:resetGame,state:()=>deep(state),smokeTest:projectSlateSmokeChecks,audit:()=>simulationAuditReport(),auditJSON:()=>JSON.stringify(simulationAuditReport(),null,2),captureAudit:()=>{const x=recordSimulationAudit('manual');save();return x},openAudit:()=>{localStorage.setItem('projectSlateAuditMode','1');state.screen='studio';state.detail=null;state.uiStudioTab='audit';save();render()},closeAudit:()=>{localStorage.removeItem('projectSlateAuditMode');if(state.uiStudioTab==='audit')state.uiStudioTab='overview';save();render()},exportAudit:simulationAuditExport,runBenchmark:runSimulationBenchmarkSuite};
+window.ProjectSlate={reset:resetGame,state:()=>deep(state),smokeTest:projectSlateSmokeChecks,audit:()=>simulationAuditReport(),auditJSON:()=>JSON.stringify(simulationAuditReport(),null,2),captureAudit:()=>{const x=recordSimulationAudit('manual');save();return x},openAudit:()=>{localStorage.setItem('projectSlateAuditMode','1');state.screen='studio';state.detail=null;state.uiStudioTab='audit';save();render()},closeAudit:()=>{localStorage.removeItem('projectSlateAuditMode');if(state.uiStudioTab==='audit')state.uiStudioTab='desk';save();render()},exportAudit:simulationAuditExport,runBenchmark:runSimulationBenchmarkSuite};
 if(state.screen!=='setup')enforceActiveSignatureRoute();
 if(state.screen!=='setup'&&!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.studioMomentQueue?.length)surfacePendingStudioMoment();
 const bootCheck=projectSlateSmokeChecks();
