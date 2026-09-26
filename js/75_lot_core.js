@@ -147,6 +147,52 @@ function lotCandidateCastingSignal(t,f){
  const tone=strongest.score<=-7?'bad':strongest.score<0?'warn':'good';
  return {tone,label:strongest.label,text:strongest.label+' with '+strongest.other.name+(prior?' · '+prior.title:'') ,other:strongest.other};
 }
+function lotInfluenceApproachOffer(t,f,roleId=null){
+ if(!t||!f||f.stage!=='development'||t.type!=='Actor'||talentUnavailableForFilm(t,f)||lotAttachedTalentIds(f).includes(t.id))return null;
+ const allies=lotAttachedTalentIds(f).map(talentById).filter(Boolean).map(ally=>{
+  const rel=lotRelationship(t,ally),score=lotRelationshipScore(rel),history=lotPairHistory(t,ally);
+  const bonus=(rel.affection>=76&&rel.trust>=68?4:0)+(history?.films?.length?Math.min(3,history.films.length):0);
+  return {ally,rel,score:score+bonus,history,label:lotRelationshipLabel(rel)};
+ }).filter(x=>x.score>=6&&!['Hostile','Volatile'].includes(x.label)).sort((a,b)=>b.score-a.score);
+ const best=allies[0];if(!best)return null;
+ const rid=roleId||castingTargetRole(f)?.id||'lead1',key=t.id+'|'+rid,used=f.lotInfluenceApproaches?.[key];
+ return {talent:t,film:f,roleId:rid,ally:best.ally,relationship:best.label,history:best.history,available:!used,used,
+  text:best.history?.films?.length?best.ally.name+' has real shared history with '+t.name+' and can make a credible personal approach.':best.ally.name+' has enough trust with '+t.name+' to make a personal approach.'};
+}
+function useLotInfluenceApproach(t,f,roleId=null){
+ const offer=lotInfluenceApproachOffer(t,f,roleId);if(!offer)return showToast('There is no trusted collaborator available to make that introduction.');
+ if(!offer.available)return showToast('You have already used that personal introduction on this role.');
+ f.lotInfluenceApproaches=f.lotInfluenceApproaches||{};const key=t.id+'|'+offer.roleId;
+ f.lotInfluenceApproaches[key]={week:state.week,allyId:offer.ally.id,talentId:t.id,roleId:offer.roleId};
+ if(typeof openAgencyWindow==='function')openAgencyWindow(t,f);
+ if(f.castingDeclines?.[auditionKey(t.id,offer.roleId)])delete f.castingDeclines[auditionKey(t.id,offer.roleId)];
+ const headline=offer.ally.name+' makes a personal call to '+t.name+' about '+f.title;
+ const detail=offer.ally.name+' used their existing relationship to reopen the conversation. It improves access; it does not guarantee the role will be accepted.';
+ const mem=lotRemember({type:'influence',participants:[offer.ally.id,t.id],headline,detail,intensity:1,publicEvent:false,filmId:f.id});
+ lotAdjustRelationship(offer.ally,t,{trust:1,respect:1},mem.id);
+ f.history=f.history||[];f.history.push('Week '+state.week+': '+offer.ally.name+' made a personal approach to '+t.name+' on the studio’s behalf.');
+ showToast(offer.ally.name+' has made the call. The conversation is open again.');save();render();return true;
+}
+function lotCampaignOpportunity(f){
+ if(!f||!['marketing','scheduled'].includes(f.stage))return null;const stories=lotActiveStoriesForFilm(f).filter(s=>(s.heat||0)>=42);
+ if(!stories.length)return null;
+ const story=stories[0],people=story.participants.map(id=>talentById(id)).filter(Boolean),friendly=story.type==='friendship';
+ return {story,people,friendly,tone:friendly?'good':story.intensity>=3?'bad':'warn',cost:.25,
+  label:friendly?'Sell the chemistry':'Exploit the drama',
+  text:friendly?'The campaign can lean into a relationship audiences may find charming. It buys some organic attention, but it also raises expectations around the pairing.':'The campaign can deliberately feed an existing Lot story into publicity. It will buy attention, but controversy and expectation pressure can hurt the release if the film does not deliver.'};
+}
+function lotCampaignAngleCost(f){const o=lotCampaignOpportunity(f);return o&&ensureMarketingState(f).lotAngle==='lean'?o.cost:0}
+function lotApplyCampaignAngle(f){
+ const m=ensureMarketingState(f),o=lotCampaignOpportunity(f);if(!o||m.lotAngle!=='lean'||m.lotAngleApplied)return null;
+ const s=o.story,intensity=Math.max(1,s.intensity||1),before={buzz:m.buzz,sentiment:m.sentiment,expectations:m.expectations};
+ if(o.friendly){m.buzz+=3+Math.min(3,intensity);m.sentiment+=2;m.expectations+=2+Math.min(2,intensity)}
+ else{m.buzz+=4+Math.min(4,intensity);m.sentiment-=Math.min(3,Math.max(1,intensity-1));m.expectations+=2+Math.min(4,intensity)}
+ m.lotAngleApplied={week:state.week,storyId:s.id,friendly:o.friendly,before,after:{buzz:m.buzz,sentiment:m.sentiment,expectations:m.expectations}};
+ s.heat=clamp((s.heat||50)+8,0,100);s.lastWeek=state.week;
+ lotStoryChapter(s,{type:'publicity',headline:o.friendly?'The campaign leans into the chemistry':'The studio turns Lot drama into publicity',detail:o.friendly?'The film campaign has started using the relationship as part of its public sell.':'The campaign has made a conscious choice to amplify a volatile off-camera story for attention.',filmId:f.id,intensity:2});
+ f.history=f.history||[];f.history.push('Week '+state.week+': campaign used The Lot story "'+s.headline+'" as a publicity angle.');
+ return {story:s,buzz:m.buzz-before.buzz,sentiment:m.sentiment-before.sentiment,expectations:m.expectations-before.expectations};
+}
 function lotMediationOffer(f,storyId=null){
  if(!f||!['development','production'].includes(f.stage))return null;
  const stories=lotActiveStoriesForFilm(f).filter(s=>s.type!=='friendship'),story=storyId?stories.find(s=>s.id===storyId):stories[0];if(!story)return null;
