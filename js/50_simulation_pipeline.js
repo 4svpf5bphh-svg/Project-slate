@@ -3101,6 +3101,7 @@ function publishSettledOpeningNews(worldWeek,rows){
   const ww=row.dom+row.intl,rank=row.settledRank;
   const track=trackingVsActual(f,row.dom);
   addNews(state,`${f.title} opens at #${rank} domestically with ${money(row.dom)}, taking ${money(ww)} worldwide across its opening weekend.${track?` ${track.text}`:''}`,'Box Office');
+  if(f.owner==='player'&&typeof publishExecutiveIntel==='function')publishExecutiveIntel('opening:'+f.id+':'+worldWeek,f.title+' opens #'+rank+' · '+money(row.dom)+' domestic',money(ww)+' worldwide opening weekend · Critics '+(f.review?.critics??'—')+'% · Audience '+(f.review?.audience??'—')+'%.'+(track?' '+track.text:''),f.id,{screen:'release',detail:{type:'review',id:f.id}});
   if(f.releaseProfile?.type==='bomb')addNews(state,`${f.title} has suffered a disastrous opening weekend, landing far below the level implied by its campaign and investment.`,'Box Office Alert');
   else if(f.releaseProfile?.type==='breakout')addNews(state,`${f.title} has broken above pre-release tracking and is immediately being treated as a breakout.`,'Box Office Alert');
   else if(row.dom>35)addNews(state,`${f.title} delivers one of the stronger domestic openings of the season.`,'Box Office Alert');
