@@ -1404,10 +1404,10 @@ function commitRelease(f){
  ensureMarketingState(f);
  if(!f.campaign||f.releaseWeek===null)return showToast('Choose a campaign and release week.');
  const allowed=validReleaseWeeks(f);if(!allowed.includes(f.releaseWeek)){f.releaseWeek=null;save();render();return showToast('That date no longer fits the campaign lead time. Choose a valid release week.');}
- ensureDistributionState(f);const plan=distributionPlan(f),ops=plan.opsCost,total=f.marketing+ops+publicityCost(f)+launchCost(f);
+ ensureDistributionState(f);const plan=distributionPlan(f),ops=plan.opsCost,total=f.marketing+ops+publicityCost(f)+launchCost(f)+(typeof lotCampaignAngleCost==='function'?lotCampaignAngleCost(f):0);
  if(!spend(total))return;
  f.releaseOps=ops;f.distributionDeal={...plan,committedWeek:state.week,partnerName:f.distributorName||null};f.investment+=total;f.stage='scheduled';f.campaignStart=state.week;f.campaignStartDay=typeof currentCalendarDay==='function'?currentCalendarDay():null;f.releaseDay=typeof releaseDayForWeek==='function'?releaseDayForWeek(f.releaseWeek):null;
- f.marketingState.committed=true;buildMarketingMilestones(f);recordTrackingSnapshot(f,'Campaign committed');
+ f.marketingState.committed=true;if(typeof lotApplyCampaignAngle==='function')lotApplyCampaignAngle(f);buildMarketingMilestones(f);recordTrackingSnapshot(f,'Campaign committed');
  f.history.push(`${typeof calendarDateLabel==='function'?calendarDateLabel():'Week '+state.week}: ${marketingLeadInfo(f).tier} committed for ${f.releaseDay&&typeof calendarDateLabel==='function'?calendarDateLabel(f.releaseDay):'Week '+f.releaseWeek}.`);
  addNews(state,f.distributionStrategy==='partner'?`${state.studio.name} has partnered with ${f.distributorName||distributionPartnerName(f)} to release ${f.title} in Week ${f.releaseWeek}.`:f.distributionStrategy==='platform'?`${state.studio.name} will open ${f.title} on a platform rollout in Week ${f.releaseWeek}, expanding if early response supports it.`:`${state.studio.name} will self-distribute ${f.title} in Week ${f.releaseWeek}, retaining the theatrical upside while carrying the full release operation.`,'Press Release');
  maybeRivalReleaseResponse(f);rebuildDecisions();save();render();
@@ -1929,7 +1929,7 @@ function ensureMarketingState(f){
    trailer:'concept',publicity:'selective',launch:'none',
    buzz:0,expectations:0,sentiment:0,milestones:[],pending:null,
    interventionUsed:false,trailerResult:null,publicityResult:null,
-   festival:null,premiere:null,advancePress:null,committed:false,eventLog:[],publicMoments:[]
+   festival:null,premiere:null,advancePress:null,lotAngle:'private',lotAngleApplied:null,committed:false,eventLog:[],publicMoments:[]
   };
  }
  const m=f.marketingState;
@@ -1937,6 +1937,7 @@ function ensureMarketingState(f){
  if(m.buzz===undefined)m.buzz=0;
  if(m.expectations===undefined)m.expectations=0;
  if(m.sentiment===undefined)m.sentiment=0;
+ if(m.lotAngle===undefined)m.lotAngle='private';
  return m;
 }
 function publicityCost(f){
