@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#0b0d11">
 <meta name="color-scheme" content="dark">
-<title>Project Slate — Premium Presentation v4.0c.2</title>
+<title>Project Slate — Premium Presentation v4.0c.3</title>
 <style>
 :root{
   --bg:#0f1115;--panel:#171a21;--card:#1f232c;--card2:#252a35;--text:#f4f6f8;
@@ -631,7 +631,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div id="toast" class="toast hidden"></div>
 
 <script>
-const VERSION='4.0c.2';
+const VERSION='4.0c.3';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
@@ -3068,7 +3068,7 @@ function simulationBenchmarkAggregate(runs){
 }
 function runSimulationBenchmarkSuite(){
  if(simulationBenchmarkActive)return null;const original=state;simulationBenchmarkActive=true;let result=null,error=null;
- try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0c.2-rival-release-strategy',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
+ try{const seeds=[40031,40032,40033],runs=seeds.map(seed=>simulationBenchmarkOne(5,seed));result={model:'v4.0c.3-awards-competition',createdWeek:original.week,careerSeed:original.seed,yearsPerRun:5,seeds,runs,aggregate:simulationBenchmarkAggregate(runs)};}catch(e){error=e;}finally{state=original;simulationBenchmarkActive=false}
  if(error){console.error(error);showToast(`Benchmark failed: ${error.message||error}`);return null}
  const a=ensureSimulationAudit(state);a.benchmarks.unshift(result);a.benchmarks=a.benchmarks.slice(0,5);save();render();showToast('3 × 5-year AI benchmark complete.');return result;
 }
@@ -5081,12 +5081,114 @@ function awardsPushCost(f,level=1){
  return +(base*mult).toFixed(2);
 }
 function commitAwardsPush(f,level=1){
- const a=ensureAfterlifeState(f);if(a.awardsPush)return showToast('An awards campaign is already active.');
- level=level>=2?2:1;
- const raw=awardsPushCost(f,level),cost=+(raw*(1-awardsCampaignDiscount())).toFixed(2);if(!spend(cost))return;
- a.awardsPush=true;a.awardsPushLevel=level;a.awardsPushBonus=level===2?9:5;a.awardsPushCost=cost;f.investment+=cost;
- addNews(state,`${state.studio.name} is mounting a ${level===2?'full-scale':'focused'} awards campaign for ${f.title}.`,'Awards');save();render();
+ const a=ensureAfterlifeState(f);level=level>=2?2:1;
+ const current=a.awardsPushLevel||0;
+ if(current>=level)return showToast(current>=2?'A full-scale awards campaign is already active.':'A focused awards campaign is already active.');
+ const rawTarget=awardsPushCost(f,level),rawCurrent=current?awardsPushCost(f,current):0;
+ const cost=+((rawTarget-rawCurrent)*(1-awardsCampaignDiscount())).toFixed(2);if(!spend(cost))return;
+ a.awardsPush=true;a.awardsPushLevel=level;a.awardsPushBonus=level===2?9:5;a.awardsPushCost=+((a.awardsPushCost||0)+cost).toFixed(2);f.investment+=cost;
+ addNews(state,current===1&&level===2?`${state.studio.name} escalated ${f.title}'s awards campaign to a full-scale push after making the field.`:`${state.studio.name} is mounting a ${level===2?'full-scale':'focused'} awards campaign for ${f.title}.`,'Awards');save();render();
 }
+
+function awardsSeasonMomentum(f){
+ let m=0,crit=f.review?.critics||60,aud=f.review?.audience||60,box=typeof boxRunStats==='function'?boxRunStats(f):{best:null,weeksAtOne:0};
+ if(crit>=90)m+=3;else if(crit>=84)m+=2;else if(crit>=78)m+=1;
+ if(aud>=90)m+=1.2;else if(aud>=84)m+=.6;
+ if(box.best&&box.best<=3)m+=1;if((box.weeksAtOne||0)>=2)m+=1;
+ if(f.releaseProfile?.type==='breakout'||f.releaseProfile?.type==='sleeper')m+=1.5;
+ if(f.releaseProfile?.type==='bomb')m-=2;
+ const fest=f.marketingState?.festival;
+ if(fest?.screened&&fest.result==='strong')m+=1.2;
+ else if(fest?.screened&&fest.result==='poor')m-=1;
+ const pulse=f.socialPulse||{};
+ if((pulse.volume||0)>=72&&(pulse.sentiment||0)>=62)m+=.6;
+ return +clamp(m,-3,6).toFixed(2);
+}
+function awardsMomentumFactor(cat){
+ return {picture:1,director:.62,lead:.72,support:.62,screenplay:.58,ensemble:.78,craft:.38,soundtrack:.42,audience:1.08}[cat]??.55;
+}
+function awardsCompetitiveScore(f,cat,phase='race'){
+ const momentum=awardsSeasonMomentum(f)*awardsMomentumFactor(cat),campaign=awardsPushBonus(f);
+ return awardsEligibilityScore(f,cat)+momentum+campaign;
+}
+function awardsCampaignLabel(f){
+ const a=ensureAfterlifeState(f);return a.awardsPushLevel>=2?'Full campaign':a.awardsPushLevel===1?'Focused campaign':'No campaign';
+}
+function awardsMomentumLabel(f){
+ const m=awardsSeasonMomentum(f);
+ if(m>=4)return {label:'Surging',cls:'good'};
+ if(m>=2)return {label:'Strong momentum',cls:'good'};
+ if(m>=.5)return {label:'Steady',cls:'blue'};
+ if(m<=-1)return {label:'Fading',cls:'bad'};
+ return {label:'Mixed',cls:'warn'};
+}
+function aiAwardsCampaignThreshold(rv){
+ if(['Prestige','Indie / Prestige'].includes(rv?.style))return {focused:65,full:74};
+ if(['Blockbusters','Franchise Builder','Aggressive Capital'].includes(rv?.style))return {focused:69,full:79};
+ if(rv?.style==='Genre Specialist')return {focused:67,full:76};
+ return {focused:68,full:77};
+}
+function aiAwardsBestScore(f){
+ return Math.max(...AWARD_CATEGORIES.map(c=>awardsEligibilityScore(f,c.id)+awardsSeasonMomentum(f)*awardsMomentumFactor(c.id)));
+}
+function aiCommitAwardsPush(f,rv,level=1,reason=''){
+ const a=ensureAfterlifeState(f),current=a.awardsPushLevel||0;level=level>=2?2:1;
+ if(current>=level)return false;
+ const rawTarget=awardsPushCost(f,level),rawCurrent=current?awardsPushCost(f,current):0,cost=+(rawTarget-rawCurrent).toFixed(2),t=aiTreasurySnapshot(rv);
+ if(rv.cash-cost<Math.max(4,t.reserve*.80))return false;
+ rv.cash-=cost;f.investment=(f.investment||0)+cost;a.awardsPush=true;a.awardsPushLevel=level;a.awardsPushBonus=level===2?9:5;a.awardsPushCost=+((a.awardsPushCost||0)+cost).toFixed(2);
+ if(level===2)addNews(state,rv.name+' has committed a full awards campaign to '+f.title+(reason?' after '+reason:'')+'.','Awards Race');
+ return true;
+}
+function processAIAwardsCampaigns(){
+ const sw=awardsSeasonWeek(),season=awardsSeasonId();if(sw<42||sw>51)return;
+ const start=(season-1)*52+1,end=season*52,nom=awardsNominationRecord(season);
+ state.films.filter(f=>f.owner!=='player'&&f.stage==='complete'&&f.completeWeek>=start&&f.completeWeek<=end).forEach(f=>{
+  const rv=rivalById(f.owner);if(!rv)return;
+  const a=ensureAfterlifeState(f),best=aiAwardsBestScore(f),th=aiAwardsCampaignThreshold(rv),rr=makeRng(hash(state.seed+'|ai-awards-campaign|'+season+'|'+f.id));
+  if(!nom){
+   if(a.aiAwardsCampaignConsideredSeason===season)return;
+   const readiness=sw>=48?1:sw>=45?.82:.58;
+   if(rr()>readiness)return;
+   a.aiAwardsCampaignConsideredSeason=season;
+   if(best>=th.full&&rr()<.72)aiCommitAwardsPush(f,rv,2,'a strong precursor season');
+   else if(best>=th.focused)aiCommitAwardsPush(f,rv,1);
+  }else{
+   const noms=(a.nominations||[]).filter(x=>x.season===season).length;if(!noms)return;
+   if((a.awardsPushLevel||0)<2&&a.aiAwardsEscalationSeason!==season&&sw>=50){
+    a.aiAwardsEscalationSeason=season;
+    const caseScore=best+noms*1.4;
+    if(caseScore>=th.full-1&&rr()<clamp(.30+noms*.14,.30,.82))aiCommitAwardsPush(f,rv,2,noms+' nomination'+(noms===1?'':'s'));
+   }
+  }
+ });
+}
+function awardRacePublicStatus(score,top){
+ const gap=Math.max(0,top-score);
+ if(gap<=1.5)return {label:'Front-runner',cls:'good'};
+ if(gap<=4.5)return {label:'Major contender',cls:'blue'};
+ if(gap<=8)return {label:'In the race',cls:'warn'};
+ return {label:'Chasing',cls:''};
+}
+function awardsRaceCategoryRows(season,catId,nom=null){
+ const start=(season-1)*52+1,end=Math.min(season*52,state.week);
+ let films=state.films.filter(f=>f.stage==='complete'&&f.completeWeek>=start&&f.completeWeek<=end);
+ if(nom){
+  const field=nom.categories.find(c=>c.id===catId)?.nominees||[],ids=new Set(field.map(x=>x.filmId));films=films.filter(f=>ids.has(f.id));
+ }
+ const rows=films.map(f=>({f,score:awardsCompetitiveScore(f,catId)})).sort((a,b)=>b.score-a.score);
+ const top=rows[0]?.score||0;return rows.slice(0,4).map((x,i)=>({...x,status:awardRacePublicStatus(x.score,top),rank:i+1}));
+}
+function awardsRaceBoardHTML(current){
+ const cats=['picture','director','lead','screenplay','audience'].map(id=>AWARD_CATEGORIES.find(c=>c.id===id)).filter(Boolean),nom=current.nominations||null;
+ const has=current.films?.length;
+ if(!has)return '';
+ return '<div class="section-title"><h2>Awards Race Board</h2><span class="small">'+(nom?'Final field · campaigns can still move Awards Night':'Industry read · hidden voting still carries uncertainty')+'</span></div><div class="grid cols2">'+cats.map(cat=>{
+  const rows=awardsRaceCategoryRows(current.season,cat.id,nom);
+  return '<div class="card"><div class="row"><strong>'+cat.label+'</strong><span class="pill">'+(nom?'Nominated field':'Race watch')+'</span></div><div style="margin-top:8px">'+(rows.length?rows.slice(0,3).map(x=>{const f=x.f,m=awardsMomentumLabel(f),camp=ensureAfterlifeState(f).awardsPushLevel;return '<div class="listrow"><div><strong>'+x.rank+'. '+awardSubject(f,cat.id)+'</strong><div class="small">'+(f.studio||state.studio.name)+' · '+m.label+(camp?' · '+awardsCampaignLabel(f):'')+'</div></div><span class="pill '+x.status.cls+'">'+x.status.label+'</span></div>'}).join(''):'<div class="small">No credible contenders yet.</div>')+'</div></div>';
+ }).join('')+'</div><div class="small" style="margin-top:8px">Race Board labels are an industry read, not a prediction. Final nominations and winners still include voting variance.</div>';
+}
+
 function awardSubject(f,cat){
  if(cat==='director')return `${talentById(f.directorId)?.name||'Director'} — ${f.title}`;
  if(cat==='lead'){
@@ -5117,7 +5219,7 @@ function buildAwardsNominations(season,cutoffWeek=state.week){
  const start=(season-1)*52+1,end=Math.min(season*52,cutoffWeek),films=state.films.filter(f=>f.stage==='complete'&&f.completeWeek>=start&&f.completeWeek<=end);
  const r=makeRng(hash(state.seed+'|nominations|'+season)),categories=[];
  AWARD_CATEGORIES.forEach(cat=>{
-  const ranked=films.map(f=>({f,score:awardsEligibilityScore(f,cat.id)+awardsPushBonus(f)+(r()-.5)*5})).sort((a,b)=>b.score-a.score);
+  const ranked=films.map(f=>({f,score:awardsCompetitiveScore(f,cat.id,'nomination')+(r()-.5)*5})).sort((a,b)=>b.score-a.score);
   let nominees=ranked.slice(0,Math.min(5,ranked.length)).filter(x=>x.score>=awardNominationThreshold(cat.id));
   if(!nominees.length&&ranked.length&&ranked[0].score>=58)nominees=[ranked[0]];
   nominees.forEach(x=>{
@@ -5149,7 +5251,7 @@ function buildAwardsCeremony(season){
  }
  const start=(season-1)*52+1,end=season*52,films=state.films.filter(f=>f.stage==='complete'&&f.completeWeek>=start&&f.completeWeek<=end),r=makeRng(hash(state.seed+'|ceremony-v36|'+season)),categories=[];
  noms.categories.forEach(cat=>{
-  const pool=cat.nominees.map(n=>{const f=filmById(n.filmId);return f?{f,n,score:awardsEligibilityScore(f,cat.id)+awardsPushBonus(f)+(r()-.5)*10}:null}).filter(Boolean).sort((a,b)=>b.score-a.score);
+  const pool=cat.nominees.map(n=>{const f=filmById(n.filmId);return f?{f,n,score:awardsCompetitiveScore(f,cat.id,'ceremony')+(r()-.5)*10}:null}).filter(Boolean).sort((a,b)=>b.score-a.score);
   const winner=pool[0]||null;
   if(winner){
    const a=ensureAfterlifeState(winner.f);
@@ -8494,7 +8596,7 @@ function runWeeklyHeartbeat(targetWeek){
  state.week=targetWeek;state.lastWeeklyHeartbeatWeek=targetWeek;
  Object.entries(state.agencyWindows||{}).forEach(([id,w])=>{if(targetWeek>w.expiresWeek||filmById(w.filmId)?.stage!=='development')delete state.agencyWindows[id]});
  const interest=serviceBridge(),streamingReceipts=typeof collectOwnedStreamingWeeklyRevenue==='function'?collectOwnedStreamingWeeklyRevenue():0,overhead=studioWeeklyOverhead(),finance=payWeeklyOverhead(overhead);
- tickAudienceMarket();tickIPWorld();const catalogueReceipts=updateAfterlifeRevenue();recordWeeklyEconomy(overhead,catalogueReceipts);maybeWarnCashRunway();maybeResolveAwardsNominations();maybeResolveAwardsSeason();
+ tickAudienceMarket();tickIPWorld();const catalogueReceipts=updateAfterlifeRevenue();recordWeeklyEconomy(overhead,catalogueReceipts);maybeWarnCashRunway();processAIAwardsCampaigns();maybeResolveAwardsNominations();maybeResolveAwardsSeason();
  aiWeeklyFinance();updateWritingProjects();updatePlayerFilms();advanceAI();if(typeof processScreenplayMarketWeek==='function')processScreenplayMarketWeek();if(typeof maybeLaunchLateGameChallenger==='function')maybeLaunchLateGameChallenger();if(typeof maybeGenerateIndustryInvitation==='function')maybeGenerateIndustryInvitation();aiStartProjects();reviewAIReleaseCalendar();checkPlayerReleaseCompetition();rotateMarket();if(state.week%13===0){updateStudioIdentityHistory();updateExecutivePersonaHistory();captureIndustryMoodQuarter()}ageAndCareers();checkAvailabilityWatches();maybeGenerateTalentDrama();generateIndustryPress();maybeGenerateTrendNews();maybeGenerateIndustryYearbook();if(typeof processHollywoodHistoryWeek==='function')processHollywoodHistoryWeek();if(typeof processCorporateWeek==='function')processCorporateWeek();generateStudioDeskWeek();updateCareerThreads();checkStudioMilestones();checkDevelopmentUnlocks();rebuildDecisions();
  if(interest>.01&&state.week%4===0)addNews(state,`${money(interest)} of bridge-finance interest accrued this week. The running cost of emergency borrowing is now becoming a material part of studio cash flow.`,'Studio Finance');
  if(overhead>=.16&&finance.borrowed===0&&state.week%13===0)addNews(state,`${state.studio.name} is carrying ${moneyFine(overhead)} in weekly operating and slate overhead as the company scales.`,'Studio Finance');
@@ -10212,8 +10314,8 @@ function awardsStudioBody(){
  return `<div class="awards-season-hero"><div><div class="badge">YEAR ${current.season} AWARDS SEASON</div><div class="kpi" style="margin-top:5px">${nom?'Nominations locked':week<50?'Race in progress':'Awaiting nominations'}</div><div class="body" style="margin-top:7px">Nominations are announced at career Week ${nominationWeek} (Year ${current.season}, Week 50). Awards Night closes the 52-week year at career Week ${ceremonyWeek} (Year ${current.season}, Week 52). Campaigning can improve a film’s position, but it cannot manufacture a weak contender.</div></div><div class="awards-calendar"><div><strong>W${nominationWeek}</strong><span>Nominations · Y${current.season}W50</span></div><div><strong>W${ceremonyWeek}</strong><span>Awards Night · Y${current.season}W52</span></div></div></div>
  ${nom?`<div class="section-title"><h2>Your nominations</h2><span class="small">${playerNomRows.length} nomination${playerNomRows.length===1?'':'s'}</span></div>${playerNomRows.length?`<div class="grid cols2">${playerNomRows.map(n=>`<div class="card click goodline" data-film="${n.filmId}"><div class="badge">${n.category}</div><strong style="display:block;margin-top:5px">${n.subject}</strong><div class="small" style="margin-top:5px">${n.title}</div></div>`).join('')}</div>`:`<div class="card body">The studio did not make the final field this year. The ceremony still goes ahead — the industry has a life beyond your slate.</div>`}`:''}
  <div class="section-title"><h2>${nom?'Your contenders':'Your awards race'}</h2><span class="small">${player.length?`${player.length} eligible release${player.length===1?'':'s'}`:'No completed releases in this awards year'}</span></div>
- ${player.length?`<div class="grid cols2">${player.map(f=>{const a=ensureAfterlifeState(f),pic=awardBuzzLabel(awardsEligibilityScore(f,'picture')),dir=awardBuzzLabel(awardsEligibilityScore(f,'director')),perf=awardBuzzLabel(Math.max(awardsEligibilityScore(f,'lead'),awardsEligibilityScore(f,'support'))),scr=awardBuzzLabel(awardsEligibilityScore(f,'screenplay')),music=awardBuzzLabel(awardsEligibilityScore(f,'soundtrack')),noms=(a.nominations||[]).filter(x=>x.season===current.season).length;return `<div class="card click ${noms?'goodline':''}" data-film="${f.id}"><div class="row"><div><strong>${f.title}</strong><div class="small">${f.genre} · Critics ${f.review?.critics||'—'}% · Audience ${f.review?.audience||'—'}%</div></div>${noms?`<span class="pill good">${noms} nom${noms===1?'':'s'}</span>`:a.awardsPush?`<span class="pill blue">${a.awardsPushLevel===2?'Full campaign':'Campaigning'}</span>`:''}</div><div class="award-buzz-grid"><span>Picture <b class="${pic.cls==='good'?'goodtext':''}">${pic.label}</b></span><span>Director <b>${dir.label}</b></span><span>Performance <b>${perf.label}</b></span><span>Screenplay <b>${scr.label}</b></span><span>Soundtrack <b>${music.label}</b></span></div></div>`}).join('')}</div>`:`<div class="card body">Awards tracking begins once one of your films completes its theatrical run during the current 52-week year.</div>`}
- <div class="section-title"><h2>Awards history</h2><span class="small">${playerAwardTotals().wins} wins · ${playerAwardTotals().noms} nominations all-time</span></div><div class="grid awards-history-list">${archive.filter(c=>c.playerNoms||c.playerWins).slice(0,8).map(c=>`<div class="card awards-history-card"><div class="awards-history-head"><strong>Year ${c.season}</strong><span class="pill ${c.playerWins?'good':''}">${c.playerWins} win${c.playerWins===1?'':'s'}</span></div><div class="small awards-history-summary">${c.playerNoms} nominations · ${c.categories.filter(cat=>cat.nominees.some(n=>n.owner==='player')).map(cat=>cat.label).join(' · ')||'No player nominees'}</div></div>`).join('')||'<div class="card body">Your first Awards Night will become part of the permanent studio record.</div>'}</div>`;
+ ${player.length?`<div class="grid cols2">${player.map(f=>{const a=ensureAfterlifeState(f),pic=awardBuzzLabel(awardsCompetitiveScore(f,'picture')),dir=awardBuzzLabel(awardsCompetitiveScore(f,'director')),perf=awardBuzzLabel(Math.max(awardsCompetitiveScore(f,'lead'),awardsCompetitiveScore(f,'support'))),scr=awardBuzzLabel(awardsCompetitiveScore(f,'screenplay')),music=awardBuzzLabel(awardsCompetitiveScore(f,'soundtrack')),noms=(a.nominations||[]).filter(x=>x.season===current.season).length;return `<div class="card click ${noms?'goodline':''}" data-film="${f.id}"><div class="row"><div><strong>${f.title}</strong><div class="small">${f.genre} · Critics ${f.review?.critics||'—'}% · Audience ${f.review?.audience||'—'}%</div></div>${noms?`<span class="pill good">${noms} nom${noms===1?'':'s'}</span>`:a.awardsPush?`<span class="pill blue">${a.awardsPushLevel===2?'Full campaign':'Campaigning'}</span>`:''}</div><div class="award-buzz-grid"><span>Picture <b class="${pic.cls==='good'?'goodtext':''}">${pic.label}</b></span><span>Director <b>${dir.label}</b></span><span>Performance <b>${perf.label}</b></span><span>Screenplay <b>${scr.label}</b></span><span>Soundtrack <b>${music.label}</b></span></div></div>`}).join('')}</div>`:`<div class="card body">Awards tracking begins once one of your films completes its theatrical run during the current 52-week year.</div>`}
+ ${awardsRaceBoardHTML(current)}\n  <div class="section-title"><h2>Awards history</h2><span class="small">${playerAwardTotals().wins} wins · ${playerAwardTotals().noms} nominations all-time</span></div><div class="grid awards-history-list">${archive.filter(c=>c.playerNoms||c.playerWins).slice(0,8).map(c=>`<div class="card awards-history-card"><div class="awards-history-head"><strong>Year ${c.season}</strong><span class="pill ${c.playerWins?'good':''}">${c.playerWins} win${c.playerWins===1?'':'s'}</span></div><div class="small awards-history-summary">${c.playerNoms} nominations · ${c.categories.filter(cat=>cat.nominees.some(n=>n.owner==='player')).map(cat=>cat.label).join(' · ')||'No player nominees'}</div></div>`).join('')||'<div class="card body">Your first Awards Night will become part of the permanent studio record.</div>'}</div>`;
 }
 
 function studioScreen(){
@@ -11008,10 +11110,20 @@ function awardsNominationsScreen(){
  const n=state.pendingAwardsNominations||awardsNominationRecord(awardsSeasonId());if(!n)return studioScreen();
  const playerRows=n.categories.flatMap(cat=>cat.nominees.filter(x=>x.owner==='player').map(x=>({...x,category:cat.label})));
  const nominatedFilms=[...new Set(playerRows.map(x=>x.filmId).filter(Boolean))].map(filmById).filter(Boolean);
- const campaignRows=nominatedFilms.map(f=>{const a=ensureAfterlifeState(f),focused=+(awardsPushCost(f,1)*(1-awardsCampaignDiscount())).toFixed(2),full=+(awardsPushCost(f,2)*(1-awardsCampaignDiscount())).toFixed(2);return `<div class="card awards-nominee-campaign"><div class="row"><div><strong>${f.title}</strong><div class="small">${(a.nominations||[]).filter(x=>x.season===n.season).length||playerRows.filter(x=>x.filmId===f.id).length} nomination${((a.nominations||[]).filter(x=>x.season===n.season).length||playerRows.filter(x=>x.filmId===f.id).length)===1?'':'s'} · campaign decision before Awards Night</div></div>${a.awardsPush?'<span class="pill good">Campaign active</span>':''}</div>${!a.awardsPush?`<div class="awards-campaign-options"><button class="btn" data-nomination-campaign="${f.id}" data-campaign-level="1"><strong>Focused · ${money(focused)}</strong><span>Disciplined awards support.</span></button><button class="btn primary" data-nomination-campaign="${f.id}" data-campaign-level="2"><strong>Full · ${money(full)}</strong><span>Maximum awards push.</span></button></div>`:`<div class="small" style="margin-top:8px">${a.awardsPushLevel===2?'Full-scale':'Focused'} campaign already active · ${money(a.awardsPushCost)} committed.</div>`}</div>`}).join('');
+ const campaignRows=nominatedFilms.map(f=>{
+  const a=ensureAfterlifeState(f),focused=+(awardsPushCost(f,1)*(1-awardsCampaignDiscount())).toFixed(2),full=+(awardsPushCost(f,2)*(1-awardsCampaignDiscount())).toFixed(2),upgrade=+((awardsPushCost(f,2)-awardsPushCost(f,1))*(1-awardsCampaignDiscount())).toFixed(2);
+  const count=(a.nominations||[]).filter(x=>x.season===n.season).length||playerRows.filter(x=>x.filmId===f.id).length;
+  let actions='';
+  if(!a.awardsPush)actions=`<div class="awards-campaign-options"><button class="btn" data-nomination-campaign="${f.id}" data-campaign-level="1"><strong>Focused · ${money(focused)}</strong><span>Disciplined awards support.</span></button><button class="btn primary" data-nomination-campaign="${f.id}" data-campaign-level="2"><strong>Full · ${money(full)}</strong><span>Maximum awards push.</span></button></div>`;
+  else if(a.awardsPushLevel===1)actions=`<div class="awards-campaign-options"><button class="btn primary" data-nomination-campaign="${f.id}" data-campaign-level="2"><strong>Escalate to full · ${money(upgrade)}</strong><span>The film made the field. Pay only the difference to push harder for Awards Night.</span></button></div>`;
+  else actions=`<div class="small" style="margin-top:8px">Full-scale campaign active · ${money(a.awardsPushCost)} committed.</div>`;
+  return `<div class="card awards-nominee-campaign"><div class="row"><div><strong>${f.title}</strong><div class="small">${count} nomination${count===1?'':'s'} · ${awardsMomentumLabel(f).label}</div></div>${a.awardsPush?`<span class="pill good">${awardsCampaignLabel(f)}</span>`:''}</div>${actions}</div>`;
+ }).join('');
+ const current={season:n.season,films:state.films.filter(f=>f.stage==='complete'&&awardsSeasonId(f.completeWeek||state.week)===n.season),nominations:n};
  return `<div class="ceremony nominations-night"><div class="ceremony-inner"><div class="ceremony-kicker">YEAR ${n.season} · NOMINATIONS DAY</div><h1>The final field is set</h1>${state.studio?playerStudioLogoHTML('sm',true):''}<p class="ceremony-sub">${playerRows.length?`${state.studio.name} has ${playerRows.length} nomination${playerRows.length===1?'':'s'} across the Year ${n.season} Slate Awards.`:`${state.studio.name} is outside the final field this year. Awards Night still belongs to the wider industry.`}</p>
  <div class="nomination-summary"><div><strong>${playerRows.length}</strong><span>Your nominations</span></div><div><strong>${n.categories.reduce((s,c)=>s+c.nominees.length,0)}</strong><span>Total nominations</span></div><div><strong>W${n.season*52}</strong><span>Awards Night · Y${n.season}W52</span></div></div>
- <div class="ceremony-grid">${n.categories.map(cat=>`<div class="awardcard"><div class="awardlabel">${cat.label}</div><div class="nominees">${cat.nominees.length?cat.nominees.map(x=>`<div class="${x.owner==='player'?'winner':''}">${x.owner==='player'?'YOUR STUDIO · ':''}${x.subject}<span>${x.studio}</span></div>`).join(''):'<div>No nominees</div>'}</div></div>`).join('')}</div>
+ <div class="ceremony-grid">${n.categories.map(cat=>`<div class="awardcard"><div class="awardlabel">${cat.label}</div><div class="nominees">${cat.nominees.length?cat.nominees.map(x=>{const nf=filmById(x.filmId),campaign=nf&&ensureAfterlifeState(nf).awardsPush?` · ${awardsCampaignLabel(nf)}`:'';return `<div class="${x.owner==='player'?'winner':''}">${x.owner==='player'?'YOUR STUDIO · ':''}${x.subject}<span>${x.studio}${campaign}</span></div>`}).join(''):'<div>No nominees</div>'}</div></div>`).join('')}</div>
+ ${awardsRaceBoardHTML(current)}
  ${campaignRows?`<div class="section-title" style="margin-top:18px"><h2>Awards campaign</h2><span class="small">Your nominated films can still be pushed before Awards Night</span></div><div class="grid">${campaignRows}</div>`:''}
  <button id="closeNominations" class="btn primary ceremony-continue">Return to the studio</button></div></div>`;
 }
