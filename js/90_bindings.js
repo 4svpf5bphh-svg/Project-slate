@@ -69,6 +69,9 @@ function bind(){
  document.querySelectorAll('[data-release-tab]').forEach(b=>b.onclick=()=>{state.uiReleaseTab=b.dataset.releaseTab;save();render()});
  document.querySelectorAll('[data-theatrical-move]').forEach(b=>b.onclick=e=>{e.stopPropagation();applyTheatricalMove(filmById(b.dataset.filmId),b.dataset.theatricalMove)});
  document.querySelectorAll('[data-talent]').forEach(b=>b.onclick=e=>{if(e.target.closest('[data-attach-director]')||e.target.closest('[data-toggle-cast]')||e.target.closest('[data-select-support]')||e.target.closest('[data-audition]')||e.target.closest('[data-contract-talent]'))return;push(state.screen,{type:'talent',id:b.dataset.talent})});
+ document.querySelectorAll('[data-lot-influence-talent]').forEach(b=>b.onclick=e=>{e.stopPropagation();useLotInfluenceApproach(talentById(b.dataset.lotInfluenceTalent),filmById(b.dataset.lotInfluenceFilm),b.dataset.lotInfluenceRole)});
+ document.querySelectorAll('[data-agency-influence-talent]').forEach(b=>b.onclick=e=>{e.stopPropagation();useAgencyInfluence(talentById(b.dataset.agencyInfluenceTalent),filmById(b.dataset.agencyInfluenceFilm))});
+ document.querySelectorAll('[data-rival-detente]').forEach(b=>b.onclick=e=>{e.stopPropagation();attemptRivalDetente(rivalById(b.dataset.rivalDetente))});
  const bb=document.getElementById('backBtn');if(bb)bb.onclick=back;
  document.querySelectorAll('[data-pulse-film]').forEach(b=>b.onclick=()=>push('studio',{type:'pulse',id:b.dataset.pulseFilm}));
  const bell=document.getElementById('notificationBell');if(bell)bell.onclick=()=>{state.history=[];state.screen='studio';state.detail=null;state.uiStudioTab='desk';state.uiDeskTab='briefing';requestScrollTop();save();render()};
@@ -165,6 +168,7 @@ function bind(){
  document.querySelectorAll('[data-campaign]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);f.campaign=b.dataset.campaign;if(f.releaseWeek!==null&&!validReleaseWeeks(f).includes(f.releaseWeek))f.releaseWeek=null;save();render()});
  document.querySelectorAll('[data-trailer]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureMarketingState(f).trailer=b.dataset.trailer;save();render()});
  document.querySelectorAll('[data-publicity]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureMarketingState(f).publicity=b.dataset.publicity;save();render()});
+ document.querySelectorAll('[data-lot-campaign-angle]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureMarketingState(f).lotAngle=b.dataset.lotCampaignAngle;save();render()});
  document.querySelectorAll('[data-nomination-campaign]').forEach(b=>b.onclick=()=>{const f=filmById(b.dataset.nominationCampaign);if(f)commitAwardsPush(f,+b.dataset.campaignLevel||1)});
  document.querySelectorAll('[data-launch]').forEach(b=>b.onclick=()=>{const f=filmById(currentFilmId);ensureMarketingState(f).launch=b.dataset.launch;if(f.releaseWeek!==null&&!validReleaseWeeks(f).includes(f.releaseWeek))f.releaseWeek=null;save();render()});
  document.querySelectorAll('[data-marketing-choice]').forEach(b=>b.onclick=()=>resolveMarketingIntervention(filmById(currentFilmId),b.dataset.marketingChoice));
