@@ -87,8 +87,8 @@ jobs:
           patch_fn("pushDeskItem","item=lotDeskVoice(item);","item=lotDeskVoice(item);item.expanded=!!item.requiresAction;","desk push")
           patch_fn("studioDeskBody","<h2>Inbox</h2>","<h2>Industry brief</h2>","desk heading")
           patch_fn("studioDeskBody","<span class=\"small\">Read items collapse to headlines</span>","<span class=\"small\">Awareness only · collapsed by default</span>","desk hint")
-          patch_fn("filmWrapVerdictCopy","  return first;","  const choice=filmChoiceCallback(f);if(choice)first+=' '+choice;\n  return first;","wrap callback")
-          patch_fn("criticCraftParagraph","  return line;","  const choice=filmChoiceCallback(f);if(choice)line+=' '+choice;\n  return line;","review callback")
+          patch_fn("filmWrapVerdictCopy","return first;","const choice=filmChoiceCallback(f);if(choice)first+=' '+choice;return first;","wrap callback")
+          patch_fn("criticCraftParagraph","return line;","const choice=filmChoiceCallback(f);if(choice)line+=' '+choice;return line;","review callback")
 
           phrase="Receive ${money(q)} cash now. ${money(q*1.14)} will be added to bridge debt before weekly interest."
           repl="Receive ${money(q)} cash now. ${money(q*1.14)} enters bridge debt immediately. With no repayment, that draw alone becomes about <strong>${money(bridgeDebtProjection(q,4))}</strong> after 4 weeks and <strong>${money(bridgeDebtProjection(q,8))}</strong> after 8 weeks.<br><span class=\"small\"><strong>Nearest possible recovery:</strong> ${bridgeRecoveryContext()} Projection assumes the current rate and no repayment; future film revenue is not guaranteed.</span>"
