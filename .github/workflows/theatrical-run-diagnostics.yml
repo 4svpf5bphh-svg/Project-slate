@@ -1,0 +1,34 @@
+name: one-shot theatrical-run diagnostics
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect theatrical run systems
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path("index.html").read_text(encoding="utf-8")
+          terms=[
+            "function releaseScreen","function cinemaUI","function settleCinema",
+            "cinemaWeek","weeklyResults","queueStudioMoment","opening weekend",
+            "box office","uiReleaseTab","releaseProfile","legs","drop",
+            "function advanceCinema","function processCinema","function settleBox",
+            "function nav","Release</"
+          ]
+          for term in terms:
+              print(f"\n===== {term} =====")
+              hits=list(re.finditer(re.escape(term),s,re.I))
+              print("count",len(hits))
+              for m in hits[:28]:
+                  print("\n---\n"+s[max(0,m.start()-2200):m.start()+9500])
+          PY
