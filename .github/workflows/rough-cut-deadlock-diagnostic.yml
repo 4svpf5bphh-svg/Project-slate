@@ -1,0 +1,28 @@
+name: one-shot rough-cut deadlock diagnostic
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect rough-cut navigation deadlock
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path("index.html").read_text(encoding="utf-8")
+          terms=["Review the rough cut first","review rough cut first","rough cut","roughCut","data-nav","backBtn","advanceWeek","continueTime","productionWeek","productionDecision","rough"]
+          for term in terms:
+              print(f"\n===== {term} =====")
+              hits=list(re.finditer(re.escape(term),s,re.I))
+              print("count",len(hits))
+              for m in hits[:30]:
+                  print("\n---\n"+s[max(0,m.start()-1800):m.start()+5200])
+          PY
