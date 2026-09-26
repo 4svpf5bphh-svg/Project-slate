@@ -19,7 +19,7 @@ jobs:
           import re
           s=Path("index.html").read_text(encoding="utf-8")
           terms=[
-            "releaseWeek","scheduled","stage='cinema'","stage="cinema"",
+            "releaseWeek","scheduled","stage=cinema","cinemaWeek",
             "aiStartProjects","advanceAI","releaseAIFilm","aiWeeklyFinance",
             "validReleaseWeeks","release calendar","counter","competition",
             "weeklyPlan","releaseProfile","boxOffice"
