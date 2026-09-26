@@ -1,13 +1,14 @@
-// Project Slate v4.1b — THE LOT: CONSEQUENCES
+// Project Slate v4.2 — THE LOT: LONG MEMORY
 // Real talent names remain canonical throughout Project Slate. The Lot supplies
 // fictional in-game personality, relationships, memories and alternate-Hollywood events.
 
 function ensureLotState(st=state){
- st.lot=st.lot||{version:2,profiles:{},relationships:{},memories:[],stories:[],history:[],lastIncidentWeek:0};
- st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];
- if((st.lot.version||1)<2){
-  Object.entries(st.lot.profiles).forEach(([id,p])=>{const t=(st.talent||[]).find(x=>x.id===id);if(t&&p)p.alias=t.name});
-  st.lot.version=2;
+ st.lot=st.lot||{version:3,profiles:{},relationships:{},pairHistories:{},memories:[],stories:[],history:[],lastIncidentWeek:0};
+ st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.pairHistories=st.lot.pairHistories||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];
+ if((st.lot.version||1)<2)Object.entries(st.lot.profiles).forEach(([id,p])=>{const t=(st.talent||[]).find(x=>x.id===id);if(t&&p)p.alias=t.name});
+ if((st.lot.version||1)<3){
+  st.lot.stories.forEach(s=>{s.chapters=s.chapters||[];s.phase=s.active?'active':'resolved';s.timesResurfaced=s.timesResurfaced||0;s.lastChapterWeek=s.lastChapterWeek||s.lastWeek||s.startedWeek});
+  st.lot.version=3;
  }
  return st.lot;
 }
@@ -45,6 +46,16 @@ function lotPersonaLabels(t){
  return high.length?high:['Guarded','Professional','Hard to read'];
 }
 function lotPairKey(a,b){const ids=[typeof a==='string'?a:a?.id,typeof b==='string'?b:b?.id].filter(Boolean).sort();return ids.join('|')}
+function lotPairHistory(a,b){
+ const key=lotPairKey(a,b);if(!key)return null;const ids=key.split('|'),lot=ensureLotState();
+ if(!lot.pairHistories[key])lot.pairHistories[key]={key,a:ids[0],b:ids[1],films:[],awards:[],storyIds:[],reunions:0,lastFilmWeek:0,lastSharedFilmId:null};
+ return lot.pairHistories[key];
+}
+function lotPairLastFilm(a,b){return lotPairHistory(a,b)?.films?.[0]||null}
+function lotStoryChapter(story,{type='chapter',headline='',detail='',filmId=null,memoryId=null,intensity=1}={}){
+ if(!story)return null;story.chapters=story.chapters||[];
+ const chapter={week:state.week,type,headline,detail,filmId,memoryId,intensity};story.chapters.unshift(chapter);story.chapters=story.chapters.slice(0,18);story.lastChapterWeek=state.week;return chapter;
+}
 function lotRelationship(a,b){
  const ta=typeof a==='string'?talentById(a):a,tb=typeof b==='string'?talentById(b):b;if(!ta||!tb||ta.id===tb.id)return null;
  const lot=ensureLotState(),key=lotPairKey(ta,tb);if(lot.relationships[key])return lot.relationships[key];
@@ -72,11 +83,13 @@ function lotCastingModifier(t,f){
  if(!others.length)return {score:0,strongest:null};
  let score=0,strongest=null;
  others.forEach(other=>{
-  const rel=lotRelationship(t,other),raw=lotRelationshipScore(rel),delta=clamp(raw*.62,-10,7);
+  const rel=lotRelationship(t,other),raw=lotRelationshipScore(rel),history=lotPairHistory(t,other);let delta=clamp(raw*.62,-10,7);
+  const shared=history?.films?.length||0,preferred=shared>0&&rel.affection>=76&&rel.trust>=68,oldFeud=shared>0&&(rel.grudge>=60||rel.tension>=78);
+  if(preferred)delta+=2.5;if(oldFeud)delta-=3.5;
   score+=delta;
-  if(!strongest||Math.abs(delta)>Math.abs(strongest.delta))strongest={id:other.id,name:other.name,delta,label:lotRelationshipLabel(rel)};
+  if(!strongest||Math.abs(delta)>Math.abs(strongest.delta))strongest={id:other.id,name:other.name,delta,label:preferred?'Wanted reunion':oldFeud?'Old feud':lotRelationshipLabel(rel),history,preferred,oldFeud};
  });
- return {score:clamp(score,-14,10),strongest};
+ return {score:clamp(score,-18,12),strongest};
 }
 function lotPackageDynamics(f){
  const ids=lotAttachedTalentIds(f),pairs=[];
@@ -123,12 +136,16 @@ function lotCandidateCastingSignal(t,f){
  }
  let strongest=null;
  otherIds.map(talentById).filter(Boolean).forEach(other=>{
-  const rel=lotRelationship(t,other),score=lotRelationshipScore(rel),label=lotRelationshipLabel(rel);
-  if(!strongest||Math.abs(score)>Math.abs(strongest.score))strongest={other,rel,score,label};
+  const rel=lotRelationship(t,other),score=lotRelationshipScore(rel),label=lotRelationshipLabel(rel),history=lotPairHistory(t,other);
+  if(!strongest||Math.abs(score)>Math.abs(strongest.score))strongest={other,rel,score,label,history};
  });
- if(!strongest||Math.abs(strongest.score)<4)return null;
+ if(!strongest)return null;
+ const prior=strongest.history?.films?.[0],archived=lot.stories.filter(s=>!s.active&&s.pair===lotPairKey(t,strongest.other)).sort((a,b)=>(b.lastWeek||0)-(a.lastWeek||0))[0];
+ if(prior&&(strongest.rel.grudge>=60||strongest.rel.tension>=78))return {tone:'bad',label:'Old feud',text:(archived?.headline||'A difficult history')+' · last shared film '+prior.title,other:strongest.other};
+ if(prior&&strongest.rel.affection>=76&&strongest.rel.trust>=68)return {tone:'good',label:'Wanted reunion',text:'Strong shared history with '+strongest.other.name+' · last worked together on '+prior.title,other:strongest.other};
+ if(Math.abs(strongest.score)<4)return null;
  const tone=strongest.score<=-7?'bad':strongest.score<0?'warn':'good';
- return {tone,label:strongest.label,text:strongest.label+' with '+strongest.other.name,other:strongest.other};
+ return {tone,label:strongest.label,text:strongest.label+' with '+strongest.other.name+(prior?' · '+prior.title:'') ,other:strongest.other};
 }
 function lotMediationOffer(f,storyId=null){
  if(!f||!['development','production'].includes(f.stage))return null;
@@ -195,19 +212,25 @@ function lotRemember({type='moment',participants=[],headline,detail='',intensity
  participants.forEach(tid=>{const t=talentById(tid),p=t?ensureLotProfile(t):null;if(p){p.memories.unshift(id);p.memories=p.memories.slice(0,18)}});
  return m;
 }
-function lotStory({type='feud',participants=[],headline,summary,detail,intensity=2,durability=20,publicEvent=true,memoryId=null}){
+function lotStory({type='feud',participants=[],headline,summary,detail,intensity=2,durability=20,publicEvent=true,memoryId=null,filmId=null,resurfacedFrom=null,chapterType='incident'}){
  const lot=ensureLotState(),pair=participants.slice().sort().join('|');
  let story=lot.stories.find(x=>x.active&&x.type===type&&x.pair===pair);
- if(!story){story={id:'LS'+(lot.stories.length+1),type,pair,participants:[...participants],headline,summary,detail,intensity,durability,heat:55+intensity*10,active:true,startedWeek:state.week,lastWeek:state.week,memoryIds:[]};lot.stories.unshift(story)}
- else{story.headline=headline;story.summary=summary;story.detail=detail;story.heat=clamp(story.heat+12,0,100);story.lastWeek=state.week}
- if(memoryId)story.memoryIds.unshift(memoryId);
+ if(!story){
+  story={id:'LS'+(lot.stories.length+1),type,pair,participants:[...participants],headline,summary,detail,intensity,durability,heat:55+intensity*10,active:true,phase:'active',startedWeek:state.week,lastWeek:state.week,lastChapterWeek:state.week,memoryIds:[],chapters:[],timesResurfaced:resurfacedFrom?1:0,resurfacedFrom:resurfacedFrom||null,filmIds:filmId?[filmId]:[]};lot.stories.unshift(story);
+ }else{
+  story.headline=headline;story.summary=summary;story.detail=detail;story.heat=clamp((story.heat||0)+12,0,100);story.lastWeek=state.week;story.phase='active';story.intensity=Math.max(story.intensity||1,intensity);
+  if(filmId&&!story.filmIds?.includes(filmId)){story.filmIds=story.filmIds||[];story.filmIds.unshift(filmId)}
+ }
+ if(memoryId){story.memoryIds=story.memoryIds||[];story.memoryIds.unshift(memoryId)}
+ lotStoryChapter(story,{type:chapterType,headline,detail,filmId,memoryId,intensity});
+ const hist=participants.length>=2?lotPairHistory(participants[0],participants[1]):null;if(hist&&!hist.storyIds.includes(story.id))hist.storyIds.unshift(story.id);
  participants.forEach(tid=>{const t=talentById(tid),p=t?ensureLotProfile(t):null;if(p&&!p.storyIds.includes(story.id))p.storyIds.unshift(story.id)});
- if(typeof upsertCareerThread==='function')upsertCareerThread({key:'lot:'+story.id,type:'memory',tone:intensity>=4?'bad':intensity>=3?'warn':'blue',priority:58+intensity*8,title:headline,summary,detail,progress:'THE LOT'});
+ if(typeof upsertCareerThread==='function')upsertCareerThread({key:'lot:'+story.id,type:'memory',tone:intensity>=4?'bad':intensity>=3?'warn':type==='friendship'?'good':'blue',priority:58+intensity*8,title:headline,summary,detail,progress:resurfacedFrom?'THE LOT · RESURFACED':'THE LOT'});
  if(publicEvent&&typeof pushDeskItem==='function'&&intensity>=2)pushDeskItem({templateId:'lot-story',repeatKey:'lot:'+story.id+':'+state.week,family:'lot',type:intensity>=3?'gossip':'industry',source:'The Lot',urgency:intensity>=4?'urgent':'normal',requiresAction:false,headline,body:summary+(detail?' '+detail:''),choices:[],resolved:true,read:false,expanded:false});
  return story;
 }
 function lotEligiblePairs(){
- const ids=[...new Set(playerFilms().filter(f=>!['complete','shelved'].includes(f.stage)).flatMap(f=>[f.directorId,...(f.cast||[])]).filter(Boolean))];
+ const ids=[...new Set(playerFilms().filter(f=>!['complete','shelved'].includes(f.stage)).flatMap(f=>lotAttachedTalentIds(f)).filter(Boolean))];
  const out=[];for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){const a=talentById(ids[i]),b=talentById(ids[j]);if(a&&b&&!a.retired&&!b.retired)out.push([a,b])}
  return out;
 }
@@ -239,12 +262,80 @@ function lotApplyIncident(a,b,tier,r){
  lotApplyIncidentConsequences(a,b,type,intensity,headline);
  return {headline,summary,detail,tier,intensity,relationship:updated};
 }
+
+function lotRegisterFilmOutcome(f,profit=0){
+ if(!f||f.lotFilmMemoryRecorded)return;const ids=lotAttachedTalentIds(f).filter(id=>talentById(id));if(ids.length<2){f.lotFilmMemoryRecorded=true;return}
+ const actors=new Set([...(f.cast||[]),...(f.supportingCastIds||[]),f.supportingCastId].filter(Boolean)),m=f.metrics||{},lot=ensureLotState();
+ for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){
+  const a=talentById(ids[i]),b=talentById(ids[j]),hist=lotPairHistory(a,b),prior=hist.films[0]||null;
+  const actorPair=actors.has(a.id)&&actors.has(b.id),score=Math.round(actorPair?((m.chemistry||65)*.62+(m.performances||65)*.38):((m.performances||65)*.58+(m.stability||65)*.42));
+  let tone='neutral',delta={respect:3,trust:2,tension:-2},phrase='a solid shared credit';
+  if(score>=82){tone='good';delta={affection:4,respect:9,trust:7,tension:-6,grudge:-3};phrase='a notably strong collaboration'}
+  else if(score<=54){tone='bad';delta={affection:-3,respect:-3,trust:-7,tension:13,grudge:6};phrase='a difficult working experience'}
+  const headline=prior?(a.name+' and '+b.name+' add another chapter with '+f.title):(a.name+' and '+b.name+' leave '+f.title+' with '+phrase);
+  const detail=(prior?'Their previous shared credit was '+prior.title+'. ':'')+(tone==='good'?'The finished film strengthened the sense that this pairing works.':tone==='bad'?'The finished film leaves fresh friction attached to their working history.':'The film adds another ordinary professional reference point to the relationship.');
+  const mem=lotRemember({type:'film-history',participants:[a.id,b.id],headline,detail,intensity:tone==='neutral'?1:2,publicEvent:false,filmId:f.id});
+  lotAdjustRelationship(a,b,delta,mem.id);
+  hist.films.unshift({filmId:f.id,title:f.title,week:state.week,owner:f.owner,score,tone,profit:+(profit||0).toFixed(2)});hist.films=hist.films.slice(0,12);hist.lastFilmWeek=state.week;hist.lastSharedFilmId=f.id;if(prior)hist.reunions=(hist.reunions||0)+1;
+  const active=lot.stories.filter(s=>s.active&&s.pair===hist.key);active.forEach(s=>{lotStoryChapter(s,{type:'film-outcome',headline,detail,filmId:f.id,memoryId:mem.id,intensity:tone==='neutral'?1:2});s.lastWeek=state.week;if(tone==='good'&&s.type==='friendship')s.heat=clamp((s.heat||50)+8,0,100);if(tone==='bad'&&s.type!=='friendship')s.heat=clamp((s.heat||50)+10,0,100)});
+ }
+ f.lotFilmMemoryRecorded=true;
+}
+function lotRegisterAwardsOutcome(f,wins=[],nominations=[]){
+ if(!f||(!wins.length&&!nominations.length))return;const season=wins[0]?.season||nominations[0]?.season||Math.floor(state.week/52),done=f.lotAwardsMemorySeasons||[];
+ if(done.includes(season))return;
+ const ids=lotAttachedTalentIds(f).filter(id=>talentById(id));if(ids.length<2)return;
+ for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){
+  const a=talentById(ids[i]),b=talentById(ids[j]),hist=lotPairHistory(a,b),won=wins.length>0,headline=won?(f.title+' gives '+a.name+' and '+b.name+' another shared awards chapter'):(a.name+' and '+b.name+' share awards-season recognition for '+f.title);
+  const detail=won?(wins.map(x=>x.label).join(', ')+' adds prestige to a collaboration already on both careers.'):(nominations.length+' nomination'+(nominations.length===1?'':'s')+' keep the film in the industry conversation.');
+  const mem=lotRemember({type:'awards-history',participants:[a.id,b.id],headline,detail,intensity:won?2:1,publicEvent:false,filmId:f.id});
+  lotAdjustRelationship(a,b,won?{respect:Math.min(5,2+wins.length),trust:1}:{respect:1},mem.id);
+  hist.awards.unshift({filmId:f.id,title:f.title,week:state.week,season,wins:wins.length,nominations:nominations.length});hist.awards=hist.awards.slice(0,10);
+  ensureLotState().stories.filter(s=>s.active&&s.pair===hist.key).forEach(s=>lotStoryChapter(s,{type:'awards',headline,detail,filmId:f.id,memoryId:mem.id,intensity:won?2:1}));
+ }
+ f.lotAwardsMemorySeasons=[season,...done].slice(0,10);
+}
+function lotMaybeResurfacePairHistory(){
+ playerFilms().filter(f=>['development','production'].includes(f.stage)).forEach(f=>{
+  f.lotLongMemoryChecked=f.lotLongMemoryChecked||{};const ids=lotAttachedTalentIds(f);
+  for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){
+   const a=talentById(ids[i]),b=talentById(ids[j]);if(!a||!b)continue;const key=lotPairKey(a,b);if(f.lotLongMemoryChecked[key])continue;f.lotLongMemoryChecked[key]=true;
+   const hist=lotPairHistory(a,b),prior=hist.films.find(x=>x.filmId!==f.id),lot=ensureLotState(),archived=lot.stories.filter(s=>!s.active&&s.pair===key).sort((x,y)=>(y.resolvedWeek||y.lastWeek||0)-(x.resolvedWeek||x.lastWeek||0))[0];
+   if(!prior&&!archived)continue;if(lot.stories.some(s=>s.active&&s.pair===key))continue;
+   const rel=lotRelationship(a,b),positive=rel.affection>=72&&rel.trust>=64,negative=rel.grudge>=35||rel.tension>=55;if(!positive&&!negative&&!archived)continue;
+   const oldType=archived?.type||null,type=negative?(oldType==='legendary-feud'?'legendary-feud':'feud'):'friendship',intensity=negative?Math.max(2,Math.min(4,archived?.intensity||2)):1;
+   const headline=negative?('Old wounds between '+a.name+' and '+b.name+' follow them onto '+f.title):(a.name+' and '+b.name+' are reuniting on '+f.title);
+   const summary=negative?('A relationship the industry thought had cooled is relevant again now that '+a.name+' and '+b.name+' are sharing a package.'):('Their previous work together has turned the new package into a reunion rather than a first meeting.');
+   const detail=archived?('The callback is '+archived.headline+'.'):prior?('Their last shared film was '+prior.title+'.'):'The Lot remembers the history even if the cameras had moved on.';
+   const mem=lotRemember({type:'resurfacing',participants:[a.id,b.id],headline,detail,intensity,publicEvent:false,filmId:f.id,storyId:archived?.id||null});
+   lotAdjustRelationship(a,b,negative?{tension:6,grudge:3}:{affection:4,trust:3},mem.id);
+   const story=lotStory({type,participants:[a.id,b.id],headline,summary,detail,intensity,durability:negative?42:28,publicEvent:false,memoryId:mem.id,filmId:f.id,resurfacedFrom:archived?.id||null,chapterType:'resurfacing'});
+   story.timesResurfaced=Math.max(1,story.timesResurfaced||0);hist.reunions=(hist.reunions||0)+1;
+  }
+ });
+}
+function lotEvolveActiveStories(){
+ const lot=ensureLotState();
+ lot.stories.filter(s=>s.active&&state.week-(s.lastChapterWeek||s.lastWeek||s.startedWeek)>=5).forEach(s=>{
+  const shared=playerFilms().find(f=>['development','production'].includes(f.stage)&&s.participants.every(id=>lotAttachedTalentIds(f).includes(id)));if(!shared)return;
+  const rr=makeRng(hash((state.seed||1)+'|lot-evolve|'+s.id+'|'+state.week));if(rr()>.22)return;
+  const a=talentById(s.participants[0]),b=talentById(s.participants[1]);if(!a||!b)return;let headline,summary,detail,delta,intensity=Math.max(1,s.intensity||1);
+  if(s.type==='friendship'){
+   headline=a.name+' and '+b.name+' are becoming a genuine off-camera alliance';summary='What started as easy chemistry now looks like a relationship that may outlast the current job.';detail='Assistants have stopped pretending the shared lunches are scheduling coincidences.';delta={affection:7,trust:6,respect:3,tension:-5};
+  }else{
+   headline=a.name+' vs '+b.name+' finds another front on '+shared.title;summary='The original argument has acquired another chapter instead of disappearing.';detail='Nobody has formally escalated anything. Everyone has somehow escalated everything.';delta={affection:-4,trust:-5,tension:10,grudge:5};intensity=Math.max(2,intensity);
+  }
+  const mem=lotRemember({type:'story-chapter',participants:[a.id,b.id],headline,detail,intensity,publicEvent:false,filmId:shared.id,storyId:s.id});lotAdjustRelationship(a,b,delta,mem.id);
+  lotStory({type:s.type,participants:[a.id,b.id],headline,summary,detail,intensity,durability:s.durability||30,publicEvent:false,memoryId:mem.id,filmId:shared.id,chapterType:'escalation'});
+  if(shared.stage==='production'&&s.type!=='friendship')lotApplyIncidentConsequences(a,b,s.type,Math.min(2,intensity),headline);
+ });
+}
 function lotAgeStories(){
- const lot=ensureLotState();lot.stories.filter(s=>s.active).forEach(s=>{const quiet=state.week-(s.lastWeek||s.startedWeek);if(quiet>4)s.heat=Math.max(0,(s.heat||0)-2);if(quiet>s.durability&&s.heat<28){s.active=false;s.resolvedWeek=state.week;lot.history.unshift(s);if(typeof resolveCareerThread==='function')resolveCareerThread('lot:'+s.id,'The cameras moved on and the story stopped driving the current Hollywood conversation.')}});
- lot.history=lot.history.slice(0,80);
+ const lot=ensureLotState();lot.stories.filter(s=>s.active).forEach(s=>{const quiet=state.week-(s.lastWeek||s.startedWeek);if(quiet>4){s.phase='cooling';s.heat=Math.max(0,(s.heat||0)-2)}if(quiet>s.durability&&s.heat<28){s.active=false;s.phase='resolved';s.resolvedWeek=state.week;lotStoryChapter(s,{type:'resolved',headline:'The story cools off',detail:'The cameras moved on, but the relationship and its history remain.',intensity:1});if(!lot.history.some(x=>x.id===s.id))lot.history.unshift(s);if(typeof resolveCareerThread==='function')resolveCareerThread('lot:'+s.id,'The cameras moved on, but the relationship remains part of both careers.')}});
+ lot.history=lot.history.slice(0,120);
 }
 function processLotWeek(){
- if(!state.studio)return;const lot=ensureLotState();state.talent.forEach(t=>{if(!t.retired)ensureLotProfile(t)});lotAgeStories();
+ if(!state.studio)return;const lot=ensureLotState();state.talent.forEach(t=>{if(!t.retired)ensureLotProfile(t)});lotAgeStories();lotMaybeResurfacePairHistory();lotEvolveActiveStories();
  if(state.week-(lot.lastIncidentWeek||0)<2)return;
  const pairs=lotEligiblePairs();if(!pairs.length)return;
  const r=makeRng(hash((state.seed||1)+'|lot-week|'+state.week));if(r()>.18)return;
@@ -258,11 +349,14 @@ function lotActiveStoriesForTalent(t){
  const p=ensureLotProfile(t),lot=ensureLotState(),ids=new Set(p.storyIds||[]);return lot.stories.filter(s=>s.active&&ids.has(s.id));
 }
 function lotKnownRelationships(t,limit=5){
- const lot=ensureLotState(),rows=[];Object.values(lot.relationships).forEach(rel=>{if(rel.a!==t.id&&rel.b!==t.id)return;const other=talentById(rel.a===t.id?rel.b:rel.a);if(other)rows.push({other,rel,label:lotRelationshipLabel(rel),weight:(rel.grudge||0)+(rel.tension||0)+Math.abs((rel.affection||50)-50)})});return rows.sort((a,b)=>b.weight-a.weight).slice(0,limit);
+ const lot=ensureLotState(),rows=[];Object.values(lot.relationships).forEach(rel=>{if(rel.a!==t.id&&rel.b!==t.id)return;const other=talentById(rel.a===t.id?rel.b:rel.a);if(other){const history=lotPairHistory(t,other);rows.push({other,rel,history,label:lotRelationshipLabel(rel),weight:(rel.grudge||0)+(rel.tension||0)+Math.abs((rel.affection||50)-50)+(history.films.length*4)})}});return rows.sort((a,b)=>b.weight-a.weight).slice(0,limit);
+}
+function lotStoryHistoryForTalent(t,limit=6){
+ const lot=ensureLotState();return lot.stories.filter(s=>s.participants?.includes(t.id)).sort((a,b)=>(b.active-a.active)||((b.lastWeek||b.resolvedWeek||0)-(a.lastWeek||a.resolvedWeek||0))).slice(0,limit);
 }
 function lotTalentPanel(t){
- const p=ensureLotProfile(t),labels=lotPersonaLabels(t),mem=lotRecentMemories(t),rels=lotKnownRelationships(t),stories=lotActiveStoriesForTalent(t);
- return `<div class="section-title"><h2>The Lot</h2><span class="small">Fictional in-game personality, relationships and alternate-Hollywood behaviour</span></div><div class="card lot-profile"><div class="lot-profile-head"><div><div class="badge">THE LOT</div><div class="lot-alias">${t.name}</div><div class="small">Real talent name · all simulated behaviour and events are fictional to this Project Slate career</div></div><span class="pill ${stories.length?'warn':'blue'}">${stories.length?stories.length+' active stor'+(stories.length===1?'y':'ies'):'No active drama'}</span></div><div class="lot-traits">${labels.map(x=>`<span>${x}</span>`).join('')}</div>${rels.length?`<div class="lot-rel-list">${rels.map(x=>`<div class="listrow"><span>${x.other.name}</span><strong>${x.label}</strong></div>`).join('')}</div>`:''}${mem.length?`<div class="lot-memory-list">${mem.map(m=>`<div class="lot-memory"><strong>${m.headline}</strong><span>W${m.week} · ${m.intensity>=4?'Legendary nonsense':m.intensity>=3?'Absurd':m.intensity>=2?'Hollywood drama':'Off-camera life'}</span></div>`).join('')}</div>`:''}</div>`;
+ const p=ensureLotProfile(t),labels=lotPersonaLabels(t),mem=lotRecentMemories(t),rels=lotKnownRelationships(t),stories=lotActiveStoriesForTalent(t),history=lotStoryHistoryForTalent(t);
+ return `<div class="section-title"><h2>The Lot</h2><span class="small">Fictional in-game personality, relationships and alternate-Hollywood behaviour</span></div><div class="card lot-profile"><div class="lot-profile-head"><div><div class="badge">THE LOT</div><div class="lot-alias">${t.name}</div><div class="small">Real talent name · all simulated behaviour and events are fictional to this Project Slate career</div></div><span class="pill ${stories.length?'warn':'blue'}">${stories.length?stories.length+' active stor'+(stories.length===1?'y':'ies'):'No active drama'}</span></div><div class="lot-traits">${labels.map(x=>`<span>${x}</span>`).join('')}</div>${rels.length?`<div class="lot-rel-list">${rels.map(x=>`<div class="listrow"><span>${x.other.name}<small>${x.history.films.length?' · '+x.history.films.length+' shared film'+(x.history.films.length===1?'':'s'):''}</small></span><strong>${x.label}</strong></div>`).join('')}</div>`:''}${history.length?`<div class="lot-story-history"><div class="lot-history-title">Story history</div>${history.map(s=>`<div class="lot-history-row"><div><strong>${s.headline}</strong><span>${s.active?(s.phase==='cooling'?'Cooling':'Active'):'Resolved W'+(s.resolvedWeek||s.lastWeek)} · ${s.chapters?.length||0} chapter${(s.chapters?.length||0)===1?'':'s'}${s.timesResurfaced?' · resurfaced '+s.timesResurfaced+'×':''}</span></div><span class="pill ${s.active?(s.type==='friendship'?'good':s.intensity>=3?'bad':'warn'):'blue'}">${s.active?'LIVE':'HISTORY'}</span></div>`).join('')}</div>`:''}${mem.length?`<div class="lot-memory-list">${mem.map(m=>`<div class="lot-memory"><strong>${m.headline}</strong><span>W${m.week} · ${m.type==='film-history'?'Shared film':m.type==='awards-history'?'Awards':m.type==='resurfacing'?'Resurfaced':m.intensity>=4?'Legendary nonsense':m.intensity>=3?'Absurd':m.intensity>=2?'Hollywood drama':'Off-camera life'}</span></div>`).join('')}</div>`:''}</div>`;
 }
 
 // Lazily seed profiles after all simulation modules have loaded.
