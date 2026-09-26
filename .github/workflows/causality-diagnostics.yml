@@ -10,11 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inspect narrative and desk hooks
+      - name: Inspect final d1 anchors
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           s=Path("index.html").read_text(encoding="utf-8")
+          for term in ["const PRODUCER_STRATEGIES=","const EFFECTS_APPROACHES="]:
+              print("\n###CONST "+term+"###")
+              i=s.find(term);print(s[i:i+6000] if i>=0 else "NOT FOUND")
           def emit(name):
               token="function "+name+"(";i=s.find(token);print("\n###OUT "+name+"###")
               if i<0: print("NOT FOUND");return
@@ -38,15 +42,15 @@ jobs:
                   if q:
                       if esc: esc=False
                       elif c=="\\": esc=True
-                      elif c==q: q=None
+                      elif c==q:q=None
                   else:
-                      if c in ("'", '"', "`"): q=c
-                      elif c=="{": d+=1
+                      if c in ("'", '"', "`"):q=c
+                      elif c=="{":d+=1
                       elif c=="}":
                           d-=1
-                          if d==0: j+=1;break
+                          if d==0:j+=1;break
                   j+=1
               print(s[i:j])
-          for n in ["makeReview","filmWrapVerdictCopy","filmWrapProductionMoment","filmWrapCampaignMoment","filmWrapBoxOfficeMoment","filmWrapTradeVerdict","filmWrapMomentScreen","generateStudioDeskWeek","pushDeskItem","syncOperationalDeskItems"]:
+          for n in ["expireDeskItems","markDeskRead","archiveDeskItem","archiveReadDeskItems","reviewTier","criticCraftParagraph","criticClosingParagraph"]:
               emit(n)
           PY
