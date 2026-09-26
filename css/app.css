@@ -754,3 +754,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .lot-history-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:9px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.025)}
 .lot-history-row>div{min-width:0}.lot-history-row strong,.lot-history-row span{display:block}
 .lot-history-row strong{font-size:11px;line-height:1.35}.lot-history-row div>span{font-size:9px;color:var(--muted);margin-top:3px}
+
+/* v4.3 — Power & Influence */
+.influence-opportunity{border-left:3px solid var(--accent)}
+.influence-route{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:10px;margin-top:10px;border-top:1px solid var(--border)}
+.influence-route>div{display:grid;gap:3px;min-width:0}
+.influence-route>div>strong{font-size:11px}
+.influence-route>div>span{font-size:10px;line-height:1.4;color:var(--muted)}
+.lot-influence-btn{margin-top:8px;width:100%;border-color:color-mix(in srgb,var(--accent2) 35%,var(--border))}
+.lot-campaign-opportunity{margin-bottom:10px}
+.rival-detente-card{margin-bottom:12px}
+@media(max-width:640px){
+ .influence-route{align-items:stretch;flex-direction:column}
+ .influence-route .btn{width:100%}
+}
