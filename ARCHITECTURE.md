@@ -1,6 +1,6 @@
 # Project Slate Architecture
 
-v4.0d.4 modularised the previous single-file build without intentionally changing simulation behaviour. v4.1a adds The Lot as the first feature built on that structure.
+v4.0d.4 modularised the previous single-file build without intentionally changing simulation behaviour. v4.1a added The Lot foundation; v4.1b makes its relationships and stories affect casting and production while keeping real talent names canonical.
 
 ## Runtime order
 - 00_bootstrap_data.js — build/version, seed data, foundational constants
@@ -23,7 +23,7 @@ v4.0d.4 modularised the previous single-file build without intentionally changin
 - 99_boot.js — route renderer/final bootstrap
 
 ## The Lot
-The Lot is a first-class people-simulation domain and should live under js/lot/. It owns alternate-Hollywood identities, personality, relationships, memories, incidents and story arcs. Film/casting/Pulse/Desk modules should call its public helpers rather than contain Lot rules themselves.
+The Lot is a first-class people-simulation domain and should live under js/lot/. It owns fictional in-game personality, relationships, memories, incidents and story arcs while the core roster's real talent names remain canonical. Film/casting/Pulse/Desk modules should call its public helpers rather than contain Lot rules themselves. From v4.1b, those helpers may supply bounded package-interest, chemistry, morale and stability effects so people stories create gameplay consequences without overwhelming the film-making loop.
 
 ## Refactor rule
 File movement should not change gameplay. New mechanics should arrive in feature commits after the modular baseline.
