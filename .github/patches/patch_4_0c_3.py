@@ -165,13 +165,18 @@ aw1=s.find("function studioScreen(){",aw0)
 if aw0<0 or aw1<0:
     raise SystemExit("awardsStudioBody boundary not found")
 awards_body=s[aw0:aw1]
-for cat in ["picture","director","lead","support","screenplay","soundtrack"]:
+for cat in ["picture","director","screenplay","soundtrack"]:
     old=f"awardBuzzLabel(awardsEligibilityScore(f,'{cat}'))"
     new=f"awardBuzzLabel(awardsCompetitiveScore(f,'{cat}'))"
     count=awards_body.count(old)
     if count!=1:
         raise SystemExit(f"player awards buzz {cat}: expected 1 awardsStudioBody occurrence, found {count}")
     awards_body=awards_body.replace(old,new,1)
+perf_old="awardBuzzLabel(Math.max(awardsEligibilityScore(f,'lead'),awardsEligibilityScore(f,'support')))"
+perf_new="awardBuzzLabel(Math.max(awardsCompetitiveScore(f,'lead'),awardsCompetitiveScore(f,'support')))"
+if awards_body.count(perf_old)!=1:
+    raise SystemExit(f"player performance buzz: expected 1 awardsStudioBody occurrence, found {awards_body.count(perf_old)}")
+awards_body=awards_body.replace(perf_old,perf_new,1)
 s=s[:aw0]+awards_body+s[aw1:]
 
 one('<div class="section-title"><h2>Awards history</h2>',
