@@ -10,18 +10,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Exact functions
+      - name: Exact legacy and review hooks
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           s=Path("index.html").read_text(encoding="utf-8")
+          names=[m.group(1) for m in re.finditer(r"function\s+([A-Za-z0-9_]+)\s*\(",s) if re.search(r"(legacy|review|complete|wrap|desk|finance|title)",m.group(1),re.I)]
+          print("###NAMES###",names)
           def emit(name):
-              token="function "+name+"("
-              i=s.find(token)
-              print("\n###OUT "+name+"###")
-              if i<0:
-                  print("NOT FOUND"); return
-              b=s.find("{",i);d=0;q=None;esc=False;j=b
+              token="function "+name+"(";i=s.find(token);print("\n###OUT "+name+"###")
+              if i<0: print("NOT FOUND");return
+              par=s.find("(",i);pd=0;q=None;esc=False;k=par
+              while k<len(s):
+                  c=s[k]
+                  if q:
+                      if esc: esc=False
+                      elif c=="\\": esc=True
+                      elif c==q: q=None
+                  else:
+                      if c in ("'", '"', "`"): q=c
+                      elif c=="(": pd+=1
+                      elif c==")":
+                          pd-=1
+                          if pd==0: k+=1;break
+                  k+=1
+              b=s.find("{",k);d=0;q=None;esc=False;j=b
               while j<len(s):
                   c=s[j]
                   if q:
@@ -33,9 +47,9 @@ jobs:
                       elif c=="{": d+=1
                       elif c=="}":
                           d-=1
-                          if d==0: j+=1; break
+                          if d==0: j+=1;break
                   j+=1
               print(s[i:j])
-          for n in ["deskItemHTML","buildFilmLegacy","filmTimelineEntries","reviewUI","filmDetail","filmUI","filmScreen","completeFilm","resolveReview"]:
+          for n in ["buildFilmLegacy","wrapUI","filmWrapMoment","reviewScreen","generateReview","openReviews","financeScreen","studioDeskBody"]:
               emit(n)
           PY
