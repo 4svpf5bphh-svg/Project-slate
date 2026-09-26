@@ -74,7 +74,7 @@ jobs:
 
           """
           one("function applyProductionDepthMetrics(f){",helpers+"function applyProductionDepthMetrics(f){","helpers")
-          one('  <div class="section-title"><h2>Creative brief</h2>','  ${productionChoiceFeedbackHTML(f)}\n  <div class="section-title"><h2>Creative brief</h2>',"choice notes")
+          one('  <div class="section-title"><h2>Creative brief</h2><span class="small">These choices also change which talent fits the project</span></div>','  ${productionChoiceFeedbackHTML(f)}\n  <div class="section-title"><h2>Creative brief</h2><span class="small">These choices also change which talent fits the project</span></div>',"choice notes")
           one('    ${theatricalInterventionPanel(f)}\\n  <div class="section-title"><h2>The box-office race</h2>','    ${theatricalInterventionPanel(f)}\\n  ${filmOutcomeFactorsHTML(f)}\\n  <div class="section-title"><h2>The box-office race</h2>',"cinema causality")
           one('  <div class="section-title"><h2>What the review was responding to</h2>','  ${filmOutcomeFactorsHTML(f)}\\n  <div class="section-title"><h2>What the review was responding to</h2>',"review causality")
           one('  <div class="section-title"><h2>Career consequences</h2></div><div class="card body">${careerConsequenceText(f,profit)}</div>','  ${filmOutcomeFactorsHTML(f)}\\n  <div class="section-title"><h2>Career consequences</h2></div><div class="card body">${careerConsequenceText(f,profit)}</div>',"wrap causality")
