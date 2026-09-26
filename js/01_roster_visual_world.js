@@ -335,7 +335,7 @@ async function hydratePortraits(){
 
 
 function money(n){return '$'+Number(n||0).toFixed(1)+'m'}
-function moneyFine(n){n=Number(n||0);return Math.abs(n)<.1?`$${Math.round(n*1000)}k`:money(n)}
+function moneyFine(n){n=Number(n||0);if(Math.abs(n)<.0005)return '$0';return Math.abs(n)<.1?`${Math.round(n*1000)}k`:money(n)}
 function clamp(n,a,b){return Math.max(a,Math.min(b,n))}
 function pct(n){return Math.round(n)+'%'}
 function hash(str){let h=2166136261>>>0;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
@@ -2148,8 +2148,9 @@ function checkAvailabilityWatches(){
  });
  state.availabilityWatches=keep;
 }
-function heldProjectWeeklyCost(f){return f.paused?.012:0}
-function heldProjectCostLabel(){return '$12k/week'}
+const HELD_PROJECT_WEEKLY_COST=.012;
+function heldProjectWeeklyCost(f){return f.paused?HELD_PROJECT_WEEKLY_COST:0}
+function heldProjectCostLabel(){return moneyFine(HELD_PROJECT_WEEKLY_COST)+'/week'}
 function returningTalentToWatch(f){
  if(!f.ipParentId)return [];
  const parent=filmById(f.ipParentId);return (parent?.cast||[]).map(talentById).filter(t=>t&&busy(t));
