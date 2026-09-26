@@ -1,6 +1,6 @@
 # Project Slate Architecture
 
-v4.0d.4 modularised the previous single-file build without intentionally changing simulation behaviour. v4.1a added The Lot foundation; v4.1b made its relationships and stories affect casting and production while keeping real talent names canonical; v4.1c surfaced those pressures directly in casting and film workflows; v4.1d makes rival intent legible and applies the next casting/Industry UX cleanup. v4.2 adds persistent pair history, story chapters, resurfacing, cross-studio film memory and awards callbacks so relationships can span years and careers.
+v4.0d.4 modularised the previous single-file build without intentionally changing simulation behaviour. v4.1a added The Lot foundation; v4.1b made its relationships and stories affect casting and production while keeping real talent names canonical; v4.1c surfaced those pressures directly in casting and film workflows; v4.1d makes rival intent legible and applies the next casting/Industry UX cleanup. v4.2 adds persistent pair history, story chapters, resurfacing, cross-studio film memory and awards callbacks so relationships can span years and careers. v4.3 adds player-facing influence: trusted collaborators can reopen talent conversations, warm agencies can grant priority access, studio rivals can be approached for détente, and live Lot stories can be deliberately used as risky publicity.
 
 ## Runtime order
 - 00_bootstrap_data.js — build/version, seed data, foundational constants
