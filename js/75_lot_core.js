@@ -149,6 +149,7 @@ function lotCandidateCastingSignal(t,f){
 }
 function lotInfluenceApproachOffer(t,f,roleId=null){
  if(!t||!f||f.stage!=='development'||t.type!=='Actor'||talentUnavailableForFilm(t,f)||lotAttachedTalentIds(f).includes(t.id))return null;
+ const activeWindow=typeof activeAgencyWindow==='function'?activeAgencyWindow(t):null;if(activeWindow&&activeWindow.filmId!==f.id)return null;
  const allies=lotAttachedTalentIds(f).map(talentById).filter(Boolean).map(ally=>{
   const rel=lotRelationship(t,ally),score=lotRelationshipScore(rel),history=lotPairHistory(t,ally);
   const bonus=(rel.affection>=76&&rel.trust>=68?4:0)+(history?.films?.length?Math.min(3,history.films.length):0);
