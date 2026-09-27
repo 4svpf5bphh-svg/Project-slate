@@ -44,17 +44,15 @@ Recommended environment variables:
 
 - `NARRATIVE_PROVIDER=groq`
 - `NARRATIVE_MODEL=openai/gpt-oss-120b`
-- `NARRATIVE_ALLOWED_ORIGINS` — comma-separated allowed browser origins. If omitted, the endpoint accepts same-origin requests and localhost only.
+- `NARRATIVE_ALLOWED_ORIGINS` — optional comma-separated extra browser origins. The Project Slate GitHub Pages origin, same-origin requests and localhost are already allowed.
 
 The server is provider-agnostic. Setting `NARRATIVE_PROVIDER=openai` switches to the OpenAI Responses API instead and reads `OPENAI_API_KEY`; `NARRATIVE_MODEL` can override the model without changing the browser game.
 
 Because the current career is browser-local and there is no portable cloud save yet, the preferred v4.5a setup is to keep the playable game on its existing GitHub Pages origin and deploy only the serverless Narrative API to Vercel. This preserves the current browser storage.
 
-Set the exact GitHub Pages origin in `NARRATIVE_ALLOWED_ORIGINS`, then point the client at the deployed API URL. During development this can be done from the browser console:
+Once the Vercel API is deployed, open Project Slate → Studio → Business → Narrative, paste the Vercel project URL, save it and press **Test connection**. The known Project Slate GitHub Pages origin is already allowed by the API.
 
-`ProjectSlate.setNarrativeEndpoint('https://YOUR-DEPLOYMENT.vercel.app/api/narrative')`
-
-Pass an empty value to return to the default same-origin endpoint.
+The field accepts either `https://YOUR-DEPLOYMENT.vercel.app` or the full `/api/narrative` URL.
 
 ## Data handling
 
