@@ -95,7 +95,7 @@ module.exports=async function handler(req,res){
         reasoning:{effort:'low'},
         temperature:.8,
         store:false,
-        text:{format:{type:'json_schema',name:'project_slate_film_review',strict:true,schema:reviewSchema()}}
+        text:{format:{type:'json_schema',name:'project_slate_film_review',schema:reviewSchema()}}
       })
     });
     const data=await upstream.json();
