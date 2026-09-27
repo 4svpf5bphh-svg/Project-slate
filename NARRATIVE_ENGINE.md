@@ -34,14 +34,19 @@ The repository contains a Vercel-compatible serverless endpoint at:
 
 `/api/narrative`
 
-Required environment variable:
+Default provider: **Groq**, using `openai/gpt-oss-120b`.
 
-`OPENAI_API_KEY`
+Required environment variable for the default setup:
 
-Optional variables:
+`GROQ_API_KEY`
 
-- `OPENAI_MODEL` — defaults to `gpt-6-astra`.
+Recommended environment variables:
+
+- `NARRATIVE_PROVIDER=groq`
+- `NARRATIVE_MODEL=openai/gpt-oss-120b`
 - `NARRATIVE_ALLOWED_ORIGINS` — comma-separated allowed browser origins. If omitted, the endpoint accepts same-origin requests and localhost only.
+
+The server is provider-agnostic. Setting `NARRATIVE_PROVIDER=openai` switches to the OpenAI Responses API instead and reads `OPENAI_API_KEY`; `NARRATIVE_MODEL` can override the model without changing the browser game.
 
 Because the current career is browser-local and there is no portable cloud save yet, the preferred v4.5a setup is to keep the playable game on its existing GitHub Pages origin and deploy only the serverless Narrative API to Vercel. This preserves the current browser storage.
 
@@ -53,7 +58,7 @@ Pass an empty value to return to the default same-origin endpoint.
 
 ## Data handling
 
-The server sends only the structured narrative packet needed for the requested prose. The OpenAI Responses request uses `store: false`.
+The server sends only the structured narrative packet needed for the requested prose. Responses requests use `store: false`. No provider is asked to retain a response for Project Slate's own persistence model.
 
 Real performer/director names in a Project Slate packet are explicitly labelled as fictional alternate-reality counterparts. The prompt instructs the model not to convert fictional Project Slate events into real-world claims.
 
