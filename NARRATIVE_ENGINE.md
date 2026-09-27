@@ -43,9 +43,9 @@ Optional variables:
 - `OPENAI_MODEL` — defaults to `gpt-6-astra`.
 - `NARRATIVE_ALLOWED_ORIGINS` — comma-separated allowed browser origins. If omitted, the endpoint accepts same-origin requests and localhost only.
 
-For the cleanest setup, deploy the whole repository to Vercel. The static game and `/api/narrative` then share one origin and the browser client works without any endpoint configuration.
+Because the current career is browser-local and there is no portable cloud save yet, the preferred v4.5a setup is to keep the playable game on its existing GitHub Pages origin and deploy only the serverless Narrative API to Vercel. This preserves the current browser storage.
 
-If the static game remains on GitHub Pages while the API is hosted elsewhere, add the exact GitHub Pages origin to `NARRATIVE_ALLOWED_ORIGINS`, then point the client at the API URL from the browser console:
+Set the exact GitHub Pages origin in `NARRATIVE_ALLOWED_ORIGINS`, then point the client at the deployed API URL. During development this can be done from the browser console:
 
 `ProjectSlate.setNarrativeEndpoint('https://YOUR-DEPLOYMENT.vercel.app/api/narrative')`
 
