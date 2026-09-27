@@ -792,3 +792,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .narrative-status.failed{border-left:3px solid var(--warn)}
 .narrative-status.failed>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 @media(max-width:640px){.narrative-status{align-items:stretch;flex-direction:column}.narrative-status .btn{width:100%}}
+
+.narrative-settings{display:grid;gap:10px}
+.narrative-settings .field-label{font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.narrative-connection{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.02)}
+.narrative-connection>div{display:grid;gap:3px;min-width:0}
+.narrative-connection strong{font-size:11px}
+.narrative-connection span{font-size:10px;color:var(--muted);line-height:1.4}
+.narrative-connection.ready{border-left:3px solid var(--good)}
+.narrative-connection.warn{border-left:3px solid var(--warn)}
