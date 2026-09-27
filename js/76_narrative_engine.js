@@ -116,16 +116,18 @@ function reviewDisplayContent(f){
  return {headline:local.headline,quote:local.quote,paragraphs:local.paragraphs||[],ai:null};
 }
 function narrativeReviewStatusHTML(f){
- const x=ensureFilmNarrative(f)?.review;
+ const x=ensureFilmNarrative(f)?.review,endpoint=narrativeEndpoint();
  if(x?.status==='ready')return '<div class="narrative-status ready"><span class="pill good">NARRATIVE ENGINE</span><span>AI-authored review prose · scores and game outcomes remain simulation-owned.</span></div>';
  if(x?.status==='pending')return '<div class="narrative-status pending"><span class="pill blue">NARRATIVE ENGINE</span><span>The Daily Screen review is being written. Local review copy remains visible until it arrives.</span></div>';
  if(x?.status==='failed')return '<div class="narrative-status failed"><div><span class="pill warn">LOCAL FALLBACK</span><span>Narrative Engine unavailable. The simulation review is still complete and playable.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Retry AI review</button></div>';
+ if(f?.review&&!endpoint)return '<div class="narrative-status"><div><span class="pill blue">LOCAL REVIEW</span><span>Narrative Engine is optional and not connected yet.</span></div><button class="btn ghost" data-open-narrative-settings>Set up Narrative Engine</button></div>';
  if(f?.review)return '<div class="narrative-status"><div><span class="pill blue">NARRATIVE ENGINE</span><span>Local review currently shown. Generate an AI-written version from the same simulation verdict.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Generate AI review</button></div>';
  return '';
 }
 function queueAIReview(f,{force=false}={}){
  if(!f?.review||f.owner!=='player')return Promise.resolve(null);
  if(typeof simulationBenchmarkActive!=='undefined'&&simulationBenchmarkActive)return Promise.resolve(null);
+ if(!narrativeEndpoint())return Promise.resolve(null);
  const store=ensureFilmNarrative(f),packet=narrativeFilmReviewPacket(f),fingerprint=narrativeFingerprint(packet),existing=store.review;
  if(!force&&existing?.status==='ready'&&existing.fingerprint===fingerprint)return Promise.resolve(existing);
  const key='film_review:'+f.id;if(narrativeRuntime.pending.has(key))return narrativeRuntime.pending.get(key);
@@ -145,7 +147,7 @@ function queueAIReview(f,{force=false}={}){
  }).finally(()=>narrativeRuntime.pending.delete(key));
  narrativeRuntime.pending.set(key,task);return task;
 }
-function retryAIReview(f){if(!f)return;queueAIReview(f,{force:true});render()}
+function retryAIReview(f){if(!f)return;if(!narrativeEndpoint()){showToast('Set up Narrative Engine under Studio → Business → Narrative.');return}queueAIReview(f,{force:true});render()}
 function bootstrapNarrativeEngine(){
  (state.films||[]).forEach(f=>{const x=f.aiNarrative?.review;if(x?.status==='pending')x.status='failed'});
 }
