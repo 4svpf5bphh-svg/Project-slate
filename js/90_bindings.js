@@ -73,6 +73,7 @@ function bind(){
  document.querySelectorAll('[data-lot-influence-talent]').forEach(b=>b.onclick=e=>{e.stopPropagation();useLotInfluenceApproach(talentById(b.dataset.lotInfluenceTalent),filmById(b.dataset.lotInfluenceFilm),b.dataset.lotInfluenceRole)});
  document.querySelectorAll('[data-agency-influence-talent]').forEach(b=>b.onclick=e=>{e.stopPropagation();useAgencyInfluence(talentById(b.dataset.agencyInfluenceTalent),filmById(b.dataset.agencyInfluenceFilm))});
  document.querySelectorAll('[data-rival-detente]').forEach(b=>b.onclick=e=>{e.stopPropagation();attemptRivalDetente(rivalById(b.dataset.rivalDetente))});
+ document.querySelectorAll('[data-retry-ai-review]').forEach(b=>b.onclick=e=>{e.stopPropagation();retryAIReview(filmById(b.dataset.retryAiReview))});
  const bb=document.getElementById('backBtn');if(bb)bb.onclick=back;
  document.querySelectorAll('[data-pulse-film]').forEach(b=>b.onclick=()=>push('studio',{type:'pulse',id:b.dataset.pulseFilm}));
  const bell=document.getElementById('notificationBell');if(bell)bell.onclick=()=>{state.history=[];state.screen='studio';state.detail=null;state.uiStudioTab='desk';state.uiDeskTab='briefing';requestScrollTop();save();render()};
