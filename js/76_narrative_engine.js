@@ -102,7 +102,7 @@ function queueAIReview(f,{force=false}={}){
  try{save()}catch{}
  const task=requestNarrative('film_review',packet).then(data=>{
   if(!validAIReview(data.narrative))throw new Error('invalid_review_shape');
-  store.review={status:'ready',fingerprint,narrative:data.narrative,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week};
+  store.review={status:'ready',fingerprint,narrative:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week};
   narrativeRuntime.lastError=null;try{save()}catch{}
   if(typeof render==='function'&&state.detail?.type==='review'&&state.detail?.id===f.id)render();
   return store.review;
