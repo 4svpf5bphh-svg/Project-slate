@@ -89,6 +89,7 @@ function narrativeReviewStatusHTML(f){
  if(x?.status==='ready')return '<div class="narrative-status ready"><span class="pill good">NARRATIVE ENGINE</span><span>AI-authored review prose · scores and game outcomes remain simulation-owned.</span></div>';
  if(x?.status==='pending')return '<div class="narrative-status pending"><span class="pill blue">NARRATIVE ENGINE</span><span>The Daily Screen review is being written. Local review copy remains visible until it arrives.</span></div>';
  if(x?.status==='failed')return '<div class="narrative-status failed"><div><span class="pill warn">LOCAL FALLBACK</span><span>Narrative Engine unavailable. The simulation review is still complete and playable.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Retry AI review</button></div>';
+ if(f?.review)return '<div class="narrative-status"><div><span class="pill blue">NARRATIVE ENGINE</span><span>Local review currently shown. Generate an AI-written version from the same simulation verdict.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Generate AI review</button></div>';
  return '';
 }
 function queueAIReview(f,{force=false}={}){
