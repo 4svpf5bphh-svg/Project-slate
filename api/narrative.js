@@ -6,15 +6,16 @@ const OPENAI_URL='https://api.openai.com/v1/responses';
 const ALLOWED_TYPES=new Set(['film_review']);
 const MAX_BODY_CHARS=60000;
 
-function allowedOrigin(origin){
+function allowedOrigin(origin,host=''){
   if(!origin)return true; // same-origin/server calls may omit Origin
   const configured=(process.env.NARRATIVE_ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean);
   if(configured.length)return configured.includes(origin);
-  return /^https:\/\/4svpf5bphh-svg\.github\.io$/.test(origin)||/^https:\/\/[^/]+\.vercel\.app$/.test(origin)||/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  const sameHttps=host&&origin==='https://'+host,sameHttp=host&&origin==='http://'+host;
+  return !!(sameHttps||sameHttp||/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
 }
 function setCors(req,res){
-  const origin=req.headers.origin;
-  if(origin&&allowedOrigin(origin)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}
+  const origin=req.headers.origin,host=req.headers.host||'';
+  if(origin&&allowedOrigin(origin,host)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}
   res.setHeader('Access-Control-Allow-Methods','POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers','Content-Type');
 }
@@ -57,7 +58,7 @@ module.exports=async function handler(req,res){
   setCors(req,res);
   if(req.method==='OPTIONS')return res.status(204).end();
   if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
-  if(!allowedOrigin(req.headers.origin))return res.status(403).json({ok:false,error:'origin_not_allowed'});
+  if(!allowedOrigin(req.headers.origin,req.headers.host||''))return res.status(403).json({ok:false,error:'origin_not_allowed'});
   if(!process.env.OPENAI_API_KEY)return res.status(503).json({ok:false,error:'narrative_not_configured'});
 
   let body=req.body;
