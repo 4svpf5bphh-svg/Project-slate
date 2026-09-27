@@ -6,7 +6,9 @@ const narrativeRuntime={pending:new Map(),lastError:null};
 
 function narrativeEndpoint(){
  const configured=(typeof window!=='undefined'&&window.PROJECT_SLATE_NARRATIVE_ENDPOINT)||localStorage.getItem('projectSlateNarrativeEndpoint');
- return configured||'/api/narrative';
+ if(configured)return configured;
+ if(typeof location!=='undefined'&&/\.github\.io$/i.test(location.hostname))return null;
+ return '/api/narrative';
 }
 function ensureFilmNarrative(f){
  if(!f)return null;
@@ -66,9 +68,10 @@ function narrativeFilmReviewPacket(f){
 function narrativeFingerprint(packet){return String(hash(JSON.stringify(packet)))}
 function validAIReview(x){return !!x&&typeof x.headline==='string'&&typeof x.pull_quote==='string'&&Array.isArray(x.paragraphs)&&x.paragraphs.length===4&&x.paragraphs.every(p=>typeof p==='string'&&p.trim())}
 async function requestNarrative(type,packet){
+ const endpoint=narrativeEndpoint();if(!endpoint)throw new Error('narrative_backend_not_configured');
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),30000);
  try{
-  const res=await fetch(narrativeEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,packet}),signal:ctrl.signal});
+  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,packet}),signal:ctrl.signal});
   let data=null;try{data=await res.json()}catch{}
   if(!res.ok||!data?.ok)throw new Error(data?.error||('http_'+res.status));
   return data;
@@ -88,6 +91,7 @@ function narrativeReviewStatusHTML(f){
 }
 function queueAIReview(f,{force=false}={}){
  if(!f?.review||f.owner!=='player')return Promise.resolve(null);
+ if(typeof simulationBenchmarkActive!=='undefined'&&simulationBenchmarkActive)return Promise.resolve(null);
  const store=ensureFilmNarrative(f),packet=narrativeFilmReviewPacket(f),fingerprint=narrativeFingerprint(packet),existing=store.review;
  if(!force&&existing?.status==='ready'&&existing.fingerprint===fingerprint)return Promise.resolve(existing);
  const key='film_review:'+f.id;if(narrativeRuntime.pending.has(key))return narrativeRuntime.pending.get(key);
