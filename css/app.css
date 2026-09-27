@@ -783,3 +783,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
  .executive-intel-grid{grid-template-columns:1fr}
  .executive-intel-card .btn{width:100%}
 }
+
+/* v4.5a — Narrative Engine */
+.narrative-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.025)}
+.narrative-status>span,.narrative-status>div>span{font-size:10px;color:var(--muted)}
+.narrative-status.ready{border-left:3px solid var(--good)}
+.narrative-status.pending{border-left:3px solid var(--accent)}
+.narrative-status.failed{border-left:3px solid var(--warn)}
+.narrative-status.failed>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:640px){.narrative-status{align-items:stretch;flex-direction:column}.narrative-status .btn{width:100%}}
