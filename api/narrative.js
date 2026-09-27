@@ -91,7 +91,9 @@ module.exports=async function handler(req,res){
         model,
         instructions:narrativeInstructions(type),
         input:[{role:'user',content:'PROJECT SLATE SIMULATION PACKET\n'+serialized}],
-        max_output_tokens:1600,
+        max_output_tokens:1200,
+        reasoning:{effort:'low'},
+        temperature:.8,
         store:false,
         text:{format:{type:'json_schema',name:'project_slate_film_review',strict:true,schema:reviewSchema()}}
       })
