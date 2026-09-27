@@ -2,13 +2,44 @@
 // Gameplay remains authoritative. AI prose is optional and always has a local fallback.
 
 const NARRATIVE_SCHEMA_VERSION=1;
-const narrativeRuntime={pending:new Map(),lastError:null};
+const narrativeRuntime={pending:new Map(),lastError:null,connection:null};
 
+function narrativeNormalizeEndpoint(value){
+ let url=String(value||'').trim();if(!url)return null;
+ if(!/^https?:\/\//i.test(url))url='https://'+url;
+ url=url.replace(/\/+$/,'');
+ if(!/\/api\/narrative$/i.test(url))url+='/api/narrative';
+ return url;
+}
 function narrativeEndpoint(){
  const configured=(typeof window!=='undefined'&&window.PROJECT_SLATE_NARRATIVE_ENDPOINT)||localStorage.getItem('projectSlateNarrativeEndpoint');
- if(configured)return configured;
+ if(configured)return narrativeNormalizeEndpoint(configured);
  if(typeof location!=='undefined'&&/\.github\.io$/i.test(location.hostname))return null;
  return '/api/narrative';
+}
+function setNarrativeEndpointValue(value){
+ const normalized=narrativeNormalizeEndpoint(value);
+ if(normalized)localStorage.setItem('projectSlateNarrativeEndpoint',normalized);else localStorage.removeItem('projectSlateNarrativeEndpoint');
+ narrativeRuntime.connection=null;narrativeRuntime.lastError=null;return narrativeEndpoint();
+}
+async function testNarrativeConnection(){
+ const endpoint=narrativeEndpoint();if(!endpoint){narrativeRuntime.connection={ok:false,error:'No Narrative API endpoint configured.'};return narrativeRuntime.connection}
+ try{
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);let res;
+  try{res=await fetch(endpoint,{method:'GET',headers:{'Accept':'application/json'},signal:ctrl.signal})}finally{clearTimeout(timer)}
+  let data=null;try{data=await res.json()}catch{}
+  narrativeRuntime.connection=res.ok&&data?.ok?{ok:true,provider:data.provider||'unknown',model:data.model||'unknown',configured:!!data.configured,endpoint}:{ok:false,error:data?.error||('HTTP '+res.status),endpoint};
+ }catch(err){narrativeRuntime.connection={ok:false,error:String(err?.message||err),endpoint}}
+ return narrativeRuntime.connection;
+}
+function narrativeSettingsHTML(){
+ const endpoint=narrativeEndpoint(),status=narrativeRuntime.connection;
+ const value=narrativeEscapeHTML(endpoint||'');
+ const statusHTML=status?.ok
+  ?'<div class="narrative-connection '+(status.configured?'ready':'warn')+'"><span class="pill '+(status.configured?'good':'warn')+'">'+(status.configured?'CONNECTED':'KEY MISSING')+'</span><div><strong>'+narrativeEscapeHTML(status.provider)+' · '+narrativeEscapeHTML(status.model)+'</strong><span>'+(status.configured?'Narrative API is ready to generate reviews.':'The API is live, but its provider key is not configured yet.')+'</span></div></div>'
+  :status?'<div class="narrative-connection warn"><span class="pill warn">NOT READY</span><div><strong>Connection failed</strong><span>'+narrativeEscapeHTML(status.error||'Unknown error')+'</span></div></div>'
+  :'<div class="narrative-connection"><span class="pill blue">OPTIONAL</span><div><strong>'+(endpoint?'Endpoint saved':'No endpoint configured')+'</strong><span>'+(endpoint?'Test the connection to confirm the server and Groq key are ready.':'Project Slate will continue using its local writing until a Narrative API is connected.')+'</span></div></div>';
+ return '<div class="section-title"><h2>Narrative Engine</h2><span class="small">AI changes the writing, never the simulation result</span></div><div class="card narrative-settings">'+statusHTML+'<label class="field-label" for="narrativeEndpointInput">Narrative API URL</label><input id="narrativeEndpointInput" class="input" type="url" inputmode="url" placeholder="https://your-project.vercel.app" value="'+value+'"><div class="small" style="margin-top:6px">You can paste either the Vercel project URL or the full /api/narrative URL. No API key belongs in the game.</div><div class="grid cols2" style="margin-top:10px"><button class="btn" id="saveNarrativeEndpoint">Save endpoint</button><button class="btn primary" id="testNarrativeEndpoint" '+(!endpoint?'disabled':'')+'>Test connection</button></div><div class="small" style="margin-top:10px"><strong>Current AI surface:</strong> The Daily Screen main review. If the service is unavailable, the existing local review remains the automatic fallback.</div></div>';
 }
 function ensureFilmNarrative(f){
  if(!f)return null;
