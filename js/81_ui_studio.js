@@ -806,18 +806,18 @@ function studioFinanceOverviewBody(){
 }
 function studioBusinessBody(){
  let tab=state.uiBusinessTab||'finance';
- const allowed=['finance','identity','growth'];if(typeof corporateVisible==='function'&&corporateVisible())allowed.push('corporate');if(simulationAuditAccess())allowed.push('audit');
+ const allowed=['finance','identity','growth','narrative'];if(typeof corporateVisible==='function'&&corporateVisible())allowed.push('corporate');if(simulationAuditAccess())allowed.push('audit');
  if(!allowed.includes(tab)){tab='finance';state.uiBusinessTab='finance'}
- const items=[['finance','Finance'],['growth','Growth'],['identity','Identity']];if(typeof corporateVisible==='function'&&corporateVisible())items.push(['corporate','Corporate']);if(simulationAuditAccess())items.push(['audit','Audit']);
+ const items=[['finance','Finance'],['growth','Growth'],['identity','Identity'],['narrative','Narrative']];if(typeof corporateVisible==='function'&&corporateVisible())items.push(['corporate','Corporate']);if(simulationAuditAccess())items.push(['audit','Audit']);
  const tabs=sectionTabs(items,tab,'data-business-tab');
- let body=tab==='finance'?studioFinanceOverviewBody():tab==='growth'?studioGrowthUI():tab==='identity'?studioIdentityBody():tab==='corporate'&&typeof studioCorporateBody==='function'?studioCorporateBody():tab==='audit'&&simulationAuditAccess()?simulationAuditBody():studioFinanceOverviewBody();
+ let body=tab==='finance'?studioFinanceOverviewBody():tab==='growth'?studioGrowthUI():tab==='identity'?studioIdentityBody():tab==='narrative'&&typeof narrativeSettingsHTML==='function'?narrativeSettingsHTML():tab==='corporate'&&typeof studioCorporateBody==='function'?studioCorporateBody():tab==='audit'&&simulationAuditAccess()?simulationAuditBody():studioFinanceOverviewBody();
  return tabs+body;
 }
 function studioScreen(){
  rebuildDecisions();
  let tab=state.uiStudioTab||'desk';
  if(tab==='overview'){tab='desk';state.uiStudioTab='desk'}
- if(['finance','identity','growth','corporate','audit'].includes(tab)){state.uiBusinessTab=tab;tab='business';state.uiStudioTab='business'}
+ if(['finance','identity','growth','narrative','corporate','audit'].includes(tab)){state.uiBusinessTab=tab;tab='business';state.uiStudioTab='business'}
  const tabItems=[['desk',deskInboxCount()? `Desk · ${deskInboxCount()}`:'Desk'],['business','Business'],['awards','Awards'],['legacy','Legacy'],['library','Library']];
  const tabs=sectionTabs(tabItems,tab,'data-studio-tab');
  let body='';
