@@ -1,8 +1,20 @@
 // Project Slate v4.5a — stateless Narrative Engine API
 // Designed for a Vercel deployment. The API key lives only in server environment variables.
 
-const MODEL=process.env.OPENAI_MODEL||'gpt-6-astra';
-const OPENAI_URL='https://api.openai.com/v1/responses';
+const PROVIDER=(process.env.NARRATIVE_PROVIDER||'groq').toLowerCase();
+const PROVIDERS={
+  groq:{
+    url:'https://api.groq.com/openai/v1/responses',
+    key:()=>process.env.GROQ_API_KEY,
+    model:()=>process.env.NARRATIVE_MODEL||process.env.GROQ_MODEL||'openai/gpt-oss-120b'
+  },
+  openai:{
+    url:'https://api.openai.com/v1/responses',
+    key:()=>process.env.OPENAI_API_KEY,
+    model:()=>process.env.NARRATIVE_MODEL||process.env.OPENAI_MODEL||'gpt-5.6'
+  }
+};
+const provider=PROVIDERS[PROVIDER]||PROVIDERS.groq;
 const ALLOWED_TYPES=new Set(['film_review']);
 const MAX_BODY_CHARS=60000;
 
@@ -59,7 +71,8 @@ module.exports=async function handler(req,res){
   if(req.method==='OPTIONS')return res.status(204).end();
   if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
   if(!allowedOrigin(req.headers.origin,req.headers.host||''))return res.status(403).json({ok:false,error:'origin_not_allowed'});
-  if(!process.env.OPENAI_API_KEY)return res.status(503).json({ok:false,error:'narrative_not_configured'});
+  const apiKey=provider.key(),model=provider.model();
+  if(!apiKey)return res.status(503).json({ok:false,error:'narrative_not_configured',provider:PROVIDER});
 
   let body=req.body;
   if(typeof body==='string'){if(body.length>MAX_BODY_CHARS)return res.status(413).json({ok:false,error:'payload_too_large'});try{body=JSON.parse(body)}catch{return res.status(400).json({ok:false,error:'invalid_json'})}}
@@ -69,11 +82,11 @@ module.exports=async function handler(req,res){
   if(serialized.length>MAX_BODY_CHARS)return res.status(413).json({ok:false,error:'payload_too_large'});
 
   try{
-    const upstream=await fetch(OPENAI_URL,{
+    const upstream=await fetch(provider.url,{
       method:'POST',
-      headers:{'Authorization':'Bearer '+process.env.OPENAI_API_KEY,'Content-Type':'application/json'},
+      headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:MODEL,
+        model,
         instructions:narrativeInstructions(type),
         input:[{role:'user',content:'PROJECT SLATE SIMULATION PACKET\n'+serialized}],
         max_output_tokens:1600,
@@ -82,11 +95,15 @@ module.exports=async function handler(req,res){
       })
     });
     const data=await upstream.json();
-    if(!upstream.ok)return res.status(upstream.status>=500?502:400).json({ok:false,error:'openai_error',detail:data?.error?.message||'Request failed'});
+    if(!upstream.ok){
+      const retryAfter=upstream.headers.get('retry-after');
+      if(retryAfter)res.setHeader('Retry-After',retryAfter);
+      return res.status(upstream.status===429?429:upstream.status>=500?502:400).json({ok:false,error:PROVIDER+'_error',detail:data?.error?.message||'Request failed'});
+    }
     const raw=outputText(data);if(!raw)return res.status(502).json({ok:false,error:'empty_model_response'});
     let narrative;try{narrative=JSON.parse(raw)}catch{return res.status(502).json({ok:false,error:'invalid_model_json'})}
     if(!Array.isArray(narrative.paragraphs)||narrative.paragraphs.length!==4)return res.status(502).json({ok:false,error:'invalid_review_shape'});
-    return res.status(200).json({ok:true,narrative,meta:{model:MODEL,responseId:data.id||null}});
+    return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null}});
   }catch(err){
     return res.status(500).json({ok:false,error:'narrative_request_failed',detail:String(err?.message||err)});
   }
