@@ -23,12 +23,13 @@ function allowedOrigin(origin,host=''){
   const configured=(process.env.NARRATIVE_ALLOWED_ORIGINS||'').split(',').map(x=>x.trim()).filter(Boolean);
   if(configured.length)return configured.includes(origin);
   const sameHttps=host&&origin==='https://'+host,sameHttp=host&&origin==='http://'+host;
-  return !!(sameHttps||sameHttp||/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
+  const projectSlatePages=origin==='https://4svpf5bphh-svg.github.io';
+  return !!(sameHttps||sameHttp||projectSlatePages||/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
 }
 function setCors(req,res){
   const origin=req.headers.origin,host=req.headers.host||'';
   if(origin&&allowedOrigin(origin,host)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}
-  res.setHeader('Access-Control-Allow-Methods','POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers','Content-Type');
 }
 function outputText(data){
@@ -69,9 +70,10 @@ function narrativeInstructions(type){
 module.exports=async function handler(req,res){
   setCors(req,res);
   if(req.method==='OPTIONS')return res.status(204).end();
-  if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
   if(!allowedOrigin(req.headers.origin,req.headers.host||''))return res.status(403).json({ok:false,error:'origin_not_allowed'});
   const apiKey=provider.key(),model=provider.model();
+  if(req.method==='GET')return res.status(200).json({ok:true,service:'project-slate-narrative',provider:PROVIDER,model,configured:!!apiKey});
+  if(req.method!=='POST')return res.status(405).json({ok:false,error:'method_not_allowed'});
   if(!apiKey)return res.status(503).json({ok:false,error:'narrative_not_configured',provider:PROVIDER});
 
   let body=req.body;
