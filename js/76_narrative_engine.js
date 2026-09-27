@@ -78,9 +78,11 @@ async function requestNarrative(type,packet){
  }finally{clearTimeout(timer)}
 }
 function aiReviewContent(f){const x=ensureFilmNarrative(f)?.review;return x?.status==='ready'&&validAIReview(x.narrative)?x:null}
+function narrativeEscapeHTML(value){return String(value??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]))}
 function reviewDisplayContent(f){
  const ai=aiReviewContent(f),local=f.review||{};
- return {headline:ai?.narrative.headline||local.headline,quote:ai?.narrative.pull_quote||local.quote,paragraphs:ai?.narrative.paragraphs||local.paragraphs||[],ai};
+ if(ai)return {headline:narrativeEscapeHTML(ai.narrative.headline),quote:narrativeEscapeHTML(ai.narrative.pull_quote),paragraphs:ai.narrative.paragraphs.map(narrativeEscapeHTML),ai};
+ return {headline:local.headline,quote:local.quote,paragraphs:local.paragraphs||[],ai:null};
 }
 function narrativeReviewStatusHTML(f){
  const x=ensureFilmNarrative(f)?.review;
