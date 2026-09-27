@@ -28,7 +28,7 @@ The current build automatically serializes browser state to localStorage. A comp
 
 The Narrative API is deliberately stateless. Future cloud saves/multiplayer can persist the same `aiNarrative` records without changing the API contract.
 
-## Deployment
+## Deployment\n\nCurrent production Narrative API endpoint:\n\n`https://project-slate-five.vercel.app/api/narrative`\n
 
 The repository contains a Vercel-compatible serverless endpoint at:
 
