@@ -2,6 +2,7 @@
 // Gameplay remains authoritative. AI prose is optional and always has a local fallback.
 
 const NARRATIVE_SCHEMA_VERSION=1;
+const NARRATIVE_DEFAULT_ENDPOINT='https://project-slate-five.vercel.app/api/narrative';
 const narrativeRuntime={pending:new Map(),lastError:null,connection:null};
 
 function narrativeNormalizeEndpoint(value){
@@ -14,7 +15,7 @@ function narrativeNormalizeEndpoint(value){
 function narrativeEndpoint(){
  const configured=(typeof window!=='undefined'&&window.PROJECT_SLATE_NARRATIVE_ENDPOINT)||localStorage.getItem('projectSlateNarrativeEndpoint');
  if(configured)return narrativeNormalizeEndpoint(configured);
- if(typeof location!=='undefined'&&/\.github\.io$/i.test(location.hostname))return null;
+ if(typeof location!=='undefined'&&/\.github\.io$/i.test(location.hostname))return NARRATIVE_DEFAULT_ENDPOINT;
  return '/api/narrative';
 }
 function setNarrativeEndpointValue(value){
