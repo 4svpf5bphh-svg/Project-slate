@@ -801,3 +801,41 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .narrative-connection span{font-size:10px;color:var(--muted);line-height:1.4}
 .narrative-connection.ready{border-left:3px solid var(--good)}
 .narrative-connection.warn{border-left:3px solid var(--warn)}
+
+/* v4.5c — AI review reveal */
+.review-reveal{min-height:100dvh;padding:calc(18px + env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));background:radial-gradient(circle at 20% 10%,rgba(255,255,255,.055),transparent 34%),linear-gradient(180deg,#0d1016,#080a0e 72%)}
+.review-reveal-inner{max-width:980px;margin:0 auto}
+.review-reveal-mast{display:flex;justify-content:space-between;align-items:end;gap:14px;padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,.18)}
+.review-reveal-mast>div{display:flex;align-items:baseline;gap:8px;font-family:Georgia,serif;letter-spacing:-.03em}
+.review-reveal-mast span{font-size:13px;letter-spacing:.16em}
+.review-reveal-mast strong{font-size:29px}
+.review-reveal-mast small{font-size:9px;letter-spacing:.13em;color:var(--muted);text-align:right}
+.review-reveal-grid{display:grid;grid-template-columns:minmax(230px,.72fr) minmax(0,1.28fr);gap:28px;align-items:center;padding:30px 0 18px}
+.review-reveal-art{min-width:0}
+.review-reveal-art .film-key-art,.review-reveal-art .keyart,.review-reveal-art>div{width:100%}
+.review-reveal-copy{min-width:0}
+.review-reveal-film{margin-top:7px;font-size:12px;font-weight:850;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.review-reveal-copy h1{font-family:Georgia,serif;font-size:clamp(32px,6vw,58px);line-height:1.02;letter-spacing:-.04em;margin:12px 0 18px}
+.review-reveal-scores{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:18px}
+.review-reveal-scores>div{padding:11px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.025)}
+.review-reveal-scores span{display:block;font-size:8px;font-weight:900;letter-spacing:.12em;color:var(--muted)}
+.review-reveal-scores strong{display:block;margin-top:4px;font-size:22px}
+.review-reveal blockquote{margin:0;padding:16px 0;border-top:1px solid rgba(255,255,255,.13);border-bottom:1px solid rgba(255,255,255,.13);font-family:Georgia,serif;font-size:19px;line-height:1.48;color:#edf0f5}
+.review-reveal-byline{margin-top:13px;font-size:10px;letter-spacing:.04em;color:var(--muted)}
+.review-reveal-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:20px}
+.review-reveal-actions .btn{min-height:48px}
+.review-reveal-foot{text-align:center;margin-top:12px;font-size:9px;letter-spacing:.06em;color:#707987}
+.review-reveal-great .review-reveal-mast{border-bottom-color:color-mix(in srgb,var(--good) 55%,transparent)}
+.review-reveal-bad .review-reveal-mast{border-bottom-color:color-mix(in srgb,var(--bad) 55%,transparent)}
+.review-reveal-warn .review-reveal-mast{border-bottom-color:color-mix(in srgb,var(--warn) 55%,transparent)}
+@media(max-width:720px){
+ .review-reveal{padding-top:calc(14px + env(safe-area-inset-top))}
+ .review-reveal-mast{align-items:flex-start}
+ .review-reveal-mast strong{font-size:22px}
+ .review-reveal-grid{grid-template-columns:1fr;gap:18px;padding-top:18px}
+ .review-reveal-art{max-height:250px;overflow:hidden;border-radius:16px}
+ .review-reveal-art .film-key-art,.review-reveal-art .keyart,.review-reveal-art>div{min-height:250px}
+ .review-reveal-copy h1{font-size:34px}
+ .review-reveal blockquote{font-size:17px}
+ .review-reveal-actions{grid-template-columns:1fr}
+}
