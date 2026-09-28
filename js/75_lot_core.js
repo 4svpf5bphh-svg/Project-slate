@@ -458,7 +458,15 @@ function processLotWeek(){
  if(state.week-(lot.lastIncidentWeek||0)<2)return;
  const pairs=lotEligiblePairs();if(!pairs.length)return;
  const r=makeRng(hash((state.seed||1)+'|lot-week|'+state.week));if(r()>.18)return;
- const weighted=pairs.map(pair=>{const [a,b]=pair,pa=ensureLotProfile(a),pb=ensureLotProfile(b),rel=lotRelationship(a,b);const chaos=(pa.traits.volatility+pb.traits.volatility+pa.traits.eccentricity+pb.traits.eccentricity+pa.traits.grudge+pb.traits.grudge)/6;return {pair,score:r()*70+chaos*.3+(rel.tension||0)*.25}}).sort((a,b)=>b.score-a.score);
+ const rested=pairs.filter(([a,b])=>{const h=lotPairHistory(a,b),age=h.lastIncidentWeek?state.week-h.lastIncidentWeek:999,active=lot.stories.some(s=>s.active&&s.pair===h.key);return age>=8&&!active});
+ const candidates=rested.length?rested:pairs.filter(([a,b])=>{const h=lotPairHistory(a,b);return !h.lastIncidentWeek||state.week-h.lastIncidentWeek>=5});
+ const pool=candidates.length?candidates:pairs;
+ const weighted=pool.map(pair=>{
+  const [a,b]=pair,pa=ensureLotProfile(a),pb=ensureLotProfile(b),rel=lotRelationship(a,b),hist=lotPairHistory(a,b);
+  const chaos=(pa.traits.volatility+pb.traits.volatility+pa.traits.eccentricity+pb.traits.eccentricity+pa.traits.grudge+pb.traits.grudge)/6;
+  const age=hist.lastIncidentWeek?state.week-hist.lastIncidentWeek:52,recentPenalty=age<26?(26-age)*1.6:0,activePenalty=lot.stories.some(s=>s.active&&s.pair===hist.key)?24:0;
+  return {pair,score:r()*70+chaos*.3+(rel.tension||0)*.25-recentPenalty-activePenalty};
+ }).sort((a,b)=>b.score-a.score);
  const [a,b]=weighted[0].pair,tier=lotIncidentTier(r);lotApplyIncident(a,b,tier,r);lot.lastIncidentWeek=state.week;
 }
 function lotRecentMemories(t,limit=5){
