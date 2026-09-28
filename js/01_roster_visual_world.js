@@ -81,7 +81,47 @@ const actorSeed=[
  ['Dave Bautista',81,85,80,90,6.5,['Action Thriller','Science Fiction','Crime Thriller'],'Event Character Star',57,['Guardians of the Galaxy','Dune: Part Two','Knock at the Cabin']],
  ['Megan Fox',68,82,57,78,4.5,['Action Thriller','Comedy','Psychological Horror'],'Commercial Genre Name',40,['Transformers','Jennifer’s Body','Teenage Mutant Ninja Turtles']],
  ['Jason Statham',74,94,80,92,14.0,['Action Thriller','Crime Thriller'],'Global Action Star',59,['The Beekeeper','Crank','Fast & Furious Presents: Hobbs & Shaw']],
- ['Chris Pratt',78,94,76,88,14.0,['Action Thriller','Science Fiction','Comedy','Family Adventure'],'Global Franchise Star',47,['Guardians of the Galaxy','Jurassic World','The Super Mario Bros. Movie']]
+ ['Chris Pratt',78,94,76,88,14.0,['Action Thriller','Science Fiction','Comedy','Family Adventure'],'Global Franchise Star',47,['Guardians of the Galaxy','Jurassic World','The Super Mario Bros. Movie']],
+ ['Jackie Chan',86,97,78,94,11.0,['Action Comedy','Action Thriller','Adventure'],'Global Action-Comedy Icon',72,['Rush Hour','Police Story','Shanghai Noon']],
+ ['Chris Tucker',82,90,70,86,7.0,['Action Comedy','Comedy','Crime Thriller'],'Legacy Comedy / Action Star',55,['Rush Hour','Friday','The Fifth Element']],
+ ['Tom Cruise',89,99,90,96,16.0,['Action Thriller','Science Fiction','Adventure'],'Global Event Star',64,['Mission: Impossible – Fallout','Top Gun: Maverick','Edge of Tomorrow']],
+ ['Brad Pitt',94,97,77,91,13.0,['Prestige Drama','Crime Thriller','Action Comedy'],'A-List Character Star',62,['Once Upon a Time in Hollywood','Fight Club','Bullet Train']],
+ ['Leonardo DiCaprio',98,99,73,92,15.0,['Prestige Drama','Crime Thriller','Historical Epic'],'Prestige Event Star',51,['The Revenant','The Wolf of Wall Street','Inception']],
+ ['Keanu Reeves',84,98,76,95,12.0,['Action Thriller','Science Fiction','Action Comedy'],'Global Action Icon',62,['John Wick','The Matrix','Speed']],
+ ['Christian Bale',97,92,72,91,10.0,['Prestige Drama','Crime Thriller','Superhero'],'Transformative A-List Lead',52,['The Dark Knight','The Fighter','Ford v Ferrari']],
+ ['Colin Farrell',95,84,81,91,7.0,['Prestige Drama','Crime Thriller','Mystery Thriller'],'Prestige / Crime Lead',50,['The Banshees of Inisherin','The Batman','In Bruges']],
+ ['Idris Elba',88,93,76,91,8.5,['Action Thriller','Crime Thriller','Adventure'],'Commercial Character Star',54,['Luther','Beasts of No Nation','The Suicide Squad']],
+ ['Daniel Craig',91,95,69,93,9.5,['Action Thriller','Crime Thriller','Mystery Thriller'],'Legacy Franchise Lead',58,['Casino Royale','Knives Out','Skyfall']],
+ ['Hugh Grant',91,88,82,92,6.0,['Romantic Comedy','Comedy','Prestige Drama'],'Comedy / Character Star',66,['Notting Hill','About a Boy','Paddington 2']],
+ ['Ralph Fiennes',98,84,74,95,7.0,['Prestige Drama','Historical Epic','Fantasy'],'Prestige Character Titan',63,['The Grand Budapest Hotel','Schindler’s List','Harry Potter and the Deathly Hallows']],
+ ['Gary Oldman',99,83,66,94,6.5,['Prestige Drama','Crime Thriller','Historical Epic'],'Character Titan',68,['Darkest Hour','Tinker Tailor Soldier Spy','The Dark Knight']],
+ ['Willem Dafoe',98,80,79,95,5.8,['Prestige Drama','Psychological Horror','Fantasy'],'Prestige Character Icon',71,['Poor Things','The Lighthouse','Spider-Man']],
+ ['Jake Gyllenhaal',94,88,78,89,7.5,['Crime Thriller','Mystery Thriller','Action Thriller'],'Prestige / Thriller Lead',45,['Nightcrawler','Prisoners','Source Code']],
+ ['Paul Giamatti',98,74,82,96,4.5,['Prestige Drama','Comedy','Historical Epic'],'Character / Awards Lead',59,['The Holdovers','Sideways','Cinderella Man']],
+ ['Jesse Plemons',96,72,88,94,4.2,['Prestige Drama','Crime Thriller','Mystery Thriller'],'Prestige Character Lead',38,['Killers of the Flower Moon','Civil War','The Power of the Dog']],
+ ['Jon Bernthal',89,78,76,92,3.8,['Crime Thriller','Action Thriller','Sports Drama'],'Intense Character Lead',50,['Ford v Ferrari','The Wolf of Wall Street','Sicario']],
+ ['Walton Goggins',92,72,89,93,3.2,['Crime Thriller','Comedy','Action Comedy'],'Character Scene-Stealer',54,['The Hateful Eight','Vice Principals','The Shield']],
+ ['Riz Ahmed',95,75,72,92,4.0,['Prestige Drama','Crime Thriller','Science Fiction'],'Prestige / Genre Lead',43,['Sound of Metal','Nightcrawler','Rogue One']],
+ ['Samuel L. Jackson',90,98,70,96,10.0,['Action Thriller','Crime Thriller','Superhero','Action Comedy'],'Screen Icon / Event Support',77,['Pulp Fiction','The Avengers','The Hateful Eight']],
+ ['Michelle Yeoh',94,94,82,97,8.0,['Action Thriller','Action Comedy','Fantasy','Science Fiction'],'Global Action / Prestige Star',64,['Everything Everywhere All at Once','Crouching Tiger, Hidden Dragon','Crazy Rich Asians']],
+ ['Charlize Theron',94,94,78,93,9.0,['Action Thriller','Prestige Drama','Science Fiction'],'A-List Action / Prestige Lead',51,['Mad Max: Fury Road','Monster','Atomic Blonde']],
+ ['Angelina Jolie',90,97,70,88,10.0,['Action Thriller','Fantasy','Adventure'],'Global Star',51,['Maleficent','Wanted','Girl, Interrupted']],
+ ['Scarlett Johansson',92,97,79,91,10.0,['Action Thriller','Science Fiction','Comedy','Superhero'],'Global Franchise / Prestige Star',41,['Lost in Translation','Black Widow','Marriage Story']],
+ ['Jennifer Lawrence',93,96,77,90,9.5,['Prestige Drama','Comedy','Science Fiction','Adventure'],'A-List Lead',36,['Silver Linings Playbook','The Hunger Games','American Hustle']],
+ ['Amy Adams',97,87,73,95,6.5,['Prestige Drama','Science Fiction','Mystery Thriller'],'Prestige Heavyweight',52,['Arrival','American Hustle','Nocturnal Animals']],
+ ['Jessica Chastain',97,86,72,94,6.5,['Prestige Drama','Mystery Thriller','Science Fiction'],'Prestige Lead',49,['Zero Dark Thirty','Interstellar','The Eyes of Tammy Faye']],
+ ['Anne Hathaway',94,94,80,92,8.5,['Prestige Drama','Romantic Comedy','Adventure'],'A-List Versatile Lead',43,['Les Misérables','The Devil Wears Prada','Interstellar']],
+ ['Natalie Portman',97,90,70,93,7.5,['Prestige Drama','Science Fiction','Superhero'],'Prestige / Franchise Star',45,['Black Swan','V for Vendetta','Annihilation']],
+ ['Tilda Swinton',99,79,78,96,5.5,['Prestige Drama','Fantasy','Science Fiction'],'Auteur Character Icon',65,['Michael Clayton','We Need to Talk About Kevin','Doctor Strange']],
+ ['Regina King',96,78,70,96,4.8,['Prestige Drama','Crime Thriller','Sports Drama'],'Prestige Character Lead',55,['If Beale Street Could Talk','Ray','Jerry Maguire']],
+ ['Gerard Butler',76,88,63,88,5.0,['Action Thriller','Adventure','Historical Epic'],'Commercial Action Lead',56,['300','Greenland','Olympus Has Fallen']],
+ ['Sam Worthington',77,82,61,87,3.8,['Science Fiction','Action Thriller','Adventure'],'Franchise / Action Lead',50,['Avatar','Terminator Salvation','The Debt']],
+ ['Taylor Kitsch',74,68,58,84,2.3,['Action Thriller','Sports Drama','Adventure'],'Commercial Genre Lead',45,['Friday Night Lights','Lone Survivor','John Carter']],
+ ['Awkwafina',82,82,79,88,3.6,['Comedy','Action Comedy','Family Adventure'],'Comedy / Family Lead',38,['The Farewell','Crazy Rich Asians','Shang-Chi and the Legend of the Ten Rings']],
+ ['Kumail Nanjiani',84,79,72,89,3.4,['Comedy','Romantic Comedy','Action Comedy'],'Comedy / Character Lead',48,['The Big Sick','Stuber','Eternals']],
+ ['Zoe Saldaña',88,96,83,94,9.0,['Science Fiction','Action Thriller','Adventure','Superhero'],'Global Franchise Star',48,['Avatar','Guardians of the Galaxy','Star Trek']],
+ ['John Cena',75,90,84,95,6.0,['Action Comedy','Action Thriller','Comedy','Superhero'],'Action-Comedy Star',49,['The Suicide Squad','Peacemaker','Blockers']],
+ ['Jason Momoa',78,94,74,90,8.0,['Action Thriller','Fantasy','Adventure','Superhero'],'Event / Franchise Star',47,['Aquaman','Dune','Fast X']]
 ];
 
 const directorSeed=[
@@ -109,7 +149,17 @@ const directorSeed=[
  ['Alfonso Cuarón',98,82,83,93,8.0,['Science Fiction','Prestige Drama','Fantasy'],'Technical Humanist',64,['Roma','Gravity','Children of Men']],
  ['Kathryn Bigelow',95,85,91,87,7.0,['Action Thriller','Crime Thriller','Prestige Drama'],'Tension Specialist',74,['The Hurt Locker','Zero Dark Thirty','Point Break']],
  ['Steven Spielberg',99,98,90,97,12.0,['Family Adventure','Prestige Drama','Science Fiction'],'Master Event Storyteller',79,['Jaws','E.T. the Extra-Terrestrial','Saving Private Ryan']],
- ['Martin Scorsese',99,86,81,98,9.5,['Crime Thriller','Prestige Drama','Comedy'],'Master Filmmaker',83,['Goodfellas','The Departed','The Wolf of Wall Street']]
+ ['Martin Scorsese',99,86,81,98,9.5,['Crime Thriller','Prestige Drama','Comedy'],'Master Filmmaker',83,['Goodfellas','The Departed','The Wolf of Wall Street']],
+ ['Ridley Scott',96,94,87,85,9.0,['Science Fiction','Historical Epic','Crime Thriller','Action Thriller'],'Large-Canvas Veteran',88,['Alien','Gladiator','The Martian']],
+ ['James Cameron',98,99,94,84,12.5,['Science Fiction','Action Thriller','Adventure'],'Event Technical Master',72,['Titanic','Avatar','Terminator 2: Judgment Day']],
+ ['Quentin Tarantino',98,95,78,93,10.0,['Crime Thriller','Action Comedy','Historical Epic'],'Dialogue / Genre Auteur',63,['Pulp Fiction','Django Unchained','Once Upon a Time in Hollywood']],
+ ['Guillermo del Toro',97,88,82,95,8.0,['Fantasy','Supernatural Horror','Historical Epic'],'Gothic Worldbuilder',62,['The Shape of Water','Pan’s Labyrinth','Pacific Rim']],
+ ['Paul Thomas Anderson',99,77,83,97,7.5,['Prestige Drama','Historical Epic','Comedy'],'Performance Auteur',56,['There Will Be Blood','The Master','Boogie Nights']],
+ ['Wes Anderson',96,83,90,94,7.0,['Comedy','Prestige Drama','Adventure'],'Distinctive Ensemble Auteur',57,['The Grand Budapest Hotel','Fantastic Mr. Fox','The Royal Tenenbaums']],
+ ['Sofia Coppola',94,72,91,96,5.0,['Prestige Drama','Romantic Comedy','Historical Epic'],'Intimate Auteur',55,['Lost in Translation','Marie Antoinette','Priscilla']],
+ ['Sam Mendes',96,91,89,96,7.5,['Prestige Drama','Action Thriller','Historical Epic'],'Prestige Event Director',61,['1917','Skyfall','American Beauty']],
+ ['Danny Boyle',94,88,86,91,6.0,['Prestige Drama','Psychological Horror','Science Fiction','Sports Drama'],'Kinetic Genre Auteur',69,['28 Days Later','Slumdog Millionaire','Steve Jobs']],
+ ['Edgar Wright',92,92,90,90,6.5,['Action Comedy','Comedy','Crime Thriller'],'Kinetic Comedy Auteur',52,['Hot Fuzz','Baby Driver','Shaun of the Dead']]
 ];
 
 const fictionalActorSeed=[
@@ -305,17 +355,34 @@ function portraitHTML(t,size='md'){
  const src=portraitSourceForTalent(t),needsHydrate=t?.isRealPerson&&!src;
  return `<div class="portrait portrait-${size}"${needsHydrate?` data-portrait-wrap="${t.id}"`:''} title="${t.name}"><span class="portrait-fallback">${portraitInitials(t.name)}</span>${src?`<img src="${src}" alt="${t.name}" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</div>`;
 }
+const PORTRAIT_WIKIPEDIA_TITLES={
+ 'Andrew Scott':'Andrew Scott (actor)'
+};
+async function wikipediaPortraitByTitle(title){
+ const encoded=encodeURIComponent(String(title||'').replace(/’/g,"'"));
+ const url=`https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=320&titles=${encoded}`;
+ const res=await fetch(url,{mode:'cors'});if(!res.ok)return null;
+ const payload=await res.json(),page=Object.values(payload?.query?.pages||{})[0];
+ return page?.thumbnail?.source||null;
+}
+async function wikipediaPortraitSearch(t){
+ const query=encodeURIComponent(`${t.name.replace(/’/g,"'")} ${t.type==='Director'?'film director':'actor'}`);
+ const url=`https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&list=search&srlimit=4&srnamespace=0&srsearch=${query}`;
+ const res=await fetch(url,{mode:'cors'});if(!res.ok)return null;
+ const payload=await res.json(),hits=payload?.query?.search||[];
+ for(const hit of hits){const src=await wikipediaPortraitByTitle(hit.title);if(src)return src}
+ return null;
+}
 async function fetchPortraitForTalent(t){
  if(!t?.isRealPerson)return null;
  state.portraitCache=state.portraitCache||{};
  const cached=normalizePortraitSource(state.portraitCache[t.id]);
  if(cached)return cached;
  try{
-  const title=encodeURIComponent(t.name.replace(/’/g,"'"));
-  const url=`https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=320&titles=${title}`;
-  const res=await fetch(url,{mode:'cors'});
-  if(!res.ok)throw new Error('portrait lookup failed');
-  const payload=await res.json(),page=Object.values(payload?.query?.pages||{})[0],src=page?.thumbnail?.source||null;
+  const preferred=PORTRAIT_WIKIPEDIA_TITLES[t.name]||t.name;
+  let src=await wikipediaPortraitByTitle(preferred);
+  if(!src&&preferred!==t.name)src=await wikipediaPortraitByTitle(t.name);
+  if(!src)src=await wikipediaPortraitSearch(t);
   if(src){state.portraitCache[t.id]=src;save();}
   return src;
  }catch(e){return null}
@@ -393,13 +460,21 @@ const PRESS_BRANDS={
 };
 const GENRE_ART={
  'Action Thriller':{a:'#1b1d24',b:'#6e1717',c:'#ef5a36',symbol:'//',template:'slash'},
- 'Psychological Horror':{a:'#101016',b:'#25203b',c:'#b74568',symbol:'◯',template:'void'},
- 'Prestige Drama':{a:'#27241f',b:'#645a4d',c:'#d0b27b',symbol:'—',template:'horizon'},
- 'Science Fiction':{a:'#081d2d',b:'#174e64',c:'#5ad8d0',symbol:'○',template:'orbit'},
- 'Comedy':{a:'#44305a',b:'#d95b74',c:'#ffd166',symbol:'+',template:'pop'},
- 'Family Adventure':{a:'#17495f',b:'#3b8d72',c:'#f2c75c',symbol:'△',template:'sun'},
+ 'Action Comedy':{a:'#25203a',b:'#b84444',c:'#ffbf4b',symbol:'!!',template:'pop'},
  'Crime Thriller':{a:'#171a1c',b:'#39424a',c:'#d4493f',symbol:'▥',template:'city'},
- 'Fantasy':{a:'#182e38',b:'#3f5174',c:'#d2b46c',symbol:'◇',template:'peak'}
+ 'Mystery Thriller':{a:'#121923',b:'#30495f',c:'#7db2c8',symbol:'?',template:'city'},
+ 'Psychological Horror':{a:'#101016',b:'#25203b',c:'#b74568',symbol:'◯',template:'void'},
+ 'Supernatural Horror':{a:'#10131a',b:'#34234d',c:'#9d6cc2',symbol:'✦',template:'void'},
+ 'Prestige Drama':{a:'#27241f',b:'#645a4d',c:'#d0b27b',symbol:'—',template:'horizon'},
+ 'Sports Drama':{a:'#18231d',b:'#39614c',c:'#d7b65c',symbol:'▲',template:'horizon'},
+ 'Comedy':{a:'#44305a',b:'#d95b74',c:'#ffd166',symbol:'+',template:'pop'},
+ 'Romantic Comedy':{a:'#4d2943',b:'#c15f7d',c:'#ffd2a6',symbol:'♡',template:'pop'},
+ 'Science Fiction':{a:'#081d2d',b:'#174e64',c:'#5ad8d0',symbol:'○',template:'orbit'},
+ 'Fantasy':{a:'#182e38',b:'#3f5174',c:'#d2b46c',symbol:'◇',template:'peak'},
+ 'Superhero':{a:'#15213a',b:'#344f8a',c:'#f1c84f',symbol:'✧',template:'slash'},
+ 'Family Adventure':{a:'#17495f',b:'#3b8d72',c:'#f2c75c',symbol:'△',template:'sun'},
+ 'Adventure':{a:'#163a3b',b:'#477a59',c:'#e2b65f',symbol:'⌁',template:'sun'},
+ 'Historical Epic':{a:'#302419',b:'#725237',c:'#d0a35a',symbol:'◆',template:'peak'}
 };
 function defaultPlayerBrand(name='Studio'){
  const keys=Object.keys(BRAND_THEMES),marks=Object.keys(BRAND_MARKS),h=Math.abs(hash(`brand|${name}`));
@@ -480,11 +555,11 @@ function applyPlayerBrandTheme(){
 
 const SEGMENT_KEYS=['Mainstream Adults','Younger Audiences','Families','Genre Fans','Prestige / Arthouse'];
 const BASE_SEGMENT_GENRES={
- 'Mainstream Adults':{'Prestige Drama':5,'Crime Thriller':5,'Comedy':5,'Action Thriller':3,'Psychological Horror':1,'Science Fiction':1,'Family Adventure':1,'Fantasy':0},
- 'Younger Audiences':{'Action Thriller':5,'Science Fiction':5,'Psychological Horror':4,'Comedy':4,'Fantasy':4,'Family Adventure':2,'Crime Thriller':2,'Prestige Drama':0},
- 'Families':{'Family Adventure':8,'Fantasy':6,'Comedy':5,'Science Fiction':2,'Action Thriller':-2,'Prestige Drama':-2,'Crime Thriller':-5,'Psychological Horror':-8},
- 'Genre Fans':{'Psychological Horror':7,'Science Fiction':7,'Fantasy':7,'Action Thriller':5,'Crime Thriller':4,'Family Adventure':1,'Comedy':1,'Prestige Drama':0},
- 'Prestige / Arthouse':{'Prestige Drama':8,'Crime Thriller':4,'Psychological Horror':3,'Science Fiction':3,'Comedy':2,'Fantasy':1,'Action Thriller':0,'Family Adventure':-1}
+ 'Mainstream Adults':{'Prestige Drama':5,'Crime Thriller':5,'Mystery Thriller':5,'Comedy':5,'Romantic Comedy':5,'Sports Drama':4,'Action Comedy':4,'Historical Epic':3,'Action Thriller':3,'Adventure':2,'Psychological Horror':1,'Science Fiction':1,'Family Adventure':1,'Superhero':1,'Fantasy':0,'Supernatural Horror':0},
+ 'Younger Audiences':{'Superhero':7,'Action Comedy':6,'Action Thriller':5,'Science Fiction':5,'Supernatural Horror':4,'Psychological Horror':4,'Comedy':4,'Fantasy':4,'Adventure':4,'Romantic Comedy':3,'Family Adventure':2,'Crime Thriller':2,'Sports Drama':2,'Mystery Thriller':2,'Historical Epic':0,'Prestige Drama':0},
+ 'Families':{'Family Adventure':8,'Adventure':7,'Fantasy':6,'Comedy':5,'Superhero':4,'Romantic Comedy':2,'Science Fiction':2,'Sports Drama':1,'Action Comedy':0,'Historical Epic':0,'Action Thriller':-2,'Prestige Drama':-2,'Mystery Thriller':-3,'Crime Thriller':-5,'Supernatural Horror':-7,'Psychological Horror':-8},
+ 'Genre Fans':{'Supernatural Horror':8,'Psychological Horror':7,'Science Fiction':7,'Fantasy':7,'Superhero':7,'Action Thriller':5,'Action Comedy':5,'Mystery Thriller':5,'Crime Thriller':4,'Adventure':3,'Historical Epic':2,'Family Adventure':1,'Comedy':1,'Sports Drama':1,'Romantic Comedy':0,'Prestige Drama':0},
+ 'Prestige / Arthouse':{'Prestige Drama':8,'Historical Epic':6,'Mystery Thriller':5,'Sports Drama':5,'Crime Thriller':4,'Psychological Horror':3,'Science Fiction':3,'Romantic Comedy':3,'Comedy':2,'Supernatural Horror':2,'Fantasy':1,'Adventure':1,'Action Thriller':0,'Action Comedy':0,'Superhero':0,'Family Adventure':-1}
 };
 function freshAudienceMarket(){
  const heat={},supply={},affinity={};genres.forEach(g=>{heat[g]=0;supply[g]=0});SEGMENT_KEYS.forEach(s=>affinity[s]=0);
@@ -1826,6 +1901,62 @@ const SCRIPT_TITLE_BANK={
   nouns:['cartographer','disgraced knight','village healer','royal archivist','young smuggler','failed prophet','monster hunter','apprentice judge','river guide','last dragon keeper'],
   settings:['a kingdom where maps physically create new land','a city that forgets one district every winter','an empire built around a sleeping god nobody believes is real','a borderland where spoken promises become binding magic','a river that carries the memories of the dead','a royal court where names can be stolen and worn'],
   engines:['discovers the law holding the kingdom together was deliberately written to fail','must protect an heir whose existence would restart a forgotten war','learns the monster they were raised to hunt is the only thing keeping the border intact','breaks an ancient oath and accidentally frees everyone else bound by it','must choose whether to restore a lost kingdom or prevent it from returning']
+ },
+ 'Action Comedy':{
+  singles:['Hot Mess','Side Hustle','Wrong Number','Crash Course','Double Booked','Bad Company','Last Call','Loose Cannon'],
+  places:['Harbour City','Terminal Nine','Vegas Weekend','Mercy Bay','Grand Hotel','The East Side'],
+  nouns:['detective','bodyguard','con artist','rookie cop','chauffeur','failed stunt performer','accountant','tour guide'],
+  settings:['a celebrity wedding under armed protection','a cross-country witness transfer gone catastrophically off-plan','a luxury hotel during an international summit','a stolen-car chase through a city hosting a film festival','an airport lockdown where nobody trusts the actual police'],
+  engines:['must survive a criminal plot while pretending the disaster is under control','is paired with the one partner guaranteed to make every dangerous situation worse','accidentally steals something every criminal in the city wants back','has one night to protect a witness who refuses to stop improvising','turns a routine arrest into an escalating international embarrassment']
+ },
+ 'Mystery Thriller':{
+  singles:['Cold Read','False Memory','The Missing Hour','No Alibi','Blind Spot','Last Known','Quiet Evidence','The Third Key'],
+  places:['Blackwater House','Mercer Island','Room 204','Bellweather Court','North Pier','The Calder Estate'],
+  nouns:['journalist','detective','archivist','lawyer','forensic linguist','private investigator','coroner','podcaster'],
+  settings:['a coastal town where a decades-old disappearance suddenly repeats','a sealed hotel floor reopened after thirty years','a private archive containing records of crimes that never happened','a family estate where every heir remembers the death differently','a jury hotel during a high-profile murder trial'],
+  engines:['finds a clue that should not exist in the official timeline','realises the prime suspect may be the only person telling the truth','must solve a disappearance before the witnesses agree on a new version of events','discovers every piece of evidence was planted for a different investigator','learns the victim had been preparing for their own murder']
+ },
+ 'Supernatural Horror':{
+  singles:['The Summoning','Black Chapel','Ash Saint','The Visitor Below','Night Parish','The Hollow Bell','Unquiet','Possession'],
+  places:['Saint Mercy','Blackwater Chapel','Marrow Farm','The Old Rectory','Bell House','The Drowned Church'],
+  nouns:['priest','paramedic','teacher','widow','archaeologist','social worker','caretaker','folklorist'],
+  settings:['a village church sealed since a mass disappearance','an apartment building where one room changes tenants every night','a remote island preparing an ancient winter rite','a family home built over a forgotten burial ground','a hospital chapel where patients hear the same voice'],
+  engines:['awakens something the community has spent generations keeping asleep','discovers the haunting is following a bloodline rather than a place','must break a ritual before the dead begin replacing the living','realises the entity is using faith itself as the mechanism of possession','learns the local legend was created to hide a much older truth']
+ },
+ 'Sports Drama':{
+  singles:['Second Wind','The Final Round','Long Shot','Home Stretch','Against the Clock','The Comeback','Extra Time','Underdog'],
+  places:['Cedar Field','Southside Gym','The National','Mercer Stadium','The Old Track','Harbour Arena'],
+  nouns:['boxer','footballer','coach','sprinter','basketball prospect','racing driver','wrestler','swimmer'],
+  settings:['a struggling club facing one final season before closure','an Olympic training camp after a public scandal','a hometown boxing gym threatened by redevelopment','a lower-league team suddenly promoted beyond its means','a racing team rebuilding after a fatal crash'],
+  engines:['gets one last chance to compete while repairing the relationship their career destroyed','must turn a fractured team into contenders before ownership sells the club','returns from retirement for reasons that have nothing to do with winning','finds success forcing them to confront the compromise that got them there','must choose between personal glory and the teammate who made the comeback possible']
+ },
+ 'Romantic Comedy':{
+  singles:['Plus One','Second Date','Terms of Engagement','Almost Perfect','The Setup','Good on Paper','Maybe Tuesday','Love, Actually Not'],
+  places:['Verona House','Terminal B','The Palm Court','Brighton Weekend','Maple Street','Hotel Amour'],
+  nouns:['wedding planner','architect','chef','book editor','radio host','sports agent','teacher','travel writer'],
+  settings:['a destination wedding where two exes are both in the wedding party','a delayed transatlantic flight that strands two rivals together','a television dating show neither participant wanted to join','a family holiday where everyone assumes they are already a couple','a workplace merger that makes two professional rivals share an office'],
+  engines:['agrees to fake a relationship and discovers the performance is easier than the truth','keeps meeting the same impossible person at increasingly inconvenient moments','must plan somebody else’s perfect wedding while their own life unravels','turns a professional rivalry into a public fake romance for mutual benefit','tries to prove they are completely over an ex while repeatedly doing the opposite']
+ },
+ 'Superhero':{
+  singles:['Vanguard','Aftershock','Nightwatch','Paragon','Redline','The Sentinel','Velocity','Unbound'],
+  places:['Crown City','Metro Seven','Harbour Prime','New Meridian','Atlas City','The Rift'],
+  nouns:['reluctant vigilante','disgraced hero','young inventor','government operative','retired champion','investigative reporter','alien refugee','emergency medic'],
+  settings:['a city rebuilding after its heroes disappeared','a world where powered people must register with the state','a coastal metropolis threatened by a reality-breaking anomaly','a government programme training the next generation of heroes','a city whose most famous protector has secretly become its greatest threat'],
+  engines:['must become the symbol they never wanted to be before the city turns on its protectors','discovers the villain’s plan depends on the public continuing to trust the heroes','has to assemble a team from people who actively dislike one another','learns their powers are connected to the catastrophe they are trying to stop','must expose a celebrated hero without destroying the idea of heroism itself']
+ },
+ 'Adventure':{
+  singles:['The Far Road','Lost Meridian','Breakwater','Wild Passage','The Last Expedition','Northbound','Open Sea','Beyond the Map'],
+  places:['The Orison Coast','Blackwater Pass','Cinder Island','Mercy Ridge','The Far Shore','The Copper Route'],
+  nouns:['explorer','salvage diver','pilot','archaeologist','mountain guide','journalist','smuggler','cartographer'],
+  settings:['an uncharted island revealed by a retreating storm','a mountain route closed since a famous expedition vanished','a desert city reachable only during one week each year','a wreck field beneath an international shipping lane','a jungle valley omitted from every official map'],
+  engines:['races a rival expedition to a discovery that should have remained buried','must lead a damaged team home after the mission collapses','finds the treasure hunt was designed as a test for somebody else','discovers the map is accurate for a place that no longer exists','has to finish the expedition that destroyed their family decades earlier']
+ },
+ 'Historical Epic':{
+  singles:['Empire of Dust','The Last Standard','Kingsfall','The Long Winter','Iron Crown','The Siege','The Oath','Ashes of Empire'],
+  places:['Aurelian Gate','The Black Sea','Crown Hill','The Northern March','Saint Varro','The Winter Palace'],
+  nouns:['general','queen','diplomat','soldier','physician','spy','scribe','rebellion leader'],
+  settings:['an empire collapsing during a disputed succession','a besieged city facing its final winter','a royal court divided by civil war','a frontier army cut off from the capital','a revolution where yesterday’s allies are already becoming rivals'],
+  engines:['must choose which version of the country will survive the war','is forced to defend a ruler they privately believe has doomed the kingdom','tries to end a conflict while every faction profits from continuing it','rises from obscurity as the old order begins collapsing around them','must decide whether victory is worth becoming the thing they rebelled against']
  }
 };
 const SCRIPT_TITLE_EXTRAS={
@@ -1836,7 +1967,15 @@ const SCRIPT_TITLE_EXTRAS={
  'Comedy':{characters:['Barry','Maggie','The Hendersons','Kevin Again','Sally & Mark'],commercial:['Bad Plus One','Weekend Parents','The Wrong Wedding','Absolutely Fine','Terms Apply','Three Weddings Too Many'],homages:['When Barry Met Sally','The 41-Year-Old Bachelor','Dude, Where’s My Career?']},
  'Family Adventure':{characters:['Pip','Milo & June','The Robinson Kids','Matilda Jones','Scout'],commercial:['The Secret Railway','Treasure Club','The Great Escape Plan','Adventureland Express','The Lost Playground','Map to Somewhere'],homages:['Raiders of the Lost Park','Back to the Playground','E.T. Phone Mum']},
  'Crime Thriller':{characters:['Jango','Sloane','Vega','Marlowe','The Costellos'],commercial:['The Getaway Man','Inside Job','The Last Alibi','Dirty Money','Witness Protection','The Good Cop','Cold Case'],homages:['Jango Chained','The Goodfella','Reservoir Cats','The Usual Suspect']},
- 'Fantasy':{characters:['Arden','Morrigan','The Rowan Boy','Elara','Cinder'],commercial:['Kingdom Come Again','The Dragon Road','Crownless','The Last Spell','Sword & Shadow','The Witch Road'],homages:['Lord of the Wings','Harry Plotter','The Hobbit: An Unexpected Invoice']}
+ 'Fantasy':{characters:['Arden','Morrigan','The Rowan Boy','Elara','Cinder'],commercial:['Kingdom Come Again','The Dragon Road','Crownless','The Last Spell','Sword & Shadow','The Witch Road'],homages:['Lord of the Wings','Harry Plotter','The Hobbit: An Unexpected Invoice']},
+ 'Action Comedy':{characters:['Lee & Carter','Mack & Ellis','Tango Again','Duke & Riley','The Wrong Cops'],commercial:['Bad Partners','One Last Favour','Hot Pursuit','Partners in Crime','The Accidental Bodyguards'],homages:['Rush Minute','Lethal-ish Weapon','Badder Boys']},
+ 'Mystery Thriller':{characters:['Marlowe','Sloane','The Mercer File','Dr. Vale','Evelyn North'],commercial:['The Missing Hour','False Witness','The Third Alibi','Cold Evidence','No One Leaves'],homages:['Knives Still Out','Gone Tomorrow','The Girl on the Other Train']},
+ 'Supernatural Horror':{characters:['Father Vale','Agnes Bell','The Black Saint','Mara House','The Parish'],commercial:['The Possession','Don’t Answer the Bell','The Unquiet House','Last Rites','The Summoning Room'],homages:['The Conjuring 4-ish','Insidious-er','The Nun Next Door']},
+ 'Sports Drama':{characters:['Rocky Vale','The Mercer Eleven','Coach Bell','Danny North','The Underdogs'],commercial:['One Last Round','Against the Odds','Final Whistle','The Comeback Season','Full Distance'],homages:['Raging Bullpen','Remember the Titans Again','Million Dollar Maybe']},
+ 'Romantic Comedy':{characters:['Maggie & Sam','The Plus One','Nora Again','Ben & June','The Exes'],commercial:['Second Date','The Wrong Wedding','Love on Hold','Terms of Engagement','Weekend Together'],homages:['When Somebody Met Somebody','10 Things I Still Hate','Four Weddings Too Many']},
+ 'Superhero':{characters:['Vanguard','Nightwatch','Captain Meridian','The Sentinels','Nova'],commercial:['Rise of the Vanguard','City of Heroes','Legacy Protocol','The Last Protector','Zero Hour'],homages:['Avengers-ish','The Darker Knight','Super Person Returns']},
+ 'Adventure':{characters:['Dr. Mercer','The Vale Expedition','Jack North','Mara Stone','The Last Cartographer'],commercial:['The Lost Route','Beyond the Map','Treasure Run','The Final Expedition','Wild Passage'],homages:['Raiders of Another Lost Ark','The Mummy Returns Again','National Treasure-ish']},
+ 'Historical Epic':{characters:['Aurelia','General Vale','The Last King','House Mercer','The Rebel Queen'],commercial:['Empire Falling','The Last Siege','Crown & Ash','The Winter War','Rise of the Republic'],homages:['Gladiator III-ish','Braver Heart','Kingdom of Heaven Again']}
 };
 function titleStyleKey(t){
  if(/^(No One|Nobody|Someone|Everyone)\b/i.test(t))return 'quantifier';
@@ -1858,6 +1997,14 @@ function genreTitleShape(r,genre,b,e){
  if(genre==='Family Adventure')return pick(r,[`The ${pick(r,['Compass','Treasure','Rocket','Adventure'])} Club`,`${pick(r,['Journey','Race','Road'])} to ${location}`,`${pick(r,e.characters)} and the ${pick(r,['Moon Map','Clockwork Fox','Hidden Railway','Sky Door'])}`]);
  if(genre==='Crime Thriller')return pick(r,[`The ${pick(r,['Calder','Midnight','Mercy','Harbour'])} Job`,`Case ${2+Math.floor(r()*98)}`,`${location} Confidential`,`${pick(r,e.characters)}`]);
  if(genre==='Fantasy')return pick(r,[`The ${pick(r,['Sword','Crown','Book','City','Oath'])} of ${pick(r,['Ash','Winter','Glass','Stars','Cinders'])}`,`House of ${pick(r,['Crows','Embers','Moons','Thorns'])}`,`${pick(r,e.characters)}`]);
+ if(genre==='Action Comedy')return pick(r,[`Bad ${pick(r,['Partners','Timing','Backup','Company'])}`,`${pick(r,e.characters)}`,`One ${pick(r,['Last','Wrong','Wild'])} ${pick(r,['Job','Night','Ride'])}`]);
+ if(genre==='Mystery Thriller')return pick(r,[`The ${pick(r,['Missing','Third','Last','False'])} ${pick(r,['Witness','Hour','Key','Alibi'])}`,`${location} Files`,`${pick(r,e.characters)}`]);
+ if(genre==='Supernatural Horror')return pick(r,[`The ${pick(r,['Possession','Summoning','Haunting','Curse'])} of ${location}`,`Saint ${pick(r,['Mercy','Agnes','Morrow','Vale'])}`,`${pick(r,e.characters)}`]);
+ if(genre==='Sports Drama')return pick(r,[`The ${pick(r,['Final','Last','Second'])} ${pick(r,['Round','Season','Fight','Race'])}`,`${location} ${pick(r,['Eleven','Club','Gym','Team'])}`,`${pick(r,e.characters)}`]);
+ if(genre==='Romantic Comedy')return pick(r,[`How to ${pick(r,['Lose a Plus One','Survive a Wedding','Fake a Relationship','Date Your Rival'])}`,`The ${pick(r,['Second','Wrong','Perfect'])} Date`,`${pick(r,e.characters)}`]);
+ if(genre==='Superhero')return pick(r,[`${single}: ${pick(r,['First Flight','Legacy','Aftershock','Reborn'])}`,`The ${pick(r,['Last','New','Fallen'])} ${pick(r,['Vanguard','Sentinel','Protector','Hero'])}`,`${pick(r,e.characters)}`]);
+ if(genre==='Adventure')return pick(r,[`The ${pick(r,['Lost','Last','Hidden','Far'])} ${pick(r,['Expedition','Passage','Route','Map'])}`,`${pick(r,['Beyond','Across','Into'])} ${location}`,`${pick(r,e.characters)}`]);
+ if(genre==='Historical Epic')return pick(r,[`The ${pick(r,['Last','Iron','Broken','Golden'])} ${pick(r,['Crown','Empire','Standard','Kingdom'])}`,`${pick(r,['Fall','Rise','Siege'])} of ${location}`,`${pick(r,e.characters)}`]);
  return single;
 }
 function scriptTitleCandidate(r,genre,b){
@@ -1946,6 +2093,62 @@ const PREMISE_DNA_BANK={
   goals:['find the missing province that vanished from every map','break the spell binding the capital to a dying monarch','carry a message to a kingdom erased from history','close the gates before an ancient army learns how to cross them','protect a child whose dreams are physically reshaping the world'],
   pressures:['each use of magic removes another memory from the caster','the royal court would rather preserve the lie than save the kingdom','a rival expedition is rewriting the map as quickly as they can follow it','the dead have begun refusing to return to their graves','the creatures guarding the gates remember a war humanity deliberately forgot'],
   complications:['their family helped create the curse they are trying to break','the missing kingdom is where they were actually born','the child they must protect may be causing the disaster intentionally','their enemy is the only person who understands the old magic','saving the kingdom requires destroying the institution they swore to serve']
+ },
+ 'Action Comedy':{
+  roles:['reckless detective','by-the-book federal agent','washed-up stunt performer','fast-talking bodyguard','small-time con artist'],
+  settings:['Los Angeles during a diplomatic visit','Miami during a luxury-art theft','Hong Kong during an international summit','Las Vegas during a celebrity wedding','London during a high-profile prisoner transfer'],
+  goals:['protect a witness nobody can control','recover stolen evidence before two rival agencies find it','stop a kidnapping without admitting they caused the security breach','escort a diplomat through a citywide manhunt','catch a thief who keeps turning their mistakes into public spectacle'],
+  pressures:['professional criminals keep exploiting the partners’ inability to work together','every attempt to stay undercover becomes more public and destructive','the local police think the heroes are part of the conspiracy','a rival pair of agents keeps arriving first and making everything worse','the mission turns into an international incident'],
+  complications:['the two partners have completely different ideas of what counts as a plan','one of them has secretly promised the witness something impossible','their target is connected to an old case neither has told the other about','the person they are protecting may be running a con of their own','success requires trusting the one person they have spent the film insulting']
+ },
+ 'Mystery Thriller':{
+  roles:['cold-case detective','investigative journalist','forensic linguist','private investigator','defence barrister'],
+  settings:['a coastal town during an anniversary memorial','a sealed hotel floor reopened after thirty years','a wealthy family estate after a suspicious death','a city archive containing altered police records','a jury hotel during a nationally watched trial'],
+  goals:['solve a disappearance that has just repeated itself','identify which witness has been living under a false identity','reconstruct the final day of a victim whose records contradict one another','find the source of evidence appearing before crimes occur','prove the official suspect was selected before the murder happened'],
+  pressures:['every witness changes their story after speaking to the same unknown person','the investigation begins reproducing details from an older unsolved case','the police quietly withdraw access to evidence the protagonist already saw','someone starts leaking private investigative notes to the press','the killer appears to know which clue will be discovered next'],
+  complications:['the most credible suspect is the person who originally hired them','a family member is hidden inside the case under another name','the victim had been investigating the protagonist','the key witness remembers an event the protagonist cannot','solving the case would expose an earlier conviction they helped secure']
+ },
+ 'Supernatural Horror':{
+  roles:['parish priest','folklore researcher','bereaved parent','night-shift paramedic','social worker'],
+  settings:['a church sealed after a vanished congregation','an isolated island during a winter rite','a hospital wing built over a demolished chapel','a farmhouse where every family reports the same child','a village preparing to reopen an ancient burial site'],
+  goals:['discover what was released during a failed exorcism','stop a ritual before it reaches its final night','learn why the dead are appearing only to one family','identify the entity using patients’ voices','break a curse that passes to whoever tries to investigate it'],
+  pressures:['the haunting grows stronger whenever anyone names it','the community would rather sacrifice an outsider than end the tradition','people begin repeating words spoken by the dead','the entity starts appearing in photographs taken years before the haunting began','every protective ritual seems to strengthen something else'],
+  complications:['their own family helped create the ritual','the person they are trying to save invited the entity deliberately','the church has known the truth for generations','the supposed victim may be the only person keeping the entity contained','ending the curse requires giving up the one thing they came to recover']
+ },
+ 'Sports Drama':{
+  roles:['retired boxer','assistant football coach','injured sprinter','veteran racing driver','undrafted basketball prospect'],
+  settings:['a struggling hometown gym','a club facing its final season before bankruptcy','an Olympic training camp after a doping scandal','a racing team rebuilding after a fatal crash','a minor-league arena about to be demolished'],
+  goals:['earn one final title shot','keep the team together long enough to finish the season','qualify for the event that ended their career','turn a group of discarded players into contenders','win back a place in the sport without repeating the mistake that destroyed them'],
+  pressures:['ownership wants results before the team is ready','a younger rival is becoming the story the press prefers','old injuries make every success harder to repeat','the person funding the comeback expects control in return','winning begins pulling the team apart'],
+  complications:['the coach they blame for their downfall is the only person willing to help','their closest teammate is considering leaving','the comeback is hurting the family relationship they promised to repair','the scandal they denied years ago was partly true','the final opportunity requires sacrificing somebody else’s career']
+ },
+ 'Romantic Comedy':{
+  roles:['wedding planner','book editor','restaurant owner','sports agent','travel writer'],
+  settings:['a destination wedding where both exes are in the party','a delayed flight that strands two rivals in the same city','a family holiday built around a fake relationship','a television dating show neither lead wanted to join','a company merger that makes two professional enemies share an office'],
+  goals:['survive a weekend pretending to be happily coupled','land a career-changing client without revealing a personal history','convince both families the fake relationship is real','make an ex jealous without actually falling for the accomplice','finish one perfect event while avoiding the person they never properly got over'],
+  pressures:['the lie becomes more useful each time they try to end it','their families become emotionally invested in the fake romance','a professional rival discovers the arrangement','the person they are pretending to love starts dating someone else for real','every attempt at honesty arrives at the worst possible moment'],
+  complications:['they already dated once and remember the breakup differently','one lead secretly accepted a job in another country','their supposed rival has been quietly helping them succeed','the fake relationship solves a real family problem','the career opportunity depends on keeping the lie alive']
+ },
+ 'Superhero':{
+  roles:['reluctant vigilante','disgraced veteran hero','young inventor','government-trained operative','investigative reporter with emerging powers'],
+  settings:['a city rebuilding after its heroes disappeared','a country requiring powered people to register','a metropolis threatened by a reality fracture','a government academy training young heroes','a city whose beloved protector has vanished'],
+  goals:['stop a catastrophe before the public turns against all powered people','expose a celebrated hero who has become the threat','assemble a team capable of surviving the first attack','learn the source of powers spreading unpredictably through the city','protect civilians while resisting a government order to stand down'],
+  pressures:['public trust collapses after every new battle','the villain understands the heroes’ powers better than they do','the government begins arresting allies as liabilities','a rival hero keeps escalating the conflict for publicity','the city’s infrastructure is becoming part of the threat'],
+  complications:['their own powers are connected to the catastrophe','the villain is a former mentor','saving the city would expose a secret identity that protects their family','the missing hero left evidence implicating the protagonist','the team’s strongest member may be causing the instability']
+ },
+ 'Adventure':{
+  roles:['archaeologist','salvage diver','mountain guide','cargo pilot','documentary journalist'],
+  settings:['an island revealed after a once-in-a-century storm','a mountain pass closed since a famous expedition vanished','a desert city reachable only during one week each year','a deep-ocean wreck field beneath disputed waters','a jungle valley missing from every official map'],
+  goals:['find an expedition that disappeared decades earlier','recover an artefact before a private collector destroys the site','lead a damaged team back to civilisation','reach a lost settlement before a rival expedition','finish the journey that destroyed their family'],
+  pressures:['weather closes every route behind them','a rival team keeps stealing discoveries and supplies','the map becomes less accurate the deeper they travel','local authorities have secretly ordered the site erased','the expedition starts dividing over whether the discovery should be revealed'],
+  complications:['the missing expedition included someone they believed dead','the artefact is valuable because of what it proves rather than what it is','their guide has been working for the rival team','the destination was deliberately hidden by the protagonist’s own family','getting home requires destroying the discovery they came to preserve']
+ },
+ 'Historical Epic':{
+  roles:['ambitious general','disgraced noble','royal physician','court diplomat','rebellion commander'],
+  settings:['an empire collapsing during a disputed succession','a besieged city during its final winter','a royal court divided by civil war','a frontier army cut off from the capital','a revolution where former allies are becoming enemies'],
+  goals:['keep the kingdom intact long enough to negotiate peace','win a war the ruler no longer understands','protect an heir whose existence could restart the conflict','end a siege without surrendering the city','build an alliance among factions that have spent generations fighting'],
+  pressures:['every victory strengthens a rival faction','the treasury is collapsing faster than the army','foreign powers are funding both sides','the ruler begins purging anyone who questions the war','the rebellion starts reproducing the cruelty it opposed'],
+  complications:['their family profits from the conflict','the enemy commander is someone they once loved','the rightful heir does not want the throne','the peace they can achieve would betray the people who followed them','history will remember the decision differently from the truth']
  }
 };
 const PREMISE_FIRST_NAMES=['Jack','Mara','Elena','Noah','Leah','Daniel','Nina','Elias','Maya','Theo','Rosa','Adrian','Lena','Jonah','Sofia','Marcus','Amira','Sam','Eva','Miles'];
@@ -1988,8 +2191,9 @@ function premiseReviewParagraph(f,tier){
 
 function marketBudgetForGenre(r,genre){
  const ranges={
-  'Psychological Horror':[4,13],'Prestige Drama':[5,15],'Comedy':[6,17],'Crime Thriller':[8,20],
-  'Family Adventure':[12,28],'Action Thriller':[14,34],'Science Fiction':[14,38],'Fantasy':[16,40]
+  'Psychological Horror':[4,13],'Supernatural Horror':[5,15],'Prestige Drama':[5,15],'Romantic Comedy':[6,17],'Comedy':[6,17],
+  'Sports Drama':[7,18],'Mystery Thriller':[7,19],'Crime Thriller':[8,20],'Action Comedy':[12,30],'Family Adventure':[12,28],
+  'Adventure':[13,32],'Action Thriller':[14,34],'Science Fiction':[14,38],'Historical Epic':[16,42],'Fantasy':[16,40],'Superhero':[22,52]
  };
  const [lo,hi]=ranges[genre]||[7,25];return +(lo+r()*(hi-lo)).toFixed(1);
 }
