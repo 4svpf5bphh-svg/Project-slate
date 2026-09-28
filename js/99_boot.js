@@ -220,6 +220,15 @@ function projectSlateSmokeChecks(){
   if(PORTRAIT_WIKIPEDIA_TITLES['Andrew Scott']!=='Andrew Scott (actor)')failures.push('v4.6.2 Andrew Scott portrait alias missing');
   if(SAVE_SCHEMA_VERSION<404)failures.push('v4.6.2 save migration missing');
  }catch(e){failures.push('v4.6.2 talent / genre expansion smoke failed'+(e?.message?': '+e.message:''))}
+ try{
+  if(!releaseFilm.toString().includes('queueReviewReveal'))failures.push('v4.6.3 simulation-owned review reveal hook missing');
+  if(queueReviewReveal.toString().includes('aiReviewContent(f)'))failures.push('v4.6.3 review reveal still depends on AI');
+  if(surfacePendingReviewReveal.toString().includes('aiReviewContent(f)'))failures.push('v4.6.3 pending reveal still depends on AI');
+  if(narrativeReviewStatusHTML.toString().includes('Generate AI review')||narrativeReviewStatusHTML.toString().includes('Retry AI review')||narrativeReviewStatusHTML.toString().includes('Rewrite review'))failures.push('v4.6.3 manual AI review controls still exposed');
+  if(!requestNarrative.toString().includes('NARRATIVE_REQUEST_TIMEOUT_MS')||!requestNarrative.toString().includes('narrativeErrorRetryable'))failures.push('v4.6.3 Narrative request recovery missing');
+  if(!bootstrapNarrativeEngine.toString().includes('resumeNarrativeWork')||!bindNarrativeLifecycle.toString().includes("addEventListener('online'"))failures.push('v4.6.3 Narrative lifecycle recovery missing');
+  if(!narrativeSettingsHTML.toString().includes('AUTOMATIC'))failures.push('v4.6.3 automatic Narrative status UI missing');
+ }catch(e){failures.push('v4.6.3 Narrative reliability smoke failed'+(e?.message?': '+e.message:''))}
 
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
