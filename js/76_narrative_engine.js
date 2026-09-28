@@ -1,9 +1,11 @@
-// Project Slate v4.5a — Narrative Engine client
-// Gameplay remains authoritative. AI prose is optional and always has a local fallback.
+// Project Slate v4.6.3 — Narrative Engine reliability client
+// Gameplay remains authoritative. AI prose is automatic enhancement with resilient local fallback.
 
 const NARRATIVE_SCHEMA_VERSION=1;
 const NARRATIVE_DEFAULT_ENDPOINT='https://project-slate-five.vercel.app/api/narrative';
-const narrativeRuntime={pending:new Map(),lastError:null,connection:null};
+const NARRATIVE_REQUEST_TIMEOUT_MS=70000;
+const NARRATIVE_AUTO_RETRY_LIMIT=4;
+const narrativeRuntime={pending:new Map(),retryTimers:new Map(),lastError:null,connection:null,lifecycleBound:false};
 
 function narrativeNormalizeEndpoint(value){
  let url=String(value||'').trim();if(!url)return null;
@@ -13,34 +15,62 @@ function narrativeNormalizeEndpoint(value){
  return url;
 }
 function narrativeEndpoint(){
- const configured=(typeof window!=='undefined'&&window.PROJECT_SLATE_NARRATIVE_ENDPOINT)||localStorage.getItem('projectSlateNarrativeEndpoint');
- if(configured)return narrativeNormalizeEndpoint(configured);
+ const runtimeOverride=typeof window!=='undefined'&&window.PROJECT_SLATE_NARRATIVE_ENDPOINT;
+ if(runtimeOverride)return narrativeNormalizeEndpoint(runtimeOverride);
  if(typeof location!=='undefined'&&/\.github\.io$/i.test(location.hostname))return NARRATIVE_DEFAULT_ENDPOINT;
- return '/api/narrative';
+ if(typeof location!=='undefined'&&/^https?:$/i.test(location.protocol)&&!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname))return '/api/narrative';
+ let configured=null;try{configured=localStorage.getItem('projectSlateNarrativeEndpoint')}catch{}
+ return narrativeNormalizeEndpoint(configured)||'/api/narrative';
 }
 function setNarrativeEndpointValue(value){
  const normalized=narrativeNormalizeEndpoint(value);
- if(normalized)localStorage.setItem('projectSlateNarrativeEndpoint',normalized);else localStorage.removeItem('projectSlateNarrativeEndpoint');
+ try{if(normalized)localStorage.setItem('projectSlateNarrativeEndpoint',normalized);else localStorage.removeItem('projectSlateNarrativeEndpoint')}catch{}
  narrativeRuntime.connection=null;narrativeRuntime.lastError=null;return narrativeEndpoint();
 }
 async function testNarrativeConnection(){
- const endpoint=narrativeEndpoint();if(!endpoint){narrativeRuntime.connection={ok:false,error:'No Narrative API endpoint configured.'};return narrativeRuntime.connection}
+ const endpoint=narrativeEndpoint();if(!endpoint){narrativeRuntime.connection={ok:false,error:'Narrative service unavailable.',checkedAt:Date.now()};return narrativeRuntime.connection}
  try{
   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);let res;
-  try{res=await fetch(endpoint,{method:'GET',headers:{'Accept':'application/json'},signal:ctrl.signal})}finally{clearTimeout(timer)}
+  try{res=await fetch(endpoint,{method:'GET',headers:{'Accept':'application/json'},signal:ctrl.signal,cache:'no-store'})}finally{clearTimeout(timer)}
   let data=null;try{data=await res.json()}catch{}
-  narrativeRuntime.connection=res.ok&&data?.ok?{ok:true,provider:data.provider||'unknown',model:data.model||'unknown',configured:!!data.configured,endpoint}:{ok:false,error:data?.error||('HTTP '+res.status),endpoint};
- }catch(err){narrativeRuntime.connection={ok:false,error:String(err?.message||err),endpoint}}
+  narrativeRuntime.connection=res.ok&&data?.ok?{ok:true,provider:data.provider||'unknown',model:data.model||'unknown',configured:!!data.configured,endpoint,checkedAt:Date.now()}:{ok:false,error:data?.error||('HTTP '+res.status),endpoint,checkedAt:Date.now()};
+ }catch(err){narrativeRuntime.connection={ok:false,error:String(err?.message||err),endpoint,checkedAt:Date.now()}}
  return narrativeRuntime.connection;
 }
 function narrativeSettingsHTML(){
- const endpoint=narrativeEndpoint(),status=narrativeRuntime.connection;
- const value=narrativeEscapeHTML(endpoint||'');
- const statusHTML=status?.ok
-  ?'<div class="narrative-connection '+(status.configured?'ready':'warn')+'"><span class="pill '+(status.configured?'good':'warn')+'">'+(status.configured?'CONNECTED':'KEY MISSING')+'</span><div><strong>'+narrativeEscapeHTML(status.provider)+' · '+narrativeEscapeHTML(status.model)+'</strong><span>'+(status.configured?'Narrative API is ready to generate reviews.':'The API is live, but its provider key is not configured yet.')+'</span></div></div>'
-  :status?'<div class="narrative-connection warn"><span class="pill warn">NOT READY</span><div><strong>Connection failed</strong><span>'+narrativeEscapeHTML(status.error||'Unknown error')+'</span></div></div>'
-  :'<div class="narrative-connection"><span class="pill blue">OPTIONAL</span><div><strong>'+(endpoint?'Endpoint saved':'No endpoint configured')+'</strong><span>'+(endpoint?'Test the connection to confirm the server and Groq key are ready.':'Project Slate will continue using its local writing until a Narrative API is connected.')+'</span></div></div>';
- return '<div class="section-title"><h2>Narrative Engine</h2><span class="small">AI changes the writing, never the simulation result</span></div><div class="card narrative-settings">'+statusHTML+'<label class="field-label" for="narrativeEndpointInput">Narrative API URL</label><input id="narrativeEndpointInput" class="input" type="url" inputmode="url" placeholder="https://your-project.vercel.app" value="'+value+'"><div class="small" style="margin-top:6px">You can paste either the Vercel project URL or the full /api/narrative URL. No API key belongs in the game.</div><div class="grid cols2" style="margin-top:10px"><button class="btn" id="saveNarrativeEndpoint">Save endpoint</button><button class="btn primary" id="testNarrativeEndpoint" '+(!endpoint?'disabled':'')+'>Test connection</button></div><div class="small" style="margin-top:10px"><strong>Current AI surfaces:</strong> Daily Screen reviews and Project Intelligence for player-created concepts. If the service is unavailable, the existing local review remains the automatic fallback.</div></div>';
+ const status=narrativeRuntime.connection;
+ const hasFallback=(state.films||[]).some(f=>f.owner==='player'&&f.review&&['retry_wait','degraded'].includes(f.aiNarrative?.review?.status));
+ const statusHTML=status?.ok&&status.configured
+  ?'<div class="narrative-connection ready"><span class="pill good">AUTOMATIC</span><div><strong>'+narrativeEscapeHTML(status.provider)+' · '+narrativeEscapeHTML(status.model)+'</strong><span>Project Slate connects automatically. Reviews and Project Intelligence are generated without player setup.</span></div></div>'
+  :hasFallback||status
+   ?'<div class="narrative-connection warn"><span class="pill warn">RECOVERING</span><div><strong>Local fallback is active</strong><span>Gameplay continues normally while Project Slate retries the Narrative Engine automatically.</span></div></div>'
+   :'<div class="narrative-connection"><span class="pill blue">AUTOMATIC</span><div><strong>Narrative Engine is managed by Project Slate</strong><span>Connection health is checked silently and temporary failures fall back to local writing.</span></div></div>';
+ const diagnostics=(typeof simulationAuditAccess==='function'&&simulationAuditAccess())
+  ?'<div class="small" style="margin-top:10px"><strong>Diagnostics:</strong> '+narrativeEscapeHTML(narrativeEndpoint())+' · '+narrativeEscapeHTML(narrativeRuntime.lastError||'no current error')+'</div><button class="btn ghost" id="testNarrativeEndpoint" style="margin-top:8px">Run health check</button>'
+  :'';
+ return '<div class="section-title"><h2>Narrative Engine</h2><span class="small">Automatic AI enhancement · simulation-safe fallback</span></div><div class="card narrative-settings">'+statusHTML+'<div class="small" style="margin-top:10px">The simulation never waits for AI. Review reveals always fire from the game result; AI prose replaces local copy automatically when available.</div>'+diagnostics+'</div>';
+}
+function narrativeSleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+function narrativeRetryDelayMs(count){return [20000,90000,300000,1200000][Math.max(0,Math.min(3,(count||1)-1))]}
+function narrativeRetryKey(kind,id){return kind+':'+id}
+function clearNarrativeRetry(kind,id){
+ const key=narrativeRetryKey(kind,id),timer=narrativeRuntime.retryTimers.get(key);if(timer)clearTimeout(timer);narrativeRuntime.retryTimers.delete(key);
+}
+function scheduleNarrativeRetry(kind,id,count){
+ clearNarrativeRetry(kind,id);
+ const delay=narrativeRetryDelayMs(count),key=narrativeRetryKey(kind,id),nextRetryAt=Date.now()+delay;
+ const timer=setTimeout(()=>{
+  narrativeRuntime.retryTimers.delete(key);
+  if(kind==='film_review'){const f=filmById(id);if(f?.review)void queueAIReview(f,{force:true,automatic:true})}
+  else if(kind==='project_intelligence'){const s=scriptById(id);if(s?.source==='Original Concept')void queueProjectIntelligence(s,{force:true,automatic:true})}
+ },delay);
+ narrativeRuntime.retryTimers.set(key,timer);return nextRetryAt;
+}
+function narrativeErrorRetryable(err){
+ const status=Number(err?.status||0),code=String(err?.code||err?.message||'');
+ if(['narrative_not_configured','origin_not_allowed','unsupported_request','invalid_json','invalid_project_intelligence_shape','invalid_review_shape'].includes(code))return false;
+ if(code==='review_quality_failed')return true;
+ return !status||status===408||status===425||status===429||status>=500||/abort|network|fetch|timeout/i.test(code);
 }
 function ensureFilmNarrative(f){
  if(!f)return null;
@@ -125,7 +155,8 @@ function projectIntelligenceHTML(s){
  const x=ensureScriptIntelligence(s);
  if(x.status==='idle')return '<div class="section-title"><h2>Project Intelligence</h2><span class="small">Optional creative-context check</span></div><div class="card"><div class="body">Check whether this player-created concept clearly connects to an existing film, series, book, game or other known property. Recognition adds narrative context only and never changes screenplay quality.</div><button class="btn block" style="margin-top:10px" data-project-intel-retry="'+s.id+'">Check project context</button></div>';
  if(x.status==='pending')return '<div class="section-title"><h2>Project Intelligence</h2><span class="small">Checking creative context</span></div><div class="card attention"><div class="row"><strong>Looking for an existing-property connection…</strong><span class="pill blue">AI</span></div><div class="small" style="margin-top:7px">The screenplay remains fully playable while this runs.</div></div>';
- if(x.status==='failed')return '<div class="section-title"><h2>Project Intelligence</h2></div><div class="card"><div class="body">The context check could not be completed. This does not affect the screenplay or its simulation values.</div><button class="btn block" style="margin-top:10px" data-project-intel-retry="'+s.id+'">Retry context check</button></div>';
+ if(x.status==='retry_wait')return '<div class="section-title"><h2>Project Intelligence</h2></div><div class="card attention"><div class="row"><strong>Context service temporarily unavailable</strong><span class="pill warn">RETRYING</span></div><div class="small" style="margin-top:7px">Project Slate will retry automatically. The screenplay remains fully playable.</div></div>';
+ if(x.status==='degraded')return '<div class="section-title"><h2>Project Intelligence</h2></div><div class="card"><div class="row"><strong>Context check deferred</strong><span class="pill">LOCAL MODE</span></div><div class="small" style="margin-top:7px">Project Slate will try again when the app reconnects or resumes. No gameplay is blocked.</div></div>';
  if(x.status!=='ready'||!validProjectIntelligence(x.result))return '';
  const p=x.result;
  if(!p.recognized)return '<div class="section-title"><h2>Project Intelligence</h2></div><div class="card"><div class="row"><strong>No strong existing-property match</strong><span class="pill">ORIGINAL</span></div><div class="small" style="margin-top:7px">'+narrativeEscapeHTML(p.recognition_basis||'The title and premise did not strongly identify a known property.')+'</div><button class="btn ghost" style="margin-top:10px" data-project-intel-retry="'+s.id+'">Check again</button></div>';
@@ -139,26 +170,30 @@ function projectIntelligenceHTML(s){
    :'<div class="grid cols2" style="margin-top:12px"><button class="btn primary" data-project-intel-accept="'+s.id+'">Use '+narrativeEscapeHTML(p.property_name||'franchise')+' context</button><button class="btn" data-project-intel-dismiss="'+s.id+'">Treat as original</button></div>';
  return '<div class="section-title"><h2>Project Intelligence</h2><span class="small">Creative context · not rights clearance</span></div><div class="card project-intelligence '+(accepted?'goodline':'')+'"><div class="row"><div><div class="badge">'+confidence+' CONFIDENCE · '+narrativeEscapeHTML(p.relationship).toUpperCase()+'</div><strong style="display:block;margin-top:5px">'+narrativeEscapeHTML(p.property_name||'Recognised property')+'</strong></div><span class="pill '+(accepted?'good':'warn')+'">'+(accepted?'ACTIVE':'CONFIRM')+'</span></div><div class="body" style="margin-top:9px">'+narrativeEscapeHTML(p.context_summary||'')+'</div>'+(talent?'<div class="small" style="margin-top:10px"><strong>Legacy associations</strong></div><div style="margin-top:5px">'+talent+'</div>':'')+(identity?'<div class="small" style="margin-top:10px"><strong>Established identity</strong></div><div style="margin-top:5px">'+identity+'</div>':'')+'<div class="small" style="margin-top:10px">'+narrativeEscapeHTML(p.recognition_basis||'')+'</div><div class="small" style="margin-top:8px">Project Intelligence provides narrative context only. It does not determine ownership, licensing or production rights.</div>'+decision+'</div>';
 }
-function queueProjectIntelligence(s,{force=false}={}){
+function queueProjectIntelligence(s,{force=false,automatic=false}={}){
  if(!s||s.source!=='Original Concept'||!narrativeEndpoint())return Promise.resolve(null);
- const store=ensureScriptIntelligence(s),packet=narrativeProjectIntelligencePacket(s),fingerprint=narrativeFingerprint(packet);
+ const store=ensureScriptIntelligence(s),packet=narrativeProjectIntelligencePacket(s),fingerprint=narrativeFingerprint(packet),existing=s.projectIntelligence||store;
  if(!force&&store.status==='ready'&&store.fingerprint===fingerprint)return Promise.resolve(store);
  const key='project_intelligence:'+s.id;if(narrativeRuntime.pending.has(key))return narrativeRuntime.pending.get(key);
- const priorAccepted=store.accepted??null;
- s.projectIntelligence={status:'pending',accepted:priorAccepted,fingerprint,requestedWeek:state.week};try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render()
+ const priorAccepted=store.accepted??null,retryCount=automatic?(existing.retryCount||0):(force?existing.retryCount||0:0);
+ clearNarrativeRetry('project_intelligence',s.id);
+ s.projectIntelligence={status:'pending',accepted:priorAccepted,fingerprint,requestedWeek:state.week,retryCount};try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render()
  const task=requestNarrative('project_intelligence',packet).then(data=>{
-  if(!validProjectIntelligence(data.narrative))throw new Error('invalid_project_intelligence_shape');
-  s.projectIntelligence={status:'ready',accepted:data.narrative.recognized?priorAccepted:false,fingerprint,result:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week};
+  if(!validProjectIntelligence(data.narrative)){const e=new Error('invalid_project_intelligence_shape');e.code='invalid_project_intelligence_shape';throw e}
+  s.projectIntelligence={status:'ready',accepted:data.narrative.recognized?priorAccepted:false,fingerprint,result:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week,retryCount:0};
+  clearNarrativeRetry('project_intelligence',s.id);narrativeRuntime.lastError=null;
   if(data.narrative.recognized&&priorAccepted===null&&typeof notify==='function')notify('project-intel:'+s.id,'Project Intelligence · '+(data.narrative.property_name||s.title),'A possible '+data.narrative.relationship+' connection was recognised. Confirm whether Project Slate should use that context.',null,false,'info',{screen:'develop',detail:{type:'script',id:s.id}});
   try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render();return s.projectIntelligence;
  }).catch(err=>{
-  s.projectIntelligence={status:'failed',accepted:priorAccepted,fingerprint,lastError:String(err?.message||err),failedWeek:state.week};try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render();return null;
+  const nextCount=(retryCount||0)+1,canRetry=narrativeErrorRetryable(err)&&nextCount<=NARRATIVE_AUTO_RETRY_LIMIT,nextRetryAt=canRetry?scheduleNarrativeRetry('project_intelligence',s.id,nextCount):null;
+  s.projectIntelligence={status:canRetry?'retry_wait':'degraded',accepted:priorAccepted,fingerprint,lastError:String(err?.message||err),failedWeek:state.week,retryCount:nextCount,nextRetryAt};
+  narrativeRuntime.lastError=s.projectIntelligence.lastError;try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render();return null;
  }).finally(()=>narrativeRuntime.pending.delete(key));
  narrativeRuntime.pending.set(key,task);return task;
 }
 function acceptProjectIntelligence(s){const x=ensureScriptIntelligence(s);if(x?.status!=='ready'||!x.result?.recognized)return;x.accepted=true;save();render()}
 function dismissProjectIntelligence(s){const x=ensureScriptIntelligence(s);if(!x)return;x.accepted=false;save();render()}
-function retryProjectIntelligence(s){if(!s)return;if(!narrativeEndpoint())return showToast('Narrative Engine is not connected.');queueProjectIntelligence(s,{force:true});render()}
+function retryProjectIntelligence(s){if(!s)return;queueProjectIntelligence(s,{force:true});render()}
 
 function narrativeFilmReviewPacket(f){
  const sc=scriptById(f.scriptId),id=typeof ensureFilmIdentity==='function'?ensureFilmIdentity(f):{},critic=f.review?.critic||{},m=f.metrics||{},post=f.post||{},marketing=typeof ensureMarketingState==='function'?ensureMarketingState(f):f.marketingState||{},tracking=marketing.trackingHistory?.[0]||null;
@@ -195,14 +230,24 @@ function narrativeFilmReviewPacket(f){
 function narrativeFingerprint(packet){return String(hash(JSON.stringify(packet)))}
 function validAIReview(x){return !!x&&typeof x.headline==='string'&&typeof x.pull_quote==='string'&&Array.isArray(x.paragraphs)&&x.paragraphs.length===4&&x.paragraphs.every(p=>typeof p==='string'&&p.trim())}
 async function requestNarrative(type,packet){
- const endpoint=narrativeEndpoint();if(!endpoint)throw new Error('narrative_backend_not_configured');
- const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),30000);
- try{
-  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,packet}),signal:ctrl.signal});
-  let data=null;try{data=await res.json()}catch{}
-  if(!res.ok||!data?.ok)throw new Error(data?.error||('http_'+res.status));
-  return data;
- }finally{clearTimeout(timer)}
+ const endpoint=narrativeEndpoint();if(!endpoint){const e=new Error('narrative_backend_not_configured');e.code='narrative_backend_not_configured';throw e}
+ let lastError=null;
+ for(let attempt=0;attempt<2;attempt++){
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),NARRATIVE_REQUEST_TIMEOUT_MS);
+  try{
+   const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,packet}),signal:ctrl.signal,cache:'no-store'});
+   let data=null;try{data=await res.json()}catch{}
+   if(res.ok&&data?.ok)return data;
+   const err=new Error(data?.error||('http_'+res.status));err.code=data?.error||('http_'+res.status);err.status=res.status;err.detail=data?.detail||null;lastError=err;
+   if(attempt===0&&narrativeErrorRetryable(err)&&err.code!=='review_quality_failed'){await narrativeSleep(res.status===429?10000:3000);continue}
+   throw err;
+  }catch(err){
+   lastError=err;
+   if(attempt===0&&narrativeErrorRetryable(err)&&String(err?.code||'')!=='review_quality_failed'){await narrativeSleep(3000);continue}
+   throw err;
+  }finally{clearTimeout(timer)}
+ }
+ throw lastError||new Error('narrative_request_failed');
 }
 function aiReviewContent(f){const x=ensureFilmNarrative(f)?.review;return x?.status==='ready'&&validAIReview(x.narrative)?x:null}
 function narrativeEscapeHTML(value){return String(value??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]))}
@@ -212,12 +257,12 @@ function reviewDisplayContent(f){
  return {headline:local.headline,quote:local.quote,paragraphs:local.paragraphs||[],ai:null};
 }
 function narrativeReviewStatusHTML(f){
- const x=ensureFilmNarrative(f)?.review,endpoint=narrativeEndpoint();
- if(x?.status==='ready')return '<div class="narrative-status ready"><div><span class="pill good">NARRATIVE ENGINE</span><span>AI-authored review prose · scores and game outcomes remain simulation-owned.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Rewrite review</button></div>';
- if(x?.status==='pending')return '<div class="narrative-status pending"><span class="pill blue">NARRATIVE ENGINE</span><span>The Daily Screen review is being written. Local review copy remains visible until it arrives.</span></div>';
- if(x?.status==='failed')return '<div class="narrative-status failed"><div><span class="pill warn">LOCAL FALLBACK</span><span>Narrative Engine unavailable. The simulation review is still complete and playable.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Retry AI review</button></div>';
- if(f?.review&&!endpoint)return '<div class="narrative-status"><div><span class="pill blue">LOCAL REVIEW</span><span>Narrative Engine is optional and not connected yet.</span></div><button class="btn ghost" data-open-narrative-settings>Set up Narrative Engine</button></div>';
- if(f?.review)return '<div class="narrative-status"><div><span class="pill blue">NARRATIVE ENGINE</span><span>Local review currently shown. Generate an AI-written version from the same simulation verdict.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Generate AI review</button></div>';
+ const x=ensureFilmNarrative(f)?.review;
+ if(x?.status==='ready')return '<div class="narrative-status ready"><span class="pill good">NARRATIVE ENGINE</span><span>AI-authored review prose · scores and outcomes remain simulation-owned.</span></div>';
+ if(x?.status==='pending')return '<div class="narrative-status pending"><span class="pill blue">NARRATIVE ENGINE</span><span>AI copy is being written. The local Daily Screen review remains fully available meanwhile.</span></div>';
+ if(x?.status==='retry_wait')return '<div class="narrative-status failed"><span class="pill warn">LOCAL COPY</span><span>Narrative Engine is temporarily unavailable. Project Slate is retrying automatically.</span></div>';
+ if(x?.status==='degraded')return '<div class="narrative-status"><span class="pill">LOCAL COPY</span><span>The simulation review is complete. AI will retry automatically when the app reconnects or resumes.</span></div>';
+ if(f?.review)return '<div class="narrative-status"><span class="pill blue">LOCAL COPY</span><span>Project Slate is preparing the AI-written version automatically.</span></div>';
  return '';
 }
 function ensureReviewRevealState(){
@@ -229,9 +274,9 @@ function reviewRevealBlocked(){
  return !state.studio||state.screen==='setup'||!!state.pendingCeremony||!!state.pendingAwardsNominations||!!state.activeFilmWrapId||!!state.activeStudioMoment||!!state.activeLegendUnlockId||['ceremony','nominations','filmWrap','studioMoment','legendUnlock'].includes(state.screen);
 }
 function queueReviewReveal(f){
- if(!f||!aiReviewContent(f))return false;
- const q=ensureReviewRevealState(),x=f.aiNarrative.review,token=x.responseId||x.fingerprint||String(x.generatedWeek||Date.now());
- if(x.lastRevealToken===token||q.some(i=>i.filmId===f.id&&i.token===token)||state.activeReviewReveal?.token===token)return false;
+ if(!f?.review||f.owner!=='player')return false;
+ const q=ensureReviewRevealState(),token=f.review.revealToken||(f.review.revealToken='review:'+f.id+':'+(f.releaseWeek||state.week)+':'+(f.review.critics||0)+':'+(f.review.audience||0));
+ if(f.review.lastRevealToken===token||q.some(i=>i.filmId===f.id&&i.token===token)||state.activeReviewReveal?.token===token)return false;
  q.push({filmId:f.id,token,week:state.week});
  return surfacePendingReviewReveal();
 }
@@ -240,7 +285,7 @@ function surfacePendingReviewReveal(){
  if(state.activeReviewReveal||reviewRevealBlocked())return false;
  while(q.length){
   const item=q.shift(),f=filmById(item.filmId);
-  if(!f||!aiReviewContent(f))continue;
+  if(!f?.review)continue;
   state.activeReviewReveal=item;state.screen='reviewReveal';state.detail=null;state.history=[];if(typeof requestScrollTop==='function')requestScrollTop();return true;
  }
  return false;
@@ -256,44 +301,73 @@ function reviewRevealScreen(){
   '<blockquote>“'+(d.quote||narrativeEscapeHTML(f.review.quote||''))+'”</blockquote>'+
   '<div class="review-reveal-byline">By <strong>'+narrativeEscapeHTML(critic.name||'Staff Critic')+'</strong> · '+narrativeEscapeHTML(critic.title||'Film Critic')+'</div>'+
   '<div class="review-reveal-actions"><button class="btn primary" id="reviewRevealRead">Read the full review</button><button class="btn ghost" id="reviewRevealContinue">Back to release</button></div></div></div>'+
-  '<div class="review-reveal-foot">AI writes the copy. Project Slate’s simulation owns the verdict.</div></div></div>';
+  '<div class="review-reveal-foot">'+(d.ai?'Narrative Engine copy · ':'Local Daily Screen copy · ')+ 'Project Slate’s simulation owns the verdict.</div></div></div>';
 }
 function closeReviewReveal(readFull=false){
  const item=state.activeReviewReveal,f=item?.filmId?filmById(item.filmId):null;
- if(f?.aiNarrative?.review&&item?.token)f.aiNarrative.review.lastRevealToken=item.token;
+ if(f?.review&&item?.token)f.review.lastRevealToken=item.token;
  state.activeReviewReveal=null;
  if(surfacePendingReviewReveal()){save();render();return}
  if(f){state.screen='release';state.detail=readFull?{type:'review',id:f.id}:{type:'film',id:f.id}}else{state.screen='release';state.detail=null}
  state.history=[];if(typeof requestScrollTop==='function')requestScrollTop();save();render();
 }
-function queueAIReview(f,{force=false}={}){
+function queueAIReview(f,{force=false,automatic=false}={}){
  if(!f?.review||f.owner!=='player')return Promise.resolve(null);
  if(typeof simulationBenchmarkActive!=='undefined'&&simulationBenchmarkActive)return Promise.resolve(null);
  if(!narrativeEndpoint())return Promise.resolve(null);
- const store=ensureFilmNarrative(f),packet=narrativeFilmReviewPacket(f),fingerprint=narrativeFingerprint(packet),existing=store.review;
+ const store=ensureFilmNarrative(f),packet=narrativeFilmReviewPacket(f),fingerprint=narrativeFingerprint(packet),existing=store.review,retryCount=automatic?(existing?.retryCount||0):(force?existing?.retryCount||0:0);
  if(!force&&existing?.status==='ready'&&existing.fingerprint===fingerprint)return Promise.resolve(existing);
  const key='film_review:'+f.id;if(narrativeRuntime.pending.has(key))return narrativeRuntime.pending.get(key);
- store.review={status:'pending',fingerprint,requestedWeek:state.week,lastError:null};
+ clearNarrativeRetry('film_review',f.id);
+ store.review={status:'pending',fingerprint,requestedWeek:state.week,lastError:null,retryCount};
  try{save()}catch{}
  const task=requestNarrative('film_review',packet).then(data=>{
-  if(!validAIReview(data.narrative))throw new Error('invalid_review_shape');
-  store.review={status:'ready',fingerprint,narrative:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week,qualityRetry:!!data.meta?.qualityRetry};
-  narrativeRuntime.lastError=null;
-  const revealed=queueReviewReveal(f);try{save()}catch{}
-  if(typeof render==='function'&&(revealed||(state.detail?.type==='review'&&state.detail?.id===f.id)))render();
+  if(!validAIReview(data.narrative)){const e=new Error('invalid_review_shape');e.code='invalid_review_shape';throw e}
+  store.review={status:'ready',fingerprint,narrative:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week,qualityRetry:!!data.meta?.qualityRetry,retryCount:0};
+  clearNarrativeRetry('film_review',f.id);narrativeRuntime.lastError=null;try{save()}catch{}
+  const visible=(state.detail?.type==='review'&&state.detail?.id===f.id)||state.activeReviewReveal?.filmId===f.id;
+  if(typeof render==='function'&&visible)render();
   return store.review;
  }).catch(err=>{
-  store.review={status:'failed',fingerprint,lastError:String(err?.message||err),failedWeek:state.week};
+  const nextCount=(retryCount||0)+1,canRetry=narrativeErrorRetryable(err)&&nextCount<=NARRATIVE_AUTO_RETRY_LIMIT,nextRetryAt=canRetry?scheduleNarrativeRetry('film_review',f.id,nextCount):null;
+  store.review={status:canRetry?'retry_wait':'degraded',fingerprint,lastError:String(err?.message||err),failedWeek:state.week,retryCount:nextCount,nextRetryAt};
   narrativeRuntime.lastError=store.review.lastError;try{save()}catch{}
-  if(typeof render==='function'&&state.detail?.type==='review'&&state.detail?.id===f.id)render();
+  const visible=(state.detail?.type==='review'&&state.detail?.id===f.id)||state.activeReviewReveal?.filmId===f.id;
+  if(typeof render==='function'&&visible)render();
   return null;
  }).finally(()=>narrativeRuntime.pending.delete(key));
  narrativeRuntime.pending.set(key,task);return task;
 }
-function retryAIReview(f){if(!f)return;if(!narrativeEndpoint()){showToast('Set up Narrative Engine under Studio → Business → Narrative.');return}queueAIReview(f,{force:true});render()}
+function retryAIReview(f){if(!f)return;queueAIReview(f,{force:true});render()}
+function resumeNarrativeWork({force=false}={}){
+ if(!state?.studio)return;
+ const now=Date.now();
+ (state.films||[]).filter(f=>f.owner==='player'&&f.review).forEach(f=>{
+  const x=f.aiNarrative?.review,activeRelease=f.stage==='cinema'&&(f.cinemaWeek||0)<=1;
+  if(x?.status==='ready')return;
+  if(x?.status==='pending'&&!narrativeRuntime.pending.has('film_review:'+f.id)){x.status='retry_wait';x.nextRetryAt=now}
+  const due=force||!x||!x.nextRetryAt||x.nextRetryAt<=now;
+  if(due&&(activeRelease||x?.status==='retry_wait'||x?.status==='degraded'))void queueAIReview(f,{force:true,automatic:true});
+ });
+ (state.scripts||[]).filter(s=>s.source==='Original Concept'&&s.projectIntelligence).forEach(s=>{
+  const x=s.projectIntelligence;if(x.status==='ready')return;
+  if(x.status==='pending'&&!narrativeRuntime.pending.has('project_intelligence:'+s.id)){x.status='retry_wait';x.nextRetryAt=now;x.lastError=x.lastError||'Context check was interrupted before completion.'}
+  if((force||!x.nextRetryAt||x.nextRetryAt<=now)&&['retry_wait','degraded'].includes(x.status))void queueProjectIntelligence(s,{force:true,automatic:true});
+ });
+}
+function bindNarrativeLifecycle(){
+ if(narrativeRuntime.lifecycleBound)return;narrativeRuntime.lifecycleBound=true;
+ if(typeof window!=='undefined')window.addEventListener('online',()=>{void testNarrativeConnection();resumeNarrativeWork({force:true})});
+ if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){void testNarrativeConnection();resumeNarrativeWork()}});
+}
 function bootstrapNarrativeEngine(){
- ensureReviewRevealState();
- (state.films||[]).forEach(f=>{const x=f.aiNarrative?.review;if(x?.status==='pending')x.status='failed'});
- (state.scripts||[]).forEach(s=>{const x=s.projectIntelligence;if(x?.status==='pending'){x.status='failed';x.lastError='Context check was interrupted before completion.'}});
+ ensureReviewRevealState();bindNarrativeLifecycle();void testNarrativeConnection();
+ const now=Date.now();
+ (state.films||[]).forEach(f=>{
+  const x=f.aiNarrative?.review;if(x?.status==='pending'){x.status='retry_wait';x.nextRetryAt=now;x.lastError=x.lastError||'AI review request was interrupted before completion.'}
+  if(f.owner==='player'&&f.review&&f.stage==='cinema'&&(f.cinemaWeek||0)<=1)queueReviewReveal(f);
+ });
+ (state.scripts||[]).forEach(s=>{const x=s.projectIntelligence;if(x?.status==='pending'){x.status='retry_wait';x.nextRetryAt=now;x.lastError='Context check was interrupted before completion.'}});
  if(state.activeReviewReveal&&!filmById(state.activeReviewReveal.filmId))state.activeReviewReveal=null;
+ resumeNarrativeWork();
 }
