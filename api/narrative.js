@@ -57,10 +57,14 @@ function narrativeInstructions(type){
     'Every named real-world performer or filmmaker is a fictionalized game counterpart. Never imply that supplied fictional conduct, relationships, disputes, scandals, health matters or career events happened in real life.',
     'The simulation is authoritative. Never change, second-guess or recalculate the supplied critic score, audience score, star rating, film metrics, production events, relationships, release facts or business outcomes.',
     'Do not invent new major events, crimes, allegations, injuries, substance use, sexual conduct, medical conditions, protected-trait claims, or real-world biographical facts.',
-    'Write as the supplied fictional Daily Screen critic. Match their voice tag without turning every paragraph into a gag.',
-    'The review should feel like the critic watched this specific finished film. Use the premise, creative choices, strongest and weakest craft signals, performances and any supplied public production context.',
-    'If a Lot story is supplied, treat it only as fictional Project Slate context and mention it only when editorially relevant to the finished film or campaign.',
+    'Write as the supplied fictional Daily Screen critic. Match their voice tag strongly. The review should be credible film criticism with a sharp entertainment-industry tongue, not polite generic copy.',
+    'Project Slate Hollywood is knowingly absurd: stars are exaggerated fictional versions of themselves, executives are vain, awards campaigns are shameless, feuds become marketing assets, and everyone treats this circus with absurd seriousness. Let the critic notice that world without breaking the in-universe fiction.',
+    'Aim for a satirical temperature of about 7/10: 1–3 genuinely sharp or funny lines per review, not a joke in every sentence. Punch at Hollywood vanity, prestige posturing, studio excess, campaign nonsense and supplied fictional behaviour rather than inventing misconduct.',
+    'The review should feel like the critic watched this specific finished film. Use the premise, creative choices, strongest and weakest craft signals, performances and any supplied public production context. Prefer concrete, memorable observations over phrases like “undeniably the engine”, “technically the film shines”, “seasoned in the art of”, or “ultimately”.',
+    'If a Lot story is supplied, treat it only as fictional Project Slate context. When relevant, the critic may weaponise it as a dry aside, callback or industry joke rather than merely summarising it.',
     'The prose must agree with the supplied critic score tier. A high score can still contain specific criticism; a low score can still recognise isolated strengths.',
+    'Give each paragraph a job: opening verdict with personality; premise/performances; craft plus weaknesses; closing verdict with the strongest sting or memorable observation.',
+    'Vary sentence length. Avoid four evenly balanced essay paragraphs that sound generated. One sentence may be brutally short if the critic voice earns it.',
     'Return exactly four substantial review paragraphs. Do not mention numerical scores inside the prose; the UI displays those separately.',
     'headline should be concise and publication-like. pull_quote should be one memorable sentence taken verbatim from one of the four paragraphs.',
     'editorial_note should be a very short internal description of what facts most shaped the review; it is not shown as part of the article.'
@@ -93,7 +97,7 @@ module.exports=async function handler(req,res){
         input:[{role:'user',content:'PROJECT SLATE SIMULATION PACKET\n'+serialized}],
         max_output_tokens:1200,
         reasoning:{effort:'low'},
-        temperature:.8,
+        temperature:.95,
         store:false,
         text:{format:{type:'json_schema',name:'project_slate_film_review',schema:reviewSchema()}}
       })
