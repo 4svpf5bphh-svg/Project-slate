@@ -1,4 +1,6 @@
-const VERSION='4.6';
+const VERSION='4.6.1';
+// Temporary v4.6 Project Intelligence QA switch. Keep progression rules intact; remove/disable after testing.
+const PROJECT_INTELLIGENCE_TEST_BYPASS=true;
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
