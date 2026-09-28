@@ -125,6 +125,7 @@ function bind(){
  const currentFilmId=state.detail&&typeof state.detail==='object'?state.detail.id:state.detail;
  const sd=document.getElementById('chooseDirector');if(sd)sd.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='fit';push(state.screen,{type:'directorPicker',id:currentFilmId})};
  const sc=document.getElementById('chooseCast');if(sc)sc.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='fit';push(state.screen,{type:'castingPicker',id:currentFilmId})};
+ const openCastingReadiness=document.getElementById('openCastingReadiness');if(openCastingReadiness)openCastingReadiness.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='fit';push(state.screen,{type:'castingPicker',id:currentFilmId})};
  const ss=document.getElementById('chooseSupportingCast');if(ss)ss.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='fit';push(state.screen,{type:'supportingPicker',id:currentFilmId})};
  const reviewContracts=document.getElementById('reviewContracts');if(reviewContracts)reviewContracts.onclick=()=>push(state.screen,{type:'contracts',id:currentFilmId});
  document.querySelectorAll('[data-attach-director]').forEach(b=>b.onclick=e=>{e.stopPropagation();const f=filmById(currentFilmId);attachDirector(f,b.dataset.attachDirector)});
