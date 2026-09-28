@@ -3,12 +3,17 @@
 // fictional in-game personality, relationships, memories and alternate-Hollywood events.
 
 function ensureLotState(st=state){
- st.lot=st.lot||{version:3,profiles:{},relationships:{},pairHistories:{},memories:[],stories:[],history:[],lastIncidentWeek:0};
- st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.pairHistories=st.lot.pairHistories||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];
+ st.lot=st.lot||{version:4,profiles:{},relationships:{},pairHistories:{},memories:[],stories:[],history:[],incidentHistory:[],lastIncidentWeek:0};
+ st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.pairHistories=st.lot.pairHistories||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];st.lot.incidentHistory=st.lot.incidentHistory||[];
  if((st.lot.version||1)<2)Object.entries(st.lot.profiles).forEach(([id,p])=>{const t=(st.talent||[]).find(x=>x.id===id);if(t&&p)p.alias=t.name});
  if((st.lot.version||1)<3){
   st.lot.stories.forEach(s=>{s.chapters=s.chapters||[];s.phase=s.active?'active':'resolved';s.timesResurfaced=s.timesResurfaced||0;s.lastChapterWeek=s.lastChapterWeek||s.lastWeek||s.startedWeek});
   st.lot.version=3;
+ }
+ if((st.lot.version||1)<4){
+  st.lot.incidentHistory=st.lot.incidentHistory||[];
+  Object.values(st.lot.pairHistories||{}).forEach(h=>{h.incidents=h.incidents||[];h.lastIncidentWeek=h.lastIncidentWeek||0});
+  st.lot.version=4;
  }
  return st.lot;
 }
@@ -48,8 +53,9 @@ function lotPersonaLabels(t){
 function lotPairKey(a,b){const ids=[typeof a==='string'?a:a?.id,typeof b==='string'?b:b?.id].filter(Boolean).sort();return ids.join('|')}
 function lotPairHistory(a,b){
  const key=lotPairKey(a,b);if(!key)return null;const ids=key.split('|'),lot=ensureLotState();
- if(!lot.pairHistories[key])lot.pairHistories[key]={key,a:ids[0],b:ids[1],films:[],awards:[],storyIds:[],reunions:0,lastFilmWeek:0,lastSharedFilmId:null};
- return lot.pairHistories[key];
+ if(!lot.pairHistories[key])lot.pairHistories[key]={key,a:ids[0],b:ids[1],films:[],awards:[],storyIds:[],incidents:[],reunions:0,lastFilmWeek:0,lastSharedFilmId:null,lastIncidentWeek:0};
+ const h=lot.pairHistories[key];h.incidents=h.incidents||[];h.lastIncidentWeek=h.lastIncidentWeek||0;
+ return h;
 }
 function lotPairLastFilm(a,b){return lotPairHistory(a,b)?.films?.[0]||null}
 function lotStoryChapter(story,{type='chapter',headline='',detail='',filmId=null,memoryId=null,intensity=1}={}){
