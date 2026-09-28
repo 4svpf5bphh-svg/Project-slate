@@ -148,24 +148,24 @@ function legendRequirementProgress(entry){
  let done=false,pct=0,text='Career signal not yet established';
  switch(entry.unlock){
   case 'heath':{const p=perfWins,b=wins('picture');done=p>=2&&b>=1;pct=Math.min(100,Math.min(p/2,b/1)*100);text=`Performance awards ${Math.min(p,2)}/2 · Best Picture ${Math.min(b,1)}/1`;break}
-  case 'brandon':{const n=films.filter(f=>f.genre==='Action Thriller'&&legendStrongFilm(f,78,84)&&profit(f)>=8).length;done=n>=1;pct=Math.min(100,n*100);text=`Acclaimed action breakthroughs ${Math.min(n,1)}/1`;break}
+  case 'brandon':{const n=films.filter(f=>genreAffinity(f.genre,'Action Thriller')>=.72&&legendStrongFilm(f,78,84)&&profit(f)>=8).length;done=n>=1;pct=Math.min(100,n*100);text=`Acclaimed action breakthroughs ${Math.min(n,1)}/1`;break}
   case 'hoffman':{const fs=films.filter(f=>f.genre==='Prestige Drama'),avg=fs.length?fs.reduce((a,f)=>a+(f.review?.critics||0),0)/fs.length:0;done=fs.length>=3&&avg>=85;pct=Math.min(100,Math.min(fs.length/3,avg/85)*100);text=`Prestige releases ${Math.min(fs.length,3)}/3 · critic average ${Math.round(avg)}%`;break}
   case 'rickman':{const n=wins('support');done=n>=2;pct=Math.min(100,n/2*100);text=`Supporting Performance wins ${Math.min(n,2)}/2`;break}
   case 'boseman':{const n=films.filter(f=>(f.finalGross||0)>=150&&(f.review?.audience||0)>=88&&(f.review?.critics||0)>=75).length;done=n>=1;pct=Math.min(100,n*100);text=`Beloved $150m+ event films ${Math.min(n,1)}/1`;break}
   case 'river':{const n=films.filter(f=>(f.budget||0)<=8&&legendStrongFilm(f,86,82)&&profit(f)>0).length;done=n>=1;pct=Math.min(100,n*100);text=`Acclaimed profitable films at $8m or less ${Math.min(n,1)}/1`;break}
-  case 'robin':{const c=films.some(f=>f.genre==='Comedy'&&(f.review?.audience||0)>=82&&profit(f)>0),d=films.some(f=>f.genre==='Prestige Drama'&&(f.review?.audience||0)>=82&&profit(f)>0);done=c&&d;pct=(Number(c)+Number(d))/2*100;text=`Audience-loved Comedy ${c?'✓':'—'} · Prestige Drama ${d?'✓':'—'}`;break}
+  case 'robin':{const c=films.some(f=>genreAffinity(f.genre,'Comedy')>=.72&&(f.review?.audience||0)>=82&&profit(f)>0),d=films.some(f=>genreAffinity(f.genre,'Prestige Drama')>=.72&&(f.review?.audience||0)>=82&&profit(f)>0);done=c&&d;pct=(Number(c)+Number(d))/2*100;text=`Audience-loved Comedy ${c?'✓':'—'} · Prestige Drama ${d?'✓':'—'}`;break}
   case 'gandolfini':{const n=films.filter(f=>f.genre==='Crime Thriller'&&(f.review?.critics||0)>=80&&(ensureAfterlifeState(f).wins||[]).some(w=>['lead','support'].includes(w.category))).length;done=n>=1;pct=Math.min(100,n*100);text=`Award-winning crime performances ${Math.min(n,1)}/1`;break}
   case 'carrie':{const n=films.filter(f=>f.genre==='Science Fiction'&&(f.finalGross||0)>=150&&(f.review?.audience||0)>=82).length;done=n>=1;pct=Math.min(100,n*100);text=`$150m+ audience-loved science-fiction hits ${Math.min(n,1)}/1`;break}
-  case 'walker':{const action=films.filter(f=>f.genre==='Action Thriller'&&profit(f)>0),cont=action.filter(f=>f.ipParentId||f.sequelInstallment>1||['reboot','spinoff','revival'].includes(f.franchiseMode));done=action.length>=2&&cont.length>=1;pct=Math.min(100,Math.min(action.length/2,cont.length/1)*100);text=`Profitable action films ${Math.min(action.length,2)}/2 · successful continuation ${cont.length?'✓':'—'}`;break}
+  case 'walker':{const action=films.filter(f=>genreAffinity(f.genre,'Action Thriller')>=.72&&profit(f)>0),cont=action.filter(f=>f.ipParentId||f.sequelInstallment>1||['reboot','spinoff','revival'].includes(f.franchiseMode));done=action.length>=2&&cont.length>=1;pct=Math.min(100,Math.min(action.length/2,cont.length/1)*100);text=`Profitable action films ${Math.min(action.length,2)}/2 · successful continuation ${cont.length?'✓':'—'}`;break}
   case 'dean':{const b=playerBreakoutFilmCount(),c=maxCriticScore();done=b>=2&&c>=90;pct=Math.min(100,Math.min(b/2,c/90)*100);text=`Breakout films ${Math.min(b,2)}/2 · best critic score ${Math.round(c)}%`;break}
-  case 'wilder':{const n=films.filter(f=>f.genre==='Comedy'&&legendStrongFilm(f,80,88)&&profit(f)>=5).length;done=n>=1;pct=Math.min(100,n*100);text=`Acclaimed audience-beloved comedy hits ${Math.min(n,1)}/1`;break}
+  case 'wilder':{const n=films.filter(f=>genreAffinity(f.genre,'Comedy')>=.72&&legendStrongFilm(f,80,88)&&profit(f)>=5).length;done=n>=1;pct=Math.min(100,n*100);text=`Acclaimed audience-beloved comedy hits ${Math.min(n,1)}/1`;break}
   case 'hurt':{const gs=new Set(films.filter(f=>(f.review?.critics||0)>=82).map(f=>f.genre));done=gs.size>=3;pct=Math.min(100,gs.size/3*100);text=`Genres with an 82%+ critics release ${Math.min(gs.size,3)}/3`;break}
-  case 'murphy':{const n=films.filter(f=>(f.budget||0)<=10&&['Comedy','Prestige Drama'].includes(f.genre)&&(f.review?.audience||0)>=87&&profit(f)>=4).length;done=n>=1;pct=Math.min(100,n*100);text=`Modest-scale audience breakouts ${Math.min(n,1)}/1`;break}
+  case 'murphy':{const n=films.filter(f=>(f.budget||0)<=10&&Math.max(genreAffinity(f.genre,'Comedy'),genreAffinity(f.genre,'Prestige Drama'))>=.72&&(f.review?.audience||0)>=87&&profit(f)>=4).length;done=n>=1;pct=Math.min(100,n*100);text=`Modest-scale audience breakouts ${Math.min(n,1)}/1`;break}
   case 'julia':{const e=wins('ensemble'),s=wins('support');done=e>=1&&s>=1;pct=(Math.min(e,1)+Math.min(s,1))/2*100;text=`Ensemble win ${e?'✓':'—'} · Supporting win ${s?'✓':'—'}`;break}
   case 'kubrick':{const fs=films.filter(f=>(f.review?.critics||0)>=90),gs=new Set(fs.map(f=>f.genre));done=fs.length>=3&&gs.size>=3;pct=Math.min(100,Math.min(fs.length/3,gs.size/3)*100);text=`90%+ critic films ${Math.min(fs.length,3)}/3 · genres ${Math.min(gs.size,3)}/3`;break}
   case 'tony':{const fs=films.filter(f=>f.genre==='Action Thriller'&&profit(f)>0),g=Math.max(0,...fs.map(f=>f.finalGross||0));done=fs.length>=3&&g>=120;pct=Math.min(100,Math.min(fs.length/3,g/120)*100);text=`Profitable action films ${Math.min(fs.length,3)}/3 · best gross ${money(g)}`;break}
   case 'lumet':{const fs=legendGenreFilms(['Prestige Drama','Crime Thriller']),avg=fs.length?fs.reduce((a,f)=>a+(f.review?.critics||0),0)/fs.length:0;done=fs.length>=4&&avg>=84;pct=Math.min(100,Math.min(fs.length/4,avg/84)*100);text=`Prestige/crime releases ${Math.min(fs.length,4)}/4 · critic average ${Math.round(avg)}%`;break}
-  case 'leone':{const fs=legendGenreFilms(['Crime Thriller','Action Thriller']).filter(f=>profit(f)>0),ones=fs.filter(f=>boxRunStats(f).weeksAtOne>0).length;done=fs.length>=3&&ones>=2;pct=Math.min(100,Math.min(fs.length/3,ones/2)*100);text=`Profitable crime/action films ${Math.min(fs.length,3)}/3 · #1 releases ${Math.min(ones,2)}/2`;break}
+  case 'leone':{const fs=completedPlayerFilms().filter(f=>Math.max(genreAffinity(f.genre,'Crime Thriller'),genreAffinity(f.genre,'Action Thriller'))>=.58&&profit(f)>0),ones=fs.filter(f=>boxRunStats(f).weeksAtOne>0).length;done=fs.length>=3&&ones>=2;pct=Math.min(100,Math.min(fs.length/3,ones/2)*100);text=`Profitable crime/action films ${Math.min(fs.length,3)}/3 · #1 releases ${Math.min(ones,2)}/2`;break}
   case 'kurosawa':{const d=wins('director'),p=wins('picture');done=d>=2&&p>=1;pct=Math.min(100,Math.min(d/2,p/1)*100);text=`Best Director wins ${Math.min(d,2)}/2 · Best Picture ${Math.min(p,1)}/1`;break}
  }
  const achievementDone=done,achievementPct=pct,achievementText=text,gate=legendArchiveGate(entry);
@@ -437,7 +437,7 @@ function ensureScriptEcosystem(s){
  if(s.emotion===undefined)s.emotion=Math.round(clamp((s.characters*.58+s.story*.20)+28*r(),30,97));
  if(s.genreFulfillment===undefined)s.genreFulfillment=Math.round(clamp((s.hook*.48+s.access*.22)+34*r(),35,97));
  if(!s.writerId){
-  const pool=(state.writers||[]).filter(w=>w.genres.includes(s.genre));
+  const pool=(state.writers||[]).filter(w=>genreProfileAffinity(w.genres,s.genre)>=.58);
   const all=pool.length?pool:state.writers;
   s.writerId=all[Math.floor(r()*all.length)]?.id||null;
  }
@@ -458,11 +458,11 @@ function ensureScriptEcosystem(s){
 }
 function writerFit(w,genre,brief='balanced'){
  if(!w)return 50;
- let v=(w.structure+w.character+w.dialogue+w.commercial)/4;
- if(w.genres.includes(genre))v+=8;
+ const genreFit=genreProfileAffinity(w.genres,genre);
+ let v=(w.structure+w.character+w.dialogue+w.commercial)/4+genreFit*8;
  if(brief==='prestige')v+=(w.character+w.dialogue-150)*.10;
  if(brief==='commercial')v+=(w.structure+w.commercial-150)*.10;
- if(brief==='genre')v+=(w.structure+w.commercial-145)*.08+(w.genres.includes(genre)?3:0);
+ if(brief==='genre')v+=(w.structure+w.commercial-145)*.08+genreFit*3;
  return clamp(v,30,98);
 }
 function scriptMarketAppeal(s){
@@ -606,7 +606,7 @@ function makeCommissionedScript({genre,brief,scale,audience,writerId,title=null,
   commissionBrief:{brief,scale,audience},creativeIntent:creativeIntent||null,dueWeek:state.week+(source==='Original Concept'?4:3)};
  ensureScriptEcosystem(s);
  s.structure=Math.round(clamp(45+(w?.structure||75)*.40+(r()-.5)*18,35,97));s.characters=Math.round(clamp(43+(w?.character||75)*.42+(r()-.5)*18,35,97));
- s.emotion=Math.round(clamp(40+((w?.character||75)*.25+(w?.dialogue||75)*.18)+(r()-.5)*20,30,97));s.genreFulfillment=Math.round(clamp(48+(w?.structure||75)*.24+(w?.commercial||75)*.18+(w?.genres.includes(genre)?7:0)+(r()-.5)*15,35,97));
+ s.emotion=Math.round(clamp(40+((w?.character||75)*.25+(w?.dialogue||75)*.18)+(r()-.5)*20,30,97));s.genreFulfillment=Math.round(clamp(48+(w?.structure||75)*.24+(w?.commercial||75)*.18+(genreProfileAffinity(w?.genres||[],genre)*7)+(r()-.5)*15,35,97));
  if(brief==='prestige'){s.characters=clamp(s.characters+4,20,98);s.emotion=clamp(s.emotion+4,20,98);s.access=clamp(s.access-2,20,98)}
  if(brief==='commercial'){s.hook=clamp(s.hook+4,20,98);s.access=clamp(s.access+4,20,98);s.originality=clamp(s.originality-1,20,98)}
  if(brief==='genre')s.genreFulfillment=clamp(s.genreFulfillment+5,20,98);
@@ -665,7 +665,7 @@ function writerProjectFit(w,mode){
 function writerCommissionCost(w,mode){const d=mode==='concept'?ensureWriterDrafts().concept:ensureWriterDrafts().commission;return scriptDevelopmentCost(w,mode,d)}
 function writerRecommendationTags(w,mode){
  const d=mode==='concept'?ensureWriterDrafts().concept:ensureWriterDrafts().commission,tags=[];
- if(w.genres.includes(d.genre))tags.push('Genre Experience');
+ if(genreProfileAffinity(w.genres,d.genre)>=.92)tags.push('Genre Experience');else if(genreProfileAffinity(w.genres,d.genre)>=.68)tags.push('Adjacent Genre Fit');
  if(w.character>=88)tags.push('Character Specialist');
  if(w.structure>=88)tags.push('Story Architect');
  if(w.dialogue>=88)tags.push('Dialogue Strength');
@@ -862,7 +862,7 @@ function contractOffers(f,t){
  const hot=(t.momentum||60)>84?.08:0;
  const leverage=t.type==='Actor'?(t.star||40)>85?.08:0:(t.commercial||60)>88?.05:0;
  const agencyTerms=agencyMarketLeverage(t,f),agencyAdj=agencyContractMultiplier(t,f);
- const passion=fit>=82&&(c.positioning==='prestige'||c.emphasis==='performance'||t.genres.includes(f.genre))&&r()<(.24+Math.max(0,rel)/120+studioIdentityPassionBonus(t,f));
+ const passion=fit>=82&&(c.positioning==='prestige'||c.emphasis==='performance'||genreProfileAffinity(t.genres,f.genre)>=.74)&&r()<(.24+Math.max(0,rel)/120+studioIdentityPassionBonus(t,f));
  const relationAdj=1-clamp(rel,-25,30)*.0022;
  const passionAdj=passion?.84:1;
  const heldSequelOption=t.type==='Actor'&&f.sequelOptions?.includes(t.id);
@@ -1007,7 +1007,7 @@ function greenlight(f){
  const act=cast.reduce((a,b)=>a+b.acting,0)/cast.length;
  f.packageFit={director:dFit,actors:aFits,average:(dFit+aFits[0]+aFits[1])/3};f.directorAuthority={producerCredit:!!f.contracts?.[d.id]?.producerCredit,vetoesUsed:0};
  f.metrics={
-  direction:clamp((d.craft+(d.genres.includes(f.genre)?4:-5))*budgetFactor+fitDirection+(r()-.5)*10,24,97),
+  direction:clamp((d.craft+(genreProfileAffinity(d.genres,f.genre)*9-5))*budgetFactor+fitDirection+(r()-.5)*10,24,97),
   performances:clamp((act*.64+d.actorDirection*.22+sc.characters*.08+sc.emotion*.06)*budgetFactor+fitPerformance+(r()-.5)*12,24,98),
   technical:clamp((45+d.budgetControl*.26+sc.difficulty*.13)*budgetFactor+(dFit-65)*.10+(r()-.5)*14,20,96),
   pacing:clamp(42+sc.access*.13+sc.structure*.18+(d.commercial-70)*.10+(dFit-65)*.10+(r()-.5)*25,24,95),
@@ -2363,7 +2363,7 @@ function aiStartProjects(){
   const actorFitAvg=(aFits[0]+aFits[1])/2,avgAct=(a1.acting+a2.acting)/2;
   const fitDirection=(dFit-65)*.34,fitPerformance=(actorFitAvg-65)*.34;
   f.metrics={
-   direction:clamp((d.craft+(d.genres.includes(f.genre)?4:-5))*budgetFactor+fitDirection+(r()-.5)*10,24,97),
+   direction:clamp((d.craft+(genreProfileAffinity(d.genres,f.genre)*9-5))*budgetFactor+fitDirection+(r()-.5)*10,24,97),
    performances:clamp((avgAct*.70+d.actorDirection*.25)*budgetFactor+fitPerformance+(r()-.5)*12,24,98),
    technical:clamp((45+d.budgetControl*.26+s.difficulty*.13)*budgetFactor+(dFit-65)*.10+(r()-.5)*14,20,96),
    pacing:clamp(58+s.access*.19+(d.commercial-70)*.10+(dFit-65)*.10+(r()-.5)*27,24,95),
