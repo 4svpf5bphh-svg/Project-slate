@@ -1,6 +1,6 @@
-const VERSION='4.6.3';
-// Temporary v4.6 Project Intelligence QA switch. Keep progression rules intact; remove/disable after testing.
-const PROJECT_INTELLIGENCE_TEST_BYPASS=true;
+const VERSION='4.6.4';
+// QA-only Project Intelligence bypass. Normal careers must earn the Creative 70 route.
+const PROJECT_INTELLIGENCE_TEST_BYPASS=typeof location!=='undefined'&&new URLSearchParams(location.search).get('pitest')==='1';
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
 const genres=['Action Thriller','Action Comedy','Crime Thriller','Mystery Thriller','Psychological Horror','Supernatural Horror','Prestige Drama','Sports Drama','Comedy','Romantic Comedy','Science Fiction','Fantasy','Superhero','Family Adventure','Adventure','Historical Epic'];
