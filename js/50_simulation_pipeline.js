@@ -618,10 +618,12 @@ function commissionScript(genre,brief,scale,audience,writerId){
  state.uiScriptTab='owned';state.screen='develop';state.detail=null;save();render();
 }
 function createOriginalConcept(title,genre,logline,synopsis,audience,writerId,scale='mid',positioning='balanced',tone='balanced',rating='mainstream',emphasis='balanced'){
- if(!requireDevelopmentRoute('concept'))return;
- if(!title.trim()||!logline.trim())return showToast('Add a title and logline.');
- const creativeIntent={positioning,tone,rating,emphasis},s=makeCommissionedScript({genre,brief:positioning==='prestige'?'prestige':positioning==='commercial'?'commercial':'balanced',scale,audience,writerId,title,logline,source:'Original Concept',creativeIntent,synopsis});if(!s)return;
- state.uiScriptTab='owned';state.screen='develop';state.detail=null;save();render();
+ if(!requireDevelopmentRoute('concept'))return null;
+ if(!title.trim()||!logline.trim()){showToast('Add a title and logline.');return null}
+ const creativeIntent={positioning,tone,rating,emphasis},s=makeCommissionedScript({genre,brief:positioning==='prestige'?'prestige':positioning==='commercial'?'commercial':'balanced',scale,audience,writerId,title,logline,source:'Original Concept',creativeIntent,synopsis});if(!s)return null;
+ state.uiScriptTab='owned';state.screen='develop';state.detail={type:'script',id:s.id};save();render();
+ if(typeof queueProjectIntelligence==='function')queueProjectIntelligence(s);
+ return s;
 }
 function updateWritingProjects(){
  (state.scripts||[]).filter(s=>s.status==='writing'&&s.dueWeek<=state.week).forEach(s=>{
