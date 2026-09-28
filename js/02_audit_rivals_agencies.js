@@ -506,13 +506,13 @@ function recordAwardsRivalries(c){
 
 function aiStudioProfile(style){
  const profiles={
-  'Blockbusters':{risk:.80,cost:.48,marketing:1.12,budget:1.05,reserveFilms:.38,maxExposure:.56,borrowQuality:79,maxDebt:30,genres:['Action Thriller','Science Fiction','Fantasy'],creative:{positioning:'commercial',tone:'heightened',rating:'mainstream',emphasis:'spectacle'},campaign:'event',desc:'Chases scale, stars and opening weekends. Will take real balance-sheet risk, but only for packages it strongly believes in.'},
-  'Broad Commercial':{risk:.62,cost:.62,marketing:.90,budget:.98,reserveFilms:.50,maxExposure:.46,borrowQuality:81,maxDebt:22,genres:['Action Thriller','Comedy','Crime Thriller','Family Adventure'],creative:{positioning:'commercial',tone:'balanced',rating:'broad',emphasis:'balanced'},campaign:'authentic',desc:'Prefers accessible concepts, reliable talent and enough liquidity to survive a disappointment.'},
-  'Genre Specialist':{risk:.67,cost:.72,marketing:.64,budget:.98,reserveFilms:.46,maxExposure:.42,borrowQuality:77,maxDebt:18,genres:['Psychological Horror','Crime Thriller','Action Thriller'],creative:{positioning:'balanced',tone:'heightened',rating:'mature',emphasis:'balanced'},campaign:'mystery',desc:'Takes frequent contained bets, but avoids staking the company on a single genre release.'},
-  'Prestige':{risk:.48,cost:.66,marketing:.54,budget:.99,reserveFilms:.55,maxExposure:.38,borrowQuality:84,maxDebt:16,genres:['Prestige Drama','Crime Thriller','Psychological Horror'],creative:{positioning:'prestige',tone:'grounded',rating:'mature',emphasis:'performance'},campaign:'authentic',desc:'Protects runway aggressively and spends on filmmakers only when the material justifies it.'},
-  'Franchise Builder':{risk:.72,cost:.55,marketing:.98,budget:1.02,reserveFilms:.42,maxExposure:.52,borrowQuality:80,maxDebt:26,genres:['Fantasy','Science Fiction','Action Thriller','Family Adventure'],creative:{positioning:'commercial',tone:'heightened',rating:'mainstream',emphasis:'spectacle'},campaign:'event',desc:'Accepts larger commitments for scalable concepts, but will delay a slate rather than overextend repeatedly.'},
-  'Indie / Prestige':{risk:.38,cost:.84,marketing:.40,budget:.97,reserveFilms:.62,maxExposure:.31,borrowQuality:86,maxDebt:10,genres:['Prestige Drama','Psychological Horror','Comedy','Crime Thriller'],creative:{positioning:'prestige',tone:'grounded',rating:'mature',emphasis:'performance'},campaign:'authentic',desc:'Keeps a large cash cushion, favours emerging talent and rarely borrows to make a film.'},
-  'Aggressive Capital':{risk:.90,cost:.43,marketing:1.16,budget:1.07,reserveFilms:.28,maxExposure:.63,borrowQuality:77,maxDebt:60,genres:['Action Thriller','Science Fiction','Fantasy','Crime Thriller','Family Adventure'],creative:{positioning:'commercial',tone:'heightened',rating:'mainstream',emphasis:'spectacle'},campaign:'event',desc:'Built to acquire scale fast. It will pay premiums for heat, carry several expensive packages at once and tolerate short-term losses — but money cannot rescue a bad creative package.'}
+  'Blockbusters':{risk:.80,cost:.48,marketing:1.12,budget:1.05,reserveFilms:.38,maxExposure:.56,borrowQuality:79,maxDebt:30,genres:['Action Thriller','Action Comedy','Science Fiction','Fantasy','Superhero','Adventure','Historical Epic'],creative:{positioning:'commercial',tone:'heightened',rating:'mainstream',emphasis:'spectacle'},campaign:'event',desc:'Chases scale, stars and opening weekends. Will take real balance-sheet risk, but only for packages it strongly believes in.'},
+  'Broad Commercial':{risk:.62,cost:.62,marketing:.90,budget:.98,reserveFilms:.50,maxExposure:.46,borrowQuality:81,maxDebt:22,genres:['Action Thriller','Action Comedy','Comedy','Romantic Comedy','Crime Thriller','Mystery Thriller','Sports Drama','Family Adventure','Adventure'],creative:{positioning:'commercial',tone:'balanced',rating:'broad',emphasis:'balanced'},campaign:'authentic',desc:'Prefers accessible concepts, reliable talent and enough liquidity to survive a disappointment.'},
+  'Genre Specialist':{risk:.67,cost:.72,marketing:.64,budget:.98,reserveFilms:.46,maxExposure:.42,borrowQuality:77,maxDebt:18,genres:['Psychological Horror','Supernatural Horror','Mystery Thriller','Crime Thriller','Action Thriller','Action Comedy'],creative:{positioning:'balanced',tone:'heightened',rating:'mature',emphasis:'balanced'},campaign:'mystery',desc:'Takes frequent contained bets, but avoids staking the company on a single genre release.'},
+  'Prestige':{risk:.48,cost:.66,marketing:.54,budget:.99,reserveFilms:.55,maxExposure:.38,borrowQuality:84,maxDebt:16,genres:['Prestige Drama','Historical Epic','Sports Drama','Crime Thriller','Mystery Thriller','Psychological Horror'],creative:{positioning:'prestige',tone:'grounded',rating:'mature',emphasis:'performance'},campaign:'authentic',desc:'Protects runway aggressively and spends on filmmakers only when the material justifies it.'},
+  'Franchise Builder':{risk:.72,cost:.55,marketing:.98,budget:1.02,reserveFilms:.42,maxExposure:.52,borrowQuality:80,maxDebt:26,genres:['Fantasy','Science Fiction','Superhero','Action Thriller','Action Comedy','Family Adventure','Adventure'],creative:{positioning:'commercial',tone:'heightened',rating:'mainstream',emphasis:'spectacle'},campaign:'event',desc:'Accepts larger commitments for scalable concepts, but will delay a slate rather than overextend repeatedly.'},
+  'Indie / Prestige':{risk:.38,cost:.84,marketing:.40,budget:.97,reserveFilms:.62,maxExposure:.31,borrowQuality:86,maxDebt:10,genres:['Prestige Drama','Sports Drama','Romantic Comedy','Mystery Thriller','Psychological Horror','Supernatural Horror','Comedy','Crime Thriller'],creative:{positioning:'prestige',tone:'grounded',rating:'mature',emphasis:'performance'},campaign:'authentic',desc:'Keeps a large cash cushion, favours emerging talent and rarely borrows to make a film.'},
+  'Aggressive Capital':{risk:.90,cost:.43,marketing:1.16,budget:1.07,reserveFilms:.28,maxExposure:.63,borrowQuality:77,maxDebt:60,genres:['Action Thriller','Action Comedy','Science Fiction','Fantasy','Superhero','Crime Thriller','Family Adventure','Adventure','Historical Epic'],creative:{positioning:'commercial',tone:'heightened',rating:'mainstream',emphasis:'spectacle'},campaign:'event',desc:'Built to acquire scale fast. It will pay premiums for heat, carry several expensive packages at once and tolerate short-term losses — but money cannot rescue a bad creative package.'}
  };
  return deep(profiles[style]||profiles['Broad Commercial']);
 }
@@ -522,8 +522,8 @@ function aiPreferredGenre(rv,r){
 }
 function aiCreativeBrief(rv,genre){
  const c=deep((rv.profile||aiStudioProfile(rv.style)).creative);
- if(genre==='Comedy'||genre==='Family Adventure'){if(c.rating==='mature')c.rating='broad';if(c.tone==='grounded')c.tone='balanced'}
- if(genre==='Psychological Horror'&&c.rating==='broad')c.rating='mature';
+ if(['Comedy','Romantic Comedy','Action Comedy','Family Adventure','Adventure'].includes(genre)){if(c.rating==='mature')c.rating='broad';if(c.tone==='grounded')c.tone='balanced'}
+ if(['Psychological Horror','Supernatural Horror'].includes(genre)&&c.rating==='broad')c.rating='mature';
  return c;
 }
 function aiStudioOverhead(rv){
@@ -556,7 +556,7 @@ function aiFinancialHealth(rv){
 function aiProjectConfidence(rv,s,d,a1,a2,preview){
  const script=(s.story+s.hook+s.originality+s.access)/4;
  const fit=(directorProjectFit(d,preview)+actorProjectFit(a1,preview)+actorProjectFit(a2,preview))/3;
- const genre=rv.profile.genres.includes(s.genre)?5:-3;
+ const affinity=genreProfileAffinity(rv.profile.genres,s.genre),genre=affinity>=.92?5:affinity>=.60?2:-3;
  return clamp(script*.48+fit*.42+rv.skill*.10+genre,25,96);
 }
 function aiFinanceProject(rv,total,confidence){
