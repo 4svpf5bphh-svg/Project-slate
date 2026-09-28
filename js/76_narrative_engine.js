@@ -365,6 +365,9 @@ function bootstrapNarrativeEngine(){
  const now=Date.now();
  (state.films||[]).forEach(f=>{
   const x=f.aiNarrative?.review;if(x?.status==='pending'){x.status='retry_wait';x.nextRetryAt=now;x.lastError=x.lastError||'AI review request was interrupted before completion.'}
+  if(f.review&&x?.lastRevealToken&&!f.review.lastRevealToken){
+   const token=f.review.revealToken||(f.review.revealToken='review:'+f.id+':'+(f.releaseWeek||state.week)+':'+(f.review.critics||0)+':'+(f.review.audience||0));f.review.lastRevealToken=token;
+  }
   if(f.owner==='player'&&f.review&&f.stage==='cinema'&&(f.cinemaWeek||0)<=1)queueReviewReveal(f);
  });
  (state.scripts||[]).forEach(s=>{const x=s.projectIntelligence;if(x?.status==='pending'){x.status='retry_wait';x.nextRetryAt=now;x.lastError='Context check was interrupted before completion.'}});
