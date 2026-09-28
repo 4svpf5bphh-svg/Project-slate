@@ -123,6 +123,7 @@ function projectIntelligenceCastSignal(f){
 function projectIntelligenceHTML(s){
  if(!s||s.source!=='Original Concept')return '';
  const x=ensureScriptIntelligence(s);
+ if(x.status==='idle')return '<div class="section-title"><h2>Project Intelligence</h2><span class="small">Optional creative-context check</span></div><div class="card"><div class="body">Check whether this player-created concept clearly connects to an existing film, series, book, game or other known property. Recognition adds narrative context only and never changes screenplay quality.</div><button class="btn block" style="margin-top:10px" data-project-intel-retry="'+s.id+'">Check project context</button></div>';
  if(x.status==='pending')return '<div class="section-title"><h2>Project Intelligence</h2><span class="small">Checking creative context</span></div><div class="card attention"><div class="row"><strong>Looking for an existing-property connection…</strong><span class="pill blue">AI</span></div><div class="small" style="margin-top:7px">The screenplay remains fully playable while this runs.</div></div>';
  if(x.status==='failed')return '<div class="section-title"><h2>Project Intelligence</h2></div><div class="card"><div class="body">The context check could not be completed. This does not affect the screenplay or its simulation values.</div><button class="btn block" style="margin-top:10px" data-project-intel-retry="'+s.id+'">Retry context check</button></div>';
  if(x.status!=='ready'||!validProjectIntelligence(x.result))return '';
@@ -293,5 +294,6 @@ function retryAIReview(f){if(!f)return;if(!narrativeEndpoint()){showToast('Set u
 function bootstrapNarrativeEngine(){
  ensureReviewRevealState();
  (state.films||[]).forEach(f=>{const x=f.aiNarrative?.review;if(x?.status==='pending')x.status='failed'});
+ (state.scripts||[]).forEach(s=>{const x=s.projectIntelligence;if(x?.status==='pending'){x.status='failed';x.lastError='Context check was interrupted before completion.'}});
  if(state.activeReviewReveal&&!filmById(state.activeReviewReveal.filmId))state.activeReviewReveal=null;
 }
