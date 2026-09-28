@@ -90,7 +90,12 @@ function render(){
   if(studioName)studioName.oninput=e=>{state.uiStudioNameDraft=e.target.value;const word=document.querySelector('.brand-preview .studio-wordmark');if(word)word.textContent=e.target.value.trim()||'Your Studio'};
   bindBrandControls();
   document.querySelectorAll('[data-difficulty]').forEach(b=>b.onclick=()=>{state.uiDifficultyDraft=b.dataset.difficulty;save();render()});
-   document.getElementById('startCareer').onclick=()=>{
+   const setupImportCareerBackup=document.getElementById('setupImportCareerBackup');
+  if(setupImportCareerBackup)setupImportCareerBackup.onchange=async()=>{
+   const file=setupImportCareerBackup.files?.[0];if(!file)return;
+   try{await importCareerBackupFile(file);location.reload()}catch(e){showToast(e?.message||'Career backup could not be restored.');setupImportCareerBackup.value=''}
+  };
+  document.getElementById('startCareer').onclick=()=>{
    const name=document.getElementById('studioName').value.trim();if(!name)return showToast('Enter a studio name.');
    state.uiStudioNameDraft=name;state.difficulty=state.uiDifficultyDraft||'normal';state.cash=difficultyInfo(state.difficulty).cash;state.studio={name,brand:normalizeBrand(state.uiBrandDraft,name)};state.screen='studio';state.careerStarted=true;requestScrollTop();addNews(state,`${name} officially opened for business with ${money(state.cash)} in starting capital.`,'Your Studio');aiStartProjects();recordSimulationAudit('career-start');save();render();
   };
