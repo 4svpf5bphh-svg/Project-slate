@@ -199,6 +199,8 @@ function projectSlateSmokeChecks(){
 
  try{
   if(typeof queueProjectIntelligence!=='function'||typeof projectIntelligenceHTML!=='function'||typeof projectIntelligenceCastContext!=='function')failures.push('Project Intelligence functions missing');
+  if(typeof PROJECT_INTELLIGENCE_TEST_BYPASS==='undefined'||PROJECT_INTELLIGENCE_TEST_BYPASS!==true)failures.push('Project Intelligence QA bypass flag missing');
+  const conceptAccess=developmentRouteAccess('concept');if(!conceptAccess.unlocked)failures.push('Project Intelligence QA concept access still locked');
   if(!createOriginalConcept.toString().includes('queueProjectIntelligence'))failures.push('Project Intelligence original-concept hook missing');
   if(!scriptDetail.toString().includes('projectIntelligenceHTML'))failures.push('Project Intelligence screenplay UI missing');
   if(!castingPicker.toString().includes('projectIntelligenceCastSignal'))failures.push('Project Intelligence casting context missing');
