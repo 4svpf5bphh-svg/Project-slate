@@ -1461,6 +1461,7 @@ function releaseFilm(f){
  if(f.owner==='player'&&typeof publishExecutiveIntel==='function')publishExecutiveIntel('reviews:'+f.id,f.title+' reviews are live: '+f.review.critics+'% critics · '+f.review.audience+'% audience','The first public verdict is in before the opening weekend settles. Open the review for the full critic roundup and audience response.',f.id,{screen:'release',detail:{type:'review',id:f.id}});
  f.weeklyPlan=run.plan;ensureTheatricalRunState(f);
  f.weeklyResults=[];f.cinemaWeek=0;f.stage='cinema';addCinemaWeek(f);
+ if(f.owner==='player'&&typeof queueReviewReveal==='function')queueReviewReveal(f);
  if(f.owner==='player'&&typeof queueAIReview==='function')void queueAIReview(f);
  notify(`release:${f.id}`,`${f.title} opens today`,`Reviews and audience reaction are public. The domestic chart and final weekend grosses settle Sunday night.`,f.id,false,'info');
 }
