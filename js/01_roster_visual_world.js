@@ -1790,7 +1790,7 @@ function ensureDistributionState(f){
  return f;
 }
 function platformReleaseEligible(f){
- const c=f.creative||defaultCreative();return c.positioning==='prestige'||(f.budget||0)<=18||['Psychological Horror','Prestige Drama','Comedy','Crime Thriller'].includes(f.genre);
+ const c=f.creative||defaultCreative();return c.positioning==='prestige'||(f.budget||0)<=18||['Psychological Horror','Supernatural Horror','Prestige Drama','Sports Drama','Comedy','Romantic Comedy','Crime Thriller','Mystery Thriller'].includes(f.genre);
 }
 function distributionPartnerStrength(owner='player'){
  if(owner==='player')return clamp((ensureStudioGrowth().recognition-25)/70+(state.reputation.commercial-45)/100,0,.75);
