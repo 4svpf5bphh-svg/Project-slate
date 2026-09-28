@@ -36,18 +36,75 @@ function buildWorld(st){
  ensureAudienceMarket(st);
  addNews(st,'Trade desks are watching a quiet opening week as several studios begin packaging new projects.');
 }
+const SAVE_BACKUP_KEY=KEY+'_backup';
+const SAVE_META_KEY=KEY+'_meta';
+const PERSISTENCE_DB='projectSlatePersistence';
+const PERSISTENCE_STORE='careers';
+const persistenceRuntime={loadSource:null,loadError:null,saveError:null,recoveryRaw:null,lastSavedAt:null,storagePersisted:null,idbReady:false};
+
+function storedCareerCandidate(key){
+ const raw=localStorage.getItem(key);if(!raw)return null;
+ const parsed=JSON.parse(raw);if(!parsed||typeof parsed!=='object')return null;
+ return {key,raw,parsed};
+}
 function load(){
- try{
-  const x=JSON.parse(localStorage.getItem(KEY)||'null');
-  if(x)return migrateState(x);
- }catch(e){}
- return initialState();
+ let found=null;
+ for(const key of [KEY,SAVE_BACKUP_KEY]){
+  try{const candidate=storedCareerCandidate(key);if(candidate){found=candidate;break}}catch(e){persistenceRuntime.loadError=String(e?.message||e)}
+ }
+ if(found){
+  try{
+   const migrated=migrateState(found.parsed);persistenceRuntime.loadSource=found.key===KEY?'primary':'backup';return migrated;
+  }catch(e){
+   persistenceRuntime.loadError=String(e?.message||e);persistenceRuntime.recoveryRaw=found.raw;persistenceRuntime.loadSource='recovery';
+   console.error('Project Slate save migration failed; preserving raw career for recovery.',e);
+   return initialState();
+  }
+ }
+ persistenceRuntime.loadSource='new';return initialState();
 }
 state=load();
 // Lifecycle bootstrap that depends on later-declared module constants is deferred
-// until all modules have initialized (see 80_ui_moments_bind_render.js).
-function save(){if(simulationBenchmarkActive)return;state.version=VERSION;state.saveSchema=SAVE_SCHEMA_VERSION;localStorage.setItem(KEY,JSON.stringify(state))}
-function resetGame(){localStorage.removeItem(KEY);state=initialState();save();render()}
+// until all modules have initialized.
+function persistenceMeta(raw){
+ return {savedAt:Date.now(),week:state.week||1,calendarDay:state.calendarDay||1,studio:state.studio?.name||null,careerStarted:!!state.careerStarted,version:VERSION,bytes:raw.length};
+}
+function openPersistenceDB(){
+ return new Promise((resolve,reject)=>{
+  if(typeof indexedDB==='undefined')return reject(new Error('IndexedDB unavailable'));
+  const req=indexedDB.open(PERSISTENCE_DB,1);
+  req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(PERSISTENCE_STORE))db.createObjectStore(PERSISTENCE_STORE)};
+  req.onsuccess=()=>{persistenceRuntime.idbReady=true;resolve(req.result)};
+  req.onerror=()=>reject(req.error||new Error('IndexedDB open failed'));
+ });
+}
+async function mirrorCareerToIndexedDB(raw,meta){
+ try{
+  const db=await openPersistenceDB();
+  await new Promise((resolve,reject)=>{const tx=db.transaction(PERSISTENCE_STORE,'readwrite');tx.objectStore(PERSISTENCE_STORE).put({raw,meta},KEY);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+  db.close();
+ }catch(e){console.warn('Project Slate IndexedDB mirror failed',e)}
+}
+async function indexedDBCareer(){
+ try{
+  const db=await openPersistenceDB(),value=await new Promise((resolve,reject)=>{const tx=db.transaction(PERSISTENCE_STORE,'readonly'),req=tx.objectStore(PERSISTENCE_STORE).get(KEY);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error)});
+  db.close();return value;
+ }catch(e){return null}
+}
+function save(){
+ if(simulationBenchmarkActive)return true;
+ state.version=VERSION;state.saveSchema=SAVE_SCHEMA_VERSION;
+ let raw;try{raw=JSON.stringify(state)}catch(e){persistenceRuntime.saveError=String(e?.message||e);console.error('Project Slate could not serialize career',e);return false}
+ const meta=persistenceMeta(raw);
+ try{
+  localStorage.setItem(SAVE_BACKUP_KEY,raw);
+  localStorage.setItem(KEY,raw);
+  localStorage.setItem(SAVE_META_KEY,JSON.stringify(meta));
+  persistenceRuntime.lastSavedAt=meta.savedAt;persistenceRuntime.saveError=null;
+ }catch(e){persistenceRuntime.saveError=String(e?.message||e);console.error('Project Slate local save failed',e);void mirrorCareerToIndexedDB(raw,meta);return false}
+ void mirrorCareerToIndexedDB(raw,meta);return true;
+}
+function resetGame(){localStorage.removeItem(KEY);localStorage.removeItem(SAVE_BACKUP_KEY);localStorage.removeItem(SAVE_META_KEY);state=initialState();save();render()}
 function addNews(st,text,kind='Industry'){const item=buildNewsItem(st,text,kind);applyJournalistCallback(st,item);recordJournalistCoverage(st,item);st.news.unshift(item);st.news=st.news.slice(0,140);return item}
 function playerFilms(){return state.films.filter(f=>f.owner==='player')}
 function activePlayerFilms(){return playerFilms().filter(f=>!['complete','shelved'].includes(f.stage))}
