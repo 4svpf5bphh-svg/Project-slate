@@ -38,9 +38,7 @@ function renderFamilyClass(){
 
 function render(){
  if(state.studio&&typeof ensureCalendarState==='function')ensureCalendarState();
- if(state.screen!=='setup'&&typeof surfacePendingReviewReveal==='function'&&!state.activeReviewReveal)surfacePendingReviewReveal();
- if(state.activeReviewReveal){state.screen='reviewReveal';state.detail=null;state.history=[]}
- if(state.screen!=='setup')enforceActiveSignatureRoute();
+ if(state.screen!=='setup'&&typeof surfaceNextSignatureMoment==='function')surfaceNextSignatureMoment();
  if(state.detail?.type==='greenlightReview'){
   const gf=filmById(state.detail.id);
   if(gf&&gf.stage!=='development'){
@@ -49,7 +47,6 @@ function render(){
   }
  }
  if(!state.studio&&state.screen!=='setup')state.screen='setup';
- if(state.screen!=='setup'&&!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.legends?.pending?.length)surfacePendingLegendUnlock();
  let html='';
  if(state.screen==='setup')html=setupScreen();
  else if(state.detail?.type==='script')html=scriptDetail(state.detail.id);
@@ -199,8 +196,10 @@ function projectSlateSmokeChecks(){
 
  try{
   if(typeof queueProjectIntelligence!=='function'||typeof projectIntelligenceHTML!=='function'||typeof projectIntelligenceCastContext!=='function')failures.push('Project Intelligence functions missing');
-  if(typeof PROJECT_INTELLIGENCE_TEST_BYPASS==='undefined'||PROJECT_INTELLIGENCE_TEST_BYPASS!==true)failures.push('Project Intelligence QA bypass flag missing');
-  const conceptAccess=developmentRouteAccess('concept');if(!conceptAccess.unlocked)failures.push('Project Intelligence QA concept access still locked');
+  if(typeof PROJECT_INTELLIGENCE_TEST_BYPASS==='undefined')failures.push('Project Intelligence QA bypass flag missing');
+  const conceptAccess=developmentRouteAccess('concept');
+  if(PROJECT_INTELLIGENCE_TEST_BYPASS&&!conceptAccess.testingBypass)failures.push('Project Intelligence QA URL did not unlock test access');
+  if(!PROJECT_INTELLIGENCE_TEST_BYPASS&&conceptAccess.testingBypass)failures.push('Project Intelligence test access leaked into normal play');
   if(!createOriginalConcept.toString().includes('queueProjectIntelligence'))failures.push('Project Intelligence original-concept hook missing');
   if(!scriptDetail.toString().includes('projectIntelligenceHTML'))failures.push('Project Intelligence screenplay UI missing');
   if(!castingPicker.toString().includes('projectIntelligenceCastSignal'))failures.push('Project Intelligence casting context missing');
@@ -229,6 +228,19 @@ function projectSlateSmokeChecks(){
   if(!bootstrapNarrativeEngine.toString().includes('resumeNarrativeWork')||!bindNarrativeLifecycle.toString().includes("addEventListener('online'"))failures.push('v4.6.3 Narrative lifecycle recovery missing');
   if(!narrativeSettingsHTML.toString().includes('AUTOMATIC'))failures.push('v4.6.3 automatic Narrative status UI missing');
  }catch(e){failures.push('v4.6.3 Narrative reliability smoke failed'+(e?.message?': '+e.message:''))}
+
+ try{
+  if(NARRATIVE_REQUEST_TIMEOUT_MS>=60000)failures.push('v4.6.4 Narrative timeout exceeds server ceiling');
+  if(!surfaceCalendarInterrupt.toString().includes('surfaceNextSignatureMoment'))failures.push('v4.6.4 calendar still has a separate signature priority path');
+  if(!render.toString().includes('surfaceNextSignatureMoment'))failures.push('v4.6.4 render still has a separate signature priority path');
+  if(!studioGrowthUI.toString().includes('careerArcCard'))failures.push('v4.6.4 Career Form missing from Growth');
+  if(deskBriefingBody.toString().includes('careerArcCard'))failures.push('v4.6.4 Career Form still occupies Desk briefing');
+  if(!deskBriefingBody.toString().includes('deskStudioStatusStrip')||!deskBriefingBody.toString().includes('deskScriptMarketPressureHTML'))failures.push('v4.6.4 compact Desk intelligence missing');
+  if(!developmentUI.toString().includes('castingReadinessHTML'))failures.push('v4.6.4 Casting Readiness missing from film page');
+  if(!recordProductionDaily.toString().includes('castingGamble'))failures.push('v4.6.4 untested casting callback missing');
+  if(!soundtrackPostUI.toString().includes('There is no single correct colour'))failures.push('v4.6.4 music trade-off explainer missing');
+  if(soundtrackPostUI.toString().includes('Creative fit '))failures.push('v4.6.4 raw music fit grading still exposed');
+ }catch(e){failures.push('v4.6.4 workflow clarity smoke failed'+(e?.message?': '+e.message:''))}
 
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
@@ -271,7 +283,6 @@ function projectSlateBootFailure(check,error){
  app.innerHTML=`<main class="screen"><div class="card dangerline"><div class="badge">PROJECT SLATE · BUILD ${VERSION}</div><h2 style="margin:8px 0">The build could not start.</h2><div class="body">A boot check caught the problem before the app fell to a blank screen.</div><div class="small" style="margin-top:10px">${details.join(' · ')||'Unknown boot error'}</div></div></main>`;
 }
 window.ProjectSlate={reset:resetGame,state:()=>deep(state),smokeTest:projectSlateSmokeChecks,audit:()=>simulationAuditReport(),auditJSON:()=>JSON.stringify(simulationAuditReport(),null,2),captureAudit:()=>{const x=recordSimulationAudit('manual');save();return x},openAudit:()=>{localStorage.setItem('projectSlateAuditMode','1');state.screen='studio';state.detail=null;state.uiStudioTab='audit';save();render()},closeAudit:()=>{localStorage.removeItem('projectSlateAuditMode');if(state.uiStudioTab==='audit')state.uiStudioTab='desk';save();render()},exportAudit:simulationAuditExport,runBenchmark:runSimulationBenchmarkSuite,narrativeStatus:()=>({endpoint:narrativeEndpoint(),connection:narrativeRuntime.connection,pending:[...narrativeRuntime.pending.keys()],lastError:narrativeRuntime.lastError}),setNarrativeEndpoint:setNarrativeEndpointValue,testNarrativeConnection};
-if(state.screen!=='setup')enforceActiveSignatureRoute();
-if(state.screen!=='setup'&&!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.studioMomentQueue?.length)surfacePendingStudioMoment();
+if(state.screen!=='setup'&&typeof surfaceNextSignatureMoment==='function')surfaceNextSignatureMoment();
 const bootCheck=projectSlateSmokeChecks();
 if(persistenceRuntime.recoveryRaw)projectSlateRecoveryScreen();else if(!bootCheck.ok)projectSlateBootFailure(bootCheck);else{try{render()}catch(e){console.error(e);projectSlateBootFailure(bootCheck,e)}}
