@@ -238,7 +238,7 @@ function projectSlateSmokeChecks(){
   if(!deskBriefingBody.toString().includes('deskStudioStatusStrip')||!deskBriefingBody.toString().includes('deskScriptMarketPressureHTML'))failures.push('v4.6.4 compact Desk intelligence missing');
   if(!developmentUI.toString().includes('castingReadinessHTML'))failures.push('v4.6.4 Casting Readiness missing from film page');
   if(!recordProductionDaily.toString().includes('castingGamble'))failures.push('v4.6.4 untested casting callback missing');
-  if(!soundtrackPostUI.toString().includes('There is no single correct colour'))failures.push('v4.6.4 music trade-off explainer missing');
+  if(!soundtrackPostUI.toString().includes('There is no single correct music plan'))failures.push('v4.6.4 music trade-off explainer missing');
   if(soundtrackPostUI.toString().includes('Creative fit '))failures.push('v4.6.4 raw music fit grading still exposed');
  }catch(e){failures.push('v4.6.4 workflow clarity smoke failed'+(e?.message?': '+e.message:''))}
 
