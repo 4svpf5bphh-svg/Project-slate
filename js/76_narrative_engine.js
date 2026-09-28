@@ -145,7 +145,7 @@ function queueProjectIntelligence(s,{force=false}={}){
  if(!force&&store.status==='ready'&&store.fingerprint===fingerprint)return Promise.resolve(store);
  const key='project_intelligence:'+s.id;if(narrativeRuntime.pending.has(key))return narrativeRuntime.pending.get(key);
  const priorAccepted=store.accepted??null;
- s.projectIntelligence={status:'pending',accepted:priorAccepted,fingerprint,requestedWeek:state.week};try{save()}catch{}
+ s.projectIntelligence={status:'pending',accepted:priorAccepted,fingerprint,requestedWeek:state.week};try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render()
  const task=requestNarrative('project_intelligence',packet).then(data=>{
   if(!validProjectIntelligence(data.narrative))throw new Error('invalid_project_intelligence_shape');
   s.projectIntelligence={status:'ready',accepted:data.narrative.recognized?priorAccepted:false,fingerprint,result:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week};
