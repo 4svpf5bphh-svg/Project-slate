@@ -172,6 +172,54 @@ const ROLE_ARCHETYPES={
   ['The Rival','A counter-lead requiring presence and enough craft to sell heightened material.',24,50,.50,.31,.19],
   ['The Elder','A supporting role built around authority, texture and world credibility.',42,78,.50,.16,.34],
   ['The Trickster','A vivid supporting part where charisma and distinctiveness can expand the world.',22,58,.48,.37,.15]
+ ],
+ 'Action Comedy':[
+  ['The Loose Cannon','A charismatic action lead who must make danger and comic timing coexist.',27,50,.45,.38,.17],
+  ['The Straight Arrow','The counter-lead whose competence and reactions make the partnership work.',29,56,.53,.27,.20],
+  ['The Heavy','A credible threat who must survive the film’s comic tone without becoming weightless.',34,64,.49,.22,.29],
+  ['The Scene-Stealer','A supporting role built for timing, surprise and personality.',23,58,.55,.31,.14]
+ ],
+ 'Mystery Thriller':[
+  ['The Investigator','The audience’s point of entry; intelligence and control matter more than flash.',28,58,.62,.17,.21],
+  ['The Suspect','A counter-lead who must remain plausible in several contradictory readings.',27,58,.64,.20,.16],
+  ['The Insider','A supporting role carrying exposition, authority and possible deception.',35,70,.55,.13,.32],
+  ['The Missing Piece','A smaller role whose specificity can reframe the whole mystery.',22,60,.64,.20,.16]
+ ],
+ 'Supernatural Horror':[
+  ['The Haunted','The emotional centre of the haunting; credibility and vulnerability are essential.',24,46,.64,.14,.22],
+  ['The Believer','A counter-lead who must sell impossible material without losing human scale.',28,58,.58,.18,.24],
+  ['The Keeper','A supporting authority figure with knowledge the film cannot fully trust.',38,75,.55,.16,.29],
+  ['The Vessel','A distinctive supporting role where physical and tonal commitment matter.',20,50,.61,.24,.15]
+ ],
+ 'Sports Drama':[
+  ['The Contender','A performance-led athlete role where physical credibility and emotion must coexist.',22,42,.61,.22,.17],
+  ['The Coach','A counter-lead built around authority, conflict and earned warmth.',36,68,.64,.14,.22],
+  ['The Rival','A competitive supporting role that benefits from presence and edge.',23,45,.50,.31,.19],
+  ['The Veteran','A supporting role whose credibility gives the sporting world weight.',38,72,.56,.14,.30]
+ ],
+ 'Romantic Comedy':[
+  ['The Romantic Lead','A lead requiring warmth, timing and chemistry more than prestige weight.',25,45,.52,.32,.16],
+  ['The Other Half','The counter-lead; chemistry, reaction and charm are the core requirements.',25,48,.54,.31,.15],
+  ['The Best Friend','A supporting comic role with scene-stealing upside.',24,55,.50,.31,.19],
+  ['The Obstacle','A supporting role that must create pressure without flattening the tone.',30,62,.54,.18,.28]
+ ],
+ 'Superhero':[
+  ['The Hero','A lead balancing spectacle, emotional accessibility and campaign value.',22,45,.46,.39,.15],
+  ['The Rival','A counter-lead requiring presence, danger and enough craft to survive heightened material.',25,52,.50,.34,.16],
+  ['The Mentor','A supporting authority role where credibility and stature matter strongly.',38,74,.50,.20,.30],
+  ['The Wildcard','A vivid supporting role designed to add personality to the ensemble.',21,55,.48,.37,.15]
+ ],
+ 'Adventure':[
+  ['The Explorer','A lead who needs momentum, curiosity and broad audience accessibility.',25,50,.47,.34,.19],
+  ['The Partner','A counter-lead where chemistry and resilience carry long stretches of the film.',25,52,.52,.29,.19],
+  ['The Guide','A supporting role where competence and world credibility matter heavily.',34,70,.49,.20,.31],
+  ['The Rival Explorer','A supporting presence mixing danger, charisma and unpredictability.',26,58,.51,.31,.18]
+ ],
+ 'Historical Epic':[
+  ['The Commander','A lead requiring authority, emotional scale and period credibility.',30,58,.64,.24,.12],
+  ['The Rival Power','A counter-lead built around presence, intelligence and political threat.',32,62,.62,.25,.13],
+  ['The Adviser','A supporting role where gravitas and reliability anchor the world.',40,76,.58,.14,.28],
+  ['The Dissenter','A supporting role that must feel specific enough to challenge the dominant history.',24,60,.63,.20,.17]
  ]
 };
 function ensureFilmRoles(f){
