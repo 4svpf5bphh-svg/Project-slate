@@ -194,9 +194,13 @@ function lotCampaignOpportunity(f){
   label:friendly?'Sell the chemistry':'Exploit the drama',
   text:friendly?'The campaign can lean into a relationship audiences may find charming. It buys some organic attention, but it also raises expectations around the pairing.':'The campaign can deliberately feed an existing Lot story into publicity. It will buy attention, but controversy and expectation pressure can hurt the release if the film does not deliver.'};
 }
-function lotCampaignAngleCost(f){const o=lotCampaignOpportunity(f);return o&&ensureMarketingState(f).lotAngle==='lean'?o.cost:0}
+function lotCampaignAngleTransaction(f){
+ const m=ensureMarketingState(f),opportunity=lotCampaignOpportunity(f),active=!!opportunity&&m.lotAngle==='lean'&&!m.lotAngleApplied;
+ return {active,opportunity,cost:active?(opportunity.cost||0):0};
+}
+function lotCampaignAngleCost(f){return lotCampaignAngleTransaction(f).cost}
 function lotApplyCampaignAngle(f){
- const m=ensureMarketingState(f),o=lotCampaignOpportunity(f);if(!o||m.lotAngle!=='lean'||m.lotAngleApplied)return null;
+ const m=ensureMarketingState(f),tx=lotCampaignAngleTransaction(f),o=tx.opportunity;if(!tx.active||!o)return null;
  const s=o.story,intensity=Math.max(1,s.intensity||1),before={buzz:m.buzz,sentiment:m.sentiment,expectations:m.expectations};
  if(o.friendly){m.buzz+=3+Math.min(3,intensity);m.sentiment+=2;m.expectations+=2+Math.min(2,intensity)}
  else{m.buzz+=4+Math.min(4,intensity);m.sentiment-=Math.min(3,Math.max(1,intensity-1));m.expectations+=2+Math.min(4,intensity)}
@@ -204,7 +208,7 @@ function lotApplyCampaignAngle(f){
  s.heat=clamp((s.heat||50)+8,0,100);s.lastWeek=state.week;
  lotStoryChapter(s,{type:'publicity',headline:o.friendly?'The campaign leans into the chemistry':'The studio turns Lot drama into publicity',detail:o.friendly?'The film campaign has started using the relationship as part of its public sell.':'The campaign has made a conscious choice to amplify a volatile off-camera story for attention.',filmId:f.id,intensity:2});
  f.history=f.history||[];f.history.push('Week '+state.week+': campaign used The Lot story "'+s.headline+'" as a publicity angle.');
- return {story:s,buzz:m.buzz-before.buzz,sentiment:m.sentiment-before.sentiment,expectations:m.expectations-before.expectations};
+ return {story:s,cost:tx.cost,buzz:m.buzz-before.buzz,sentiment:m.sentiment-before.sentiment,expectations:m.expectations-before.expectations};
 }
 function lotMediationOffer(f,storyId=null){
  if(!f||!['development','production'].includes(f.stage))return null;

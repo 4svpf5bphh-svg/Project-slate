@@ -106,6 +106,7 @@ function ensureDeskStateLite(st=state){
 }
 function notificationDeskSource(type,key=''){
  if(type==='milestone')return 'Studio Legacy';
+ if(String(key).startsWith('tradepress:'))return 'Trade Press';
  if(type==='intel'||String(key).startsWith('intel:'))return 'Executive Intelligence';
  if(type==='finance'||String(key).startsWith('autobridge:'))return 'Finance Office';
  if(String(key).startsWith('prod:')||String(key).startsWith('post:'))return 'Production Office';

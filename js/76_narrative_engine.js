@@ -1,4 +1,4 @@
-// Project Slate v4.6.4.1 — Narrative Engine reliability + cinematic review reveal
+// Project Slate v4.7 — Narrative Engine reliability + cinematic review reveal
 // Gameplay remains authoritative. AI prose is automatic enhancement with resilient local fallback.
 
 const NARRATIVE_SCHEMA_VERSION=1;
@@ -43,10 +43,10 @@ function narrativeSettingsHTML(){
  const status=narrativeRuntime.connection;
  const hasFallback=(state.films||[]).some(f=>f.owner==='player'&&f.review&&['retry_wait','degraded'].includes(f.aiNarrative?.review?.status));
  const statusHTML=status?.ok&&status.configured
-  ?'<div class="narrative-connection ready"><span class="pill good">AUTOMATIC</span><div><strong>'+narrativeEscapeHTML(status.provider)+' · '+narrativeEscapeHTML(status.model)+'</strong><span>Project Slate connects automatically. Reviews and Project Intelligence are generated without player setup.</span></div></div>'
+  ?'<div class="narrative-connection ready"><span class="pill good">AUTOMATIC</span><div><strong>'+narrativeEscapeHTML(status.provider)+' · '+narrativeEscapeHTML(status.model)+'</strong><span>Project Slate connects automatically. Reviews, Trade Press and Project Intelligence are generated without player setup.</span></div></div>'
   :hasFallback||status
    ?'<div class="narrative-connection warn"><span class="pill warn">RECOVERING</span><div><strong>Local fallback is active</strong><span>Gameplay continues normally while Project Slate retries the Narrative Engine automatically.</span></div></div>'
-   :'<div class="narrative-connection"><span class="pill blue">AUTOMATIC</span><div><strong>Narrative Engine is managed by Project Slate</strong><span>Connection health is checked silently and temporary failures fall back to local writing.</span></div></div>';
+   :'<div class="narrative-connection"><span class="pill blue">AUTOMATIC</span><div><strong>Narrative Engine is managed by Project Slate</strong><span>Connection health is checked silently and temporary failures fall back to local writing across reviews and Trade Press.</span></div></div>';
  const diagnostics=(typeof simulationAuditAccess==='function'&&simulationAuditAccess())
   ?'<div class="small" style="margin-top:10px"><strong>Diagnostics:</strong> '+narrativeEscapeHTML(narrativeEndpoint())+' · '+narrativeEscapeHTML(narrativeRuntime.lastError||'no current error')+'</div><button class="btn ghost" id="testNarrativeEndpoint" style="margin-top:8px">Run health check</button>'
   :'';
@@ -70,7 +70,7 @@ function scheduleNarrativeRetry(kind,id,count){
 }
 function narrativeErrorRetryable(err){
  const status=Number(err?.status||0),code=String(err?.code||err?.message||'');
- if(['narrative_not_configured','origin_not_allowed','unsupported_request','invalid_json','invalid_project_intelligence_shape','invalid_review_shape'].includes(code))return false;
+ if(['narrative_not_configured','origin_not_allowed','unsupported_request','invalid_json','invalid_project_intelligence_shape','invalid_review_shape','invalid_trade_story_shape','trade_story_quality_failed'].includes(code))return false;
  if(code==='review_quality_failed')return true;
  return !status||status===408||status===425||status===429||status>=500||/abort|network|fetch|timeout/i.test(code);
 }

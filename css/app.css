@@ -895,3 +895,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
  .review-filing-board{grid-template-columns:1fr;gap:6px;margin:13px 0}
  .review-filing-board>div{padding:9px 10px}
 }
+
+
+/* v4.7 — Trade Press */
+.trade-press-status{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0 14px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--accent2) 28%,var(--border));border-radius:11px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent2) 6%,transparent),rgba(255,255,255,.018))}
+.trade-press-status .badge{color:#d7ddef}
+.newslead .row>div:last-child,.industry-news-card .row>div:last-child{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.newslead .pill,.newslist .pill{font-size:7px;padding:3px 6px}
+.articlepage .trade-press-status{max-width:760px}
+@media(max-width:640px){
+ .trade-press-status{align-items:flex-start;flex-direction:column}
+ .newslead .row>div:last-child{justify-content:flex-start}
+}

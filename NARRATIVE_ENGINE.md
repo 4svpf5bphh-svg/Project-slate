@@ -103,3 +103,30 @@ Project Intelligence is creative context only. It does not alter screenplay qual
 The Lot now maintains narrative-variety memory across incident ID, family, setting, story shape and topic. Incident selection strongly prefers unseen material, penalises recently used dimensions and will allow a quiet week rather than bypass cooldown rules simply to force an event.
 
 Each deterministic Lot incident also stores a compact narrative seed containing its tier, family, tags, setting, shape, participants, relationship state, deterministic consequence and a dynamic novelty brief. This is the contract for a later generative-Lot layer: the simulation will decide what happened mechanically, while the Narrative Engine invents fresh specific expression without repeating recent subjects or joke structures.
+
+
+## v4.7 — Trade Press
+
+Trade Press extends the Narrative Engine from film criticism into selective industry journalism.
+
+The deterministic simulation still decides what actually happened. Every ordinary news item is first rendered through Project Slate's authored local press system. Only sufficiently important events are eligible for AI enhancement, and the AI rewrites that existing article rather than creating a second version of the event.
+
+The editorial gate scores event importance, player relevance, subject repetition and recent coverage. Routine greenlights, press releases and minor market moves remain local copy. Normally only one major Trade Press feature may consume an AI request in an in-game week; an exceptional story can permit a second.
+
+Eligible examples include:
+- major hits, bombs and unusual theatrical holds;
+- consequential studio financial stories;
+- contested screenplay outcomes;
+- serious production or talent disruptions;
+- major franchise / rights moves;
+- defining studio-rivalry developments;
+- awards and career-turning results;
+- important rival-studio outcomes as well as player-studio stories.
+
+The server receives a structured fact packet containing the locked event, publication/byline, relevant film/studio/talent context and a small recent-coverage memory. It must not invent new deals, quotes, scandals, injuries, private conduct or outcomes.
+
+If the Narrative Engine is unavailable, the authored local article remains the finished article. Trade Press never blocks gameplay.
+
+High-importance stories can also surface on the Studio Desk as persistent Trade Press intelligence. Opening the Desk item routes to the same news article; there is no duplicate story.
+
+Project Intelligence remains intentionally limited to player-created Original Concepts.

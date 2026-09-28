@@ -85,15 +85,15 @@ function newsArticleScreen(id){
  const n=state.news.find(x=>x.id===id);if(!n)return industryScreen();
  return topbar(n.publication||newsKindLabel(n.kind),`${newsKindLabel(n.kind)} · Week ${n.week}`)+`<main class="screen articlepage"><button class="back articleback" id="backBtn">← Back to news</button>
  <article class="newsarticle"><div class="newsmast"><div class="news-mast-brand">${pressLogoHTML(n.publication||'Screen Trade','lg',true)}</div><div class="newstimestamp">${n.day&&typeof calendarDateLabel==='function'?calendarDateLabel(n.day):'Week '+n.week}</div></div>
- <div class="newssection">${newsKindLabel(n.kind)}</div><h1 class="newsheadline">${n.headline}</h1>${n.deck?`<div class="newsdeck">${n.deck}</div>`:''}<div class="newsbyline">By ${n.byline||'Trade desk'}</div>${n.voiceLabel?`<div class="small" style="margin:-3px 0 11px">${n.voiceLabel}</div>`:''}${journalistProfileCard(n)}
+ <div class="newssection">${newsKindLabel(n.kind)}</div>${typeof tradePressArticleStatusHTML==='function'?tradePressArticleStatusHTML(n):''}<h1 class="newsheadline">${n.headline}</h1>${n.deck?`<div class="newsdeck">${n.deck}</div>`:''}<div class="newsbyline">By ${n.byline||'Trade desk'}</div>${n.voiceLabel?`<div class="small" style="margin:-3px 0 11px">${n.voiceLabel}</div>`:''}${journalistProfileCard(n)}
  <div class="articlebody">${(n.body||[n.text]).map(p=>`<p>${p}</p>`).join('')}</div></article>
  </main>${nav()}`;
 }
 function homeNewsDesk(){
  const stories=state.news.filter(n=>n.kind!=='System').slice(0,6),lead=stories[0],rest=stories.slice(1,5);if(!lead)return '';
  return `<div class="section-title"><h2>Newsroom</h2><button class="btn ghost" data-nav="industry">All stories</button></div>
- <div class="card click newslead" data-news-id="${lead.id}"><div class="row">${pressLogoHTML(lead.publication||'Screen Trade','sm',true)}<span class="small">${lead.day?calendarShortDate(lead.day):'W'+lead.week}</span></div><div class="newsleadhead">${lead.headline}</div>${lead.deck?`<div class="newsleaddeck">${lead.deck}</div>`:''}</div>
- <div class="card newslist">${rest.map(n=>`<div class="listrow click" data-news-id="${n.id}"><div style="min-width:0">${pressLogoHTML(n.publication||'Screen Trade','xs',true)}<strong style="display:block;margin-top:6px">${n.headline}</strong><div class="small">${newsKindLabel(n.kind)}</div></div><span class="small">${n.day?calendarShortDate(n.day):'W'+n.week}</span></div>`).join('')}</div>`;
+ <div class="card click newslead" data-news-id="${lead.id}"><div class="row">${pressLogoHTML(lead.publication||'Screen Trade','sm',true)}<div>${typeof tradePressCardBadge==='function'?tradePressCardBadge(lead):''}<span class="small">${lead.day?calendarShortDate(lead.day):'W'+lead.week}</span></div></div><div class="newsleadhead">${lead.headline}</div>${lead.deck?`<div class="newsleaddeck">${lead.deck}</div>`:''}</div>
+ <div class="card newslist">${rest.map(n=>`<div class="listrow click" data-news-id="${n.id}"><div style="min-width:0">${pressLogoHTML(n.publication||'Screen Trade','xs',true)}<strong style="display:block;margin-top:6px">${n.headline}</strong><div class="small">${newsKindLabel(n.kind)} ${typeof tradePressCardBadge==='function'?tradePressCardBadge(n):''}</div></div><span class="small">${n.day?calendarShortDate(n.day):'W'+n.week}</span></div>`).join('')}</div>`;
 }
 function lateGameOpportunityProgress(kind){
  if(typeof corporateFundamentals!=='function')return null;const f=corporateFundamentals(),year=Math.floor(state.week/52),financial=state.reputation?.financial||0;
@@ -211,7 +211,7 @@ function studioUpcomingEvents(limit=4,horizonDays=35){
  playerFilms().filter(f=>f.stage==='scheduled').forEach(f=>{
   ensureFilmCalendar(f);
   (f.marketingState?.milestones||[]).filter(x=>!x.resolved&&x.day>now).forEach(x=>add(x.day,campaignCheckpointLabel({...x,title:f.title}),'campaign',f.id));
-  if(f.releaseDay)add(f.releaseDay,`Release Day · ${f.title}`,'release',f.id);
+  if(f.releaseDay)add(f.releaseDay,`Release Day + reviews · ${f.title}`,'release',f.id);
  });
  playerFilms().filter(f=>f.stage==='production').forEach(f=>{
   if(f.productionEnd)add(weekStartDay(f.productionEnd),`Expected Production Wrap · ${f.title}`,'production',f.id);
@@ -225,7 +225,7 @@ function studioUpcomingEvents(limit=4,horizonDays=35){
 }
 function deskUpcomingHTML(events){
  if(!events.length)return `<div class="card desk-upcoming-empty"><strong>No scheduled checkpoint</strong><div class="small">Nothing the studio can currently know is due in the next five weeks. Unscripted production and industry events stay hidden until they happen.</div></div>`;
- return `<div class="desk-upcoming-list">${events.map((e,i)=>{const days=Math.max(0,e.day-state.calendarDay),when=days===1?'Tomorrow':`In ${days} days`;return `<div class="desk-upcoming-row"><span class="desk-upcoming-index">${i+1}</span><div><strong>${e.label}</strong><div class="small">${when} · ${calendarShortDate(e.day)}</div></div><span class="desk-upcoming-kind">${e.kind==='boxOffice'?'Box office':e.kind==='campaign'?'Campaign':e.kind==='production'?'Production':e.kind==='release'?'Release':'Scheduled'}</span></div>`}).join('')}</div>`;
+ return `<div class="desk-upcoming-list">${events.map((e,i)=>{const days=Math.max(0,e.day-state.calendarDay),when=days===1?'Tomorrow':`In ${days} days`;return `<div class="desk-upcoming-row"><span class="desk-upcoming-index">${i+1}</span><div><strong>${e.label}</strong><div class="small">${when} · ${calendarShortDate(e.day)}</div></div><span class="desk-upcoming-kind">${e.kind==='boxOffice'?'Box office':e.kind==='campaign'?'Campaign':e.kind==='production'?'Production':e.kind==='release'?'Release + reviews':'Scheduled'}</span></div>`}).join('')}</div>`;
 }
 function deskThreadHTML(t){
  const tone=['good','bad','warn','blue'].includes(t.tone)?t.tone:'blue';

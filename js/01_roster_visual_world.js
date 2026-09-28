@@ -1570,7 +1570,7 @@ function buildNewsItem(st,text,kind='Industry'){
  return {id,pressVersion:3143,week:st.week,day:Number.isFinite(st.calendarDay)?st.calendarDay:null,text,headline:story.headline,kind,publication,byline,journalistId,voiceLabel:story.voiceLabel,deck:story.deck,body:story.body};
 }
 function normalizeNewsItem(st,n){
- if((n?.pressVersion===291||n?.pressVersion===364||n?.pressVersion===3140)&&n?.id&&n?.publication&&n?.body){if(!n.journalistId)n.journalistId=journalistIdFromByline(n.byline||'');return n;}
+ if((n?.pressVersion===291||n?.pressVersion===364||n?.pressVersion>=3140)&&n?.id&&n?.publication&&n?.body){if(!n.journalistId)n.journalistId=journalistIdFromByline(n.byline||'');return n;}
  const x=buildNewsItem(st,n?.text||String(n||''),n?.kind||'Industry');if(n?.week!==undefined)x.week=n.week;return x;
 }
 

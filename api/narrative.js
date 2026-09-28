@@ -1,4 +1,4 @@
-// Project Slate v4.6.3 — stateless Narrative Engine API
+// Project Slate v4.7 — stateless Narrative Engine API
 // Designed for a Vercel deployment. The API key lives only in server environment variables.
 
 const PROVIDER=(process.env.NARRATIVE_PROVIDER||'groq').toLowerCase();
@@ -15,7 +15,7 @@ const PROVIDERS={
   }
 };
 const provider=PROVIDERS[PROVIDER]||PROVIDERS.groq;
-const ALLOWED_TYPES=new Set(['film_review','project_intelligence']);
+const ALLOWED_TYPES=new Set(['film_review','project_intelligence','trade_story']);
 const MAX_BODY_CHARS=60000;
 
 function allowedOrigin(origin,host=''){
@@ -71,8 +71,31 @@ function projectIntelligenceSchema(){
     required:['recognized','confidence','relationship','property_name','installment_number','legacy_titles','legacy_talent','established_identity','context_summary','recognition_basis']
   };
 }
-function schemaForType(type){return type==='project_intelligence'?projectIntelligenceSchema():reviewSchema()}
-function schemaNameForType(type){return type==='project_intelligence'?'project_slate_project_intelligence':'project_slate_film_review'}
+function tradeStorySchema(){
+  return {
+    type:'object',
+    additionalProperties:false,
+    properties:{
+      headline:{type:'string'},
+      deck:{type:'string'},
+      paragraphs:{type:'array',items:{type:'string'},minItems:2,maxItems:4},
+      editorial_note:{type:'string'}
+    },
+    required:['headline','deck','paragraphs','editorial_note']
+  };
+}
+function schemaForType(type){return type==='project_intelligence'?projectIntelligenceSchema():type==='trade_story'?tradeStorySchema():reviewSchema()}
+function schemaNameForType(type){return type==='project_intelligence'?'project_slate_project_intelligence':type==='trade_story'?'project_slate_trade_story':'project_slate_film_review'}
+function tradeStoryQualityIssues(narrative){
+  const text=[narrative?.headline,narrative?.deck,...(narrative?.paragraphs||[])].join(' ').toLowerCase(),issues=[];
+  const banned=[
+    ['game language',/\bplayer\b|\bsimulation\b|\bgame state\b|\bhidden metric\b/i],
+    ['internal Lot language',/\blot story\b|\blot-level\b|\bsystem event\b/i],
+    ['generic AI scaffold',/\bultimately\b|\bin conclusion\b|the final takeaway/i]
+  ];
+  for(const [label,re] of banned)if(re.test(text))issues.push(label);
+  return issues;
+}
 function reviewQualityIssues(narrative,packet){
   const text=[narrative?.headline,narrative?.pull_quote,...(narrative?.paragraphs||[])].join(' ').toLowerCase();
   const issues=[];
@@ -96,6 +119,20 @@ function reviewQualityIssues(narrative,packet){
   return issues;
 }
 function narrativeInstructions(type){
+  if(type==='trade_story')return [
+    'You are a trade journalist inside Project Slate, an alternate-reality Hollywood management game.',
+    'Rewrite only the supplied factual event into a sharp, credible entertainment-industry trade article. The simulation packet is authoritative.',
+    'Do not invent a new deal, quote, salary, budget, feud, allegation, injury, crime, private conversation, medical fact, relationship, motive or outcome.',
+    'Every named real-world performer or filmmaker is a fictionalized game counterpart. Never turn fictional Project Slate events into claims about the real person.',
+    'Use the supplied publication, byline and voice as the editorial frame. The five recurring reporters should sound recognisably different without becoming caricatures.',
+    'The article should explain why the event matters to the business: leverage, slate strategy, release position, financing, talent market, franchise direction or competitive context when those facts are actually supplied.',
+    'Project Slate Hollywood can be dryly absurd, vain and competitive, but do not sensationalise beyond the facts. One memorable trade-journalism line is better than a paragraph of jokes.',
+    'Use recent_coverage to avoid repeating the same angle or rediscovering an old story. If the event is a continuation, write it as a continuation.',
+    'Never expose game or simulation terminology such as player, hidden metric, system event, Lot story, score calculation, AI, prompt, packet or internal state.',
+    'Do not mention Project Intelligence, legal rights clearance or model behaviour unless those are themselves the supplied public event.',
+    'Return a concise publication-style headline, a one-sentence deck, and 2 to 4 substantial paragraphs.',
+    'editorial_note is internal only: briefly state the factual angle you chose and which supplied fact made it newsworthy.'
+  ].join('\n');
   if(type==='project_intelligence')return [
     'You are Project Intelligence inside Project Slate, an alternate-reality Hollywood management game.',
     'Your task is conservative recognition of whether a player-created screenplay is clearly intended to connect to a well-known pre-existing film, television, book, game, comic or other entertainment property.',
@@ -164,9 +201,9 @@ module.exports=async function handler(req,res){
           model,
           instructions:narrativeInstructions(type),
           input:[{role:'user',content:prompt}],
-          max_output_tokens:type==='project_intelligence'?700:1200,
+          max_output_tokens:type==='project_intelligence'?700:type==='trade_story'?900:1200,
           reasoning:{effort:'low'},
-          temperature:type==='project_intelligence'?.2:.95,
+          temperature:type==='project_intelligence'?.2:type==='trade_story'?.82:.95,
           store:false,
           text:{format:{type:'json_schema',name:schemaNameForType(type),schema:schemaForType(type)}}
         })
@@ -183,13 +220,21 @@ module.exports=async function handler(req,res){
         if(typeof narrative.recognized!=='boolean'||!Array.isArray(narrative.legacy_talent)||!Array.isArray(narrative.established_identity))return res.status(502).json({ok:false,error:'invalid_project_intelligence_shape'});
         return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null,qualityRetry:false}});
       }
+      if(type==='trade_story'){
+        if(typeof narrative.headline!=='string'||typeof narrative.deck!=='string'||!Array.isArray(narrative.paragraphs)||narrative.paragraphs.length<2||narrative.paragraphs.length>4)return res.status(502).json({ok:false,error:'invalid_trade_story_shape'});
+        const issues=tradeStoryQualityIssues(narrative);
+        if(!issues.length)return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null,qualityRetry:attempt>0}});
+        lastIssues=issues;
+        correction='The previous trade article failed quality control for: '+issues.join('; ')+'. Rewrite it using only supplied facts, keep the same event and outlet voice, and remove all game or internal-system language.';
+        continue;
+      }
       if(!Array.isArray(narrative.paragraphs)||narrative.paragraphs.length!==4)return res.status(502).json({ok:false,error:'invalid_review_shape'});
       const issues=reviewQualityIssues(narrative,packet);
       if(!issues.length)return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null,qualityRetry:attempt>0}});
       lastIssues=issues;
       correction='The previous draft failed quality control for: '+issues.join('; ')+'. Rewrite the entire review. Keep the same simulation verdict and factual packet, preserve the sharp Project Slate voice, remove all listed problems, and do not mention this quality-control instruction.';
     }
-    return res.status(502).json({ok:false,error:'review_quality_failed',detail:lastIssues.join('; ')});
+    return res.status(502).json({ok:false,error:type==='trade_story'?'trade_story_quality_failed':'review_quality_failed',detail:lastIssues.join('; ')});
   }catch(err){
     return res.status(500).json({ok:false,error:'narrative_request_failed',detail:String(err?.message||err)});
   }
