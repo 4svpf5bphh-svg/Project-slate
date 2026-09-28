@@ -445,18 +445,18 @@ function lotApplyIncident(a,b,tier,r){
  const A=lotTalentName(a),B=lotTalentName(b),rel=lotRelationship(a,b),choice=lotChooseIncident(a,b,tier,r),def=choice.def,ctx=choice.ctx;
  if(!def)return null;
  const built=def.build(A,B,r,ctx)||{},type=built.type||def.type||(tier==='legendary'?'legendary-feud':'feud'),intensity=built.intensity||def.intensity||(tier==='legendary'?4:tier==='absurd'?3:tier==='hollywood'?2:1);
- const headline=built.headline||A+' and '+B+' have become a Lot story',summary=built.summary||'',detail=built.detail||'',delta=built.delta||{};
+ const headline=built.headline||A+' and '+B+' have become a Lot story',summary=built.summary||'',detail=built.detail||'',delta=built.delta||{},variety=lotIncidentVarietyMeta(def,built,ctx),narrativeSeed=lotIncidentNarrativeSeed(a,b,tier,def,built,ctx);
  const mem=lotRemember({type,participants:[a.id,b.id],headline,detail,intensity,publicEvent:intensity>=2});
- mem.incidentId=def.id;mem.incidentFamily=def.family;
+ mem.incidentId=def.id;mem.incidentFamily=def.family;mem.incidentSeed=narrativeSeed;
  lotAdjustRelationship(a,b,delta,mem.id);
  const updated=lotRelationship(a,b);
  const story=lotStory({type,participants:[a.id,b.id],headline,summary,detail,intensity,durability:intensity>=4?90:intensity>=3?45:24,publicEvent:intensity>=2,memoryId:mem.id,filmId:ctx.film?.id||null});
- if(story){story.incidentId=def.id;story.incidentFamily=def.family}
- const entry={id:def.id,family:def.family,tier,week:state.week,pair:lotPairKey(a,b),filmId:ctx.film?.id||null,headline};
- const lot=ensureLotState(),hist=lotPairHistory(a,b);lot.incidentHistory.unshift(entry);lot.incidentHistory=lot.incidentHistory.slice(0,240);hist.incidents.unshift(entry);hist.incidents=hist.incidents.slice(0,30);hist.lastIncidentWeek=state.week;
+ if(story){story.incidentId=def.id;story.incidentFamily=def.family;story.incidentSeed=narrativeSeed}
+ const entry={id:def.id,family:def.family,tier,week:state.week,pair:lotPairKey(a,b),filmId:ctx.film?.id||null,headline,variety};
+ const lot=ensureLotState(),hist=lotPairHistory(a,b);lot.incidentHistory.unshift(entry);lot.incidentHistory=lot.incidentHistory.slice(0,240);lot.variety.recent=lot.incidentHistory.slice(0,24).map(x=>x.variety||lotIncidentVarietyFromEntry(x)).filter(Boolean);hist.incidents.unshift(entry);hist.incidents=hist.incidents.slice(0,30);hist.lastIncidentWeek=state.week;
  if(ctx.film){ctx.film.lotIncidentHistory=ctx.film.lotIncidentHistory||[];ctx.film.lotIncidentHistory.unshift(entry);ctx.film.lotIncidentHistory=ctx.film.lotIncidentHistory.slice(0,12)}
  lotApplyIncidentConsequences(a,b,type,intensity,headline);
- return {headline,summary,detail,tier,intensity,incidentId:def.id,family:def.family,relationship:updated};
+ return {headline,summary,detail,tier,intensity,incidentId:def.id,family:def.family,relationship:updated,variety,narrativeSeed};
 }
 
 function lotRegisterFilmOutcome(f,profit=0){
@@ -544,7 +544,7 @@ function processLotWeek(){
   const age=hist.lastIncidentWeek?state.week-hist.lastIncidentWeek:52,recentPenalty=age<26?(26-age)*1.6:0,activePenalty=lot.stories.some(s=>s.active&&s.pair===hist.key)?24:0;
   return {pair,score:r()*70+chaos*.3+(rel.tension||0)*.25-recentPenalty-activePenalty};
  }).sort((a,b)=>b.score-a.score);
- const [a,b]=weighted[0].pair,tier=lotIncidentTier(r);lotApplyIncident(a,b,tier,r);lot.lastIncidentWeek=state.week;
+ const [a,b]=weighted[0].pair,tier=lotIncidentTier(r),incident=lotApplyIncident(a,b,tier,r);if(incident)lot.lastIncidentWeek=state.week;
 }
 function lotRecentMemories(t,limit=5){
  const p=ensureLotProfile(t),lot=ensureLotState(),set=new Set(p.memories||[]);return lot.memories.filter(m=>set.has(m.id)).slice(0,limit);
