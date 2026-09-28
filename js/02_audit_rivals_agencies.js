@@ -220,11 +220,7 @@ function surfacePendingFilmWrap(){
 }
 function continueFilmWrap(){
  const id=state.activeFilmWrapId;state.activeFilmWrapId=null;state.uiFilmWrapStep=0;
- if(state.pendingCeremony){state.screen='ceremony';state.detail=null;save();render();return}
- if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;save();render();return}
- if(surfacePendingLegendUnlock()){save();render();return}
- if(surfacePendingFilmWrap()){save();render();return}
- if(surfacePendingStudioMoment()){save();render();return}
+ if(typeof surfaceNextSignatureMoment==='function'&&surfaceNextSignatureMoment()){save();render();return}
  state.screen='studio';state.uiStudioTab='library';state.detail=null;state.history=[];requestScrollTop();save();render();
 }
 function completedFilmLegacyLine(f){const l=ensureLegacyState(f);if(!l.built)buildFilmLegacy(f,{});return `${l.outcome} · peak ${l.peakRank?'#'+l.peakRank:'—'} · ${l.weeksAtOne} week${l.weeksAtOne===1?'':'s'} at #1`}
@@ -369,11 +365,7 @@ function continueStudioMoment(){
  const m=activeStudioMoment();if(!m)return;
  state.activeStudioMoment=null;
  publishStudioMomentAftermath(m);
- if(state.pendingCeremony){state.screen='ceremony';state.detail=null;save();render();return}
- if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;save();render();return}
- if(surfacePendingLegendUnlock()){save();render();return}
- if(surfacePendingFilmWrap()){save();render();return}
- if(surfacePendingStudioMoment()){save();render();return}
+ if(typeof surfaceNextSignatureMoment==='function'&&surfaceNextSignatureMoment()){save();render();return}
  state.screen=m.returnScreen||'studio';state.detail=m.returnDetail||null;state.history=m.returnHistory||[];save();render();
 }
 
