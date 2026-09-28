@@ -242,6 +242,15 @@ function projectSlateSmokeChecks(){
   if(soundtrackPostUI.toString().includes('Creative fit '))failures.push('v4.6.4 raw music fit grading still exposed');
  }catch(e){failures.push('v4.6.4 workflow clarity smoke failed'+(e?.message?': '+e.message:''))}
 
+ try{
+  if(REVIEW_REVEAL_MIN_WAIT_MS<800||REVIEW_REVEAL_AI_GRACE_MS<5000||REVIEW_REVEAL_AI_GRACE_MS>10000)failures.push('v4.6.4.1 review reveal timing window invalid');
+  if(!reviewRevealScreen.toString().includes('Film critic reviews are incoming'))failures.push('v4.6.4.1 review filing state missing');
+  if(!queueAIReview.toString().includes('reviewRevealResolveAI')||!queueAIReview.toString().includes('reviewRevealResolveLocal'))failures.push('v4.6.4.1 AI result is not routed through reveal lock');
+  if(!surfacePendingReviewReveal.toString().includes("displayMode=aiReviewContent(f)?'ai':'waiting'"))failures.push('v4.6.4.1 reveal does not start in filing mode');
+  if(!closeReviewReveal.toString().includes('clearReviewRevealTimer'))failures.push('v4.6.4.1 review reveal timer cleanup missing');
+  if(!reviewRevealScreen.toString().includes("item.displayMode==='ai'"))failures.push('v4.6.4.1 locked reveal copy mode missing');
+ }catch(e){failures.push('v4.6.4.1 review reveal polish smoke failed'+(e?.message?': '+e.message:''))}
+
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
   if(!buildNewsItem.toString().includes('voicePressStory'))failures.push('press voice pass missing');
