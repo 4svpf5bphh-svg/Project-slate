@@ -118,7 +118,7 @@ function reviewDisplayContent(f){
 }
 function narrativeReviewStatusHTML(f){
  const x=ensureFilmNarrative(f)?.review,endpoint=narrativeEndpoint();
- if(x?.status==='ready')return '<div class="narrative-status ready"><span class="pill good">NARRATIVE ENGINE</span><span>AI-authored review prose · scores and game outcomes remain simulation-owned.</span></div>';
+ if(x?.status==='ready')return '<div class="narrative-status ready"><div><span class="pill good">NARRATIVE ENGINE</span><span>AI-authored review prose · scores and game outcomes remain simulation-owned.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Rewrite review</button></div>';
  if(x?.status==='pending')return '<div class="narrative-status pending"><span class="pill blue">NARRATIVE ENGINE</span><span>The Daily Screen review is being written. Local review copy remains visible until it arrives.</span></div>';
  if(x?.status==='failed')return '<div class="narrative-status failed"><div><span class="pill warn">LOCAL FALLBACK</span><span>Narrative Engine unavailable. The simulation review is still complete and playable.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Retry AI review</button></div>';
  if(f?.review&&!endpoint)return '<div class="narrative-status"><div><span class="pill blue">LOCAL REVIEW</span><span>Narrative Engine is optional and not connected yet.</span></div><button class="btn ghost" data-open-narrative-settings>Set up Narrative Engine</button></div>';
