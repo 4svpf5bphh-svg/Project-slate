@@ -109,7 +109,9 @@ function save(){
  let raw;try{raw=JSON.stringify(state)}catch(e){persistenceRuntime.saveError=String(e?.message||e);console.error('Project Slate could not serialize career',e);return false}
  const meta=persistenceMeta(raw);
  try{
-  localStorage.setItem(SAVE_BACKUP_KEY,raw);
+  const prior=localStorage.getItem(KEY);
+  if(prior&&prior!==raw)localStorage.setItem(SAVE_BACKUP_KEY,prior);
+  else if(!localStorage.getItem(SAVE_BACKUP_KEY))localStorage.setItem(SAVE_BACKUP_KEY,raw);
   localStorage.setItem(KEY,raw);
   localStorage.setItem(SAVE_META_KEY,JSON.stringify(meta));
   persistenceRuntime.lastSavedAt=meta.savedAt;persistenceRuntime.saveError=null;
