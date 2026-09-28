@@ -348,6 +348,54 @@ function lotIncidentTraitWeight(def,a,b){
  const vals=(def.tags||[]).map(tag=>((pa.traits[map[tag]||tag]||50)+(pb.traits[map[tag]||tag]||50))/2);
  return vals.length?.65+vals.reduce((x,y)=>x+y,0)/vals.length/100:1;
 }
+const LOT_FAMILY_SETTING={
+ friendship:'between-takes life','friendly-rivalry':'between-takes life','professional-respect':'creative work',
+ status:'status politics',press:'press circuit',professionalism:'working practices',fashion:'public appearance',credit:'creative credit',awards:'awards campaign',
+ territory:'studio facilities',social:'social life',property:'shared property',premiere:'premiere logistics',staff:'entourage',food:'craft services',music:'set atmosphere',pets:'personal life'
+};
+function lotIncidentVarietyMeta(def,built=null,ctx=null){
+ const family=def?.family||'general',type=built?.type||def?.type||'feud';
+ let shape=type==='friendship'?'alliance':'status contest';
+ if(['press','fashion','awards'].includes(family))shape='publicity distortion';
+ else if(['professionalism','credit','professional-respect'].includes(family))shape='professional disagreement';
+ else if(['property','territory','staff','food','music','pets'].includes(family))shape='petty escalation';
+ else if(family==='social'||family==='premiere')shape='social escalation';
+ if(def?.tier==='legendary')shape='legendary escalation';
+ return {id:def?.id||'',family,tier:def?.tier||'',setting:LOT_FAMILY_SETTING[family]||'Hollywood life',shape,topic:String(def?.id||family).replace(/-/g,' '),filmId:ctx?.film?.id||null};
+}
+function lotIncidentVarietyFromEntry(entry){
+ if(!entry)return null;
+ const def=LOT_INCIDENT_LIBRARY.find(x=>x.id===entry.id);
+ return def?lotIncidentVarietyMeta(def,null,{film:entry.filmId?{id:entry.filmId}:null}):{id:entry.id||'',family:entry.family||'general',tier:entry.tier||'',setting:LOT_FAMILY_SETTING[entry.family]||'Hollywood life',shape:'story beat',topic:String(entry.id||entry.family||'incident').replace(/-/g,' '),filmId:entry.filmId||null};
+}
+function lotVarietyRecent(limit=16){
+ const lot=ensureLotState(),rows=(lot.incidentHistory||[]).slice(0,limit).map(x=>x.variety||lotIncidentVarietyFromEntry(x)).filter(Boolean);
+ lot.variety.recent=rows.slice(0,24);return rows;
+}
+function lotNoveltyBrief(a=null,b=null,tier=null){
+ const recent=lotVarietyRecent(18),pair=a&&b?lotPairKey(a,b):null,pairRows=pair?ensureLotState().incidentHistory.filter(x=>x.pair===pair).slice(0,8):[];
+ const unique=x=>[...new Set(x.filter(Boolean))];
+ return {
+  desiredTier:tier||null,
+  avoidIncidentIds:unique(recent.slice(0,12).map(x=>x.id)),
+  avoidFamilies:unique(recent.slice(0,8).map(x=>x.family)),
+  avoidSettings:unique(recent.slice(0,7).map(x=>x.setting)),
+  avoidShapes:unique(recent.slice(0,6).map(x=>x.shape)),
+  avoidTopics:unique(recent.slice(0,12).map(x=>x.topic)),
+  pairHistory:unique(pairRows.map(x=>x.id)),
+  instruction:'Invent a materially different incident. Do not merely rename a recent object, location or feud while preserving the same joke structure.'
+ };
+}
+function lotIncidentNarrativeSeed(a,b,tier,def,built,ctx){
+ const rel=lotRelationship(a,b),variety=lotIncidentVarietyMeta(def,built,ctx);
+ return {
+  tier,family:def.family,tags:[...(def.tags||[])],setting:variety.setting,shape:variety.shape,topic:variety.topic,
+  participants:[a.id,b.id],filmId:ctx?.film?.id||null,
+  relationshipBefore:{affection:rel.affection,respect:rel.respect,trust:rel.trust,tension:rel.tension,grudge:rel.grudge},
+  consequence:deep(built?.delta||{}),
+  novelty:lotNoveltyBrief(a,b,tier)
+ };
+}
 function lotChooseIncident(a,b,tier,r){
  const lot=ensureLotState(),hist=lotPairHistory(a,b),ctx=lotIncidentContext(a,b),now=state.week;
  const tierOrder={ordinary:['ordinary','hollywood'],hollywood:['hollywood','ordinary','absurd'],absurd:['absurd','hollywood','ordinary'],legendary:['legendary','absurd','hollywood']};
@@ -378,12 +426,16 @@ function lotChooseIncident(a,b,tier,r){
   }
  }
  if(!pool.length)return {def:null,ctx};
+ const recentMeta=lotVarietyRecent(10);
  const weighted=pool.map(def=>{
-  const uses=lot.incidentHistory.filter(x=>x.id===def.id),ever=uses.length,lastAge=uses[0]?now-uses[0].week:999;
-  const novelty=ever===0?2.8:ever===1?1.35:0.72;
+  const uses=lot.incidentHistory.filter(x=>x.id===def.id),ever=uses.length,lastAge=uses[0]?now-uses[0].week:999,meta=lotIncidentVarietyMeta(def,null,ctx);
+  const novelty=ever===0?3.15:ever===1?1.30:0.60;
   const ageBoost=clamp(lastAge/104,.8,1.8);
-  const familyPenalty=recentFamilies.has(def.family)?.58:1;
-  return {def,w:Math.max(.08,(def.weight||1)*lotIncidentTraitWeight(def,a,b)*novelty*ageBoost*familyPenalty)};
+  const familyPenalty=recentFamilies.has(def.family)?.52:1;
+  const settingPenalty=recentMeta.slice(0,5).some(x=>x.setting===meta.setting)?.62:1;
+  const shapePenalty=recentMeta.slice(0,4).some(x=>x.shape===meta.shape)?.72:1;
+  const topicPenalty=recentMeta.slice(0,10).some(x=>x.topic===meta.topic)?.35:1;
+  return {def,w:Math.max(.05,(def.weight||1)*lotIncidentTraitWeight(def,a,b)*novelty*ageBoost*familyPenalty*settingPenalty*shapePenalty*topicPenalty)};
  });
  let total=weighted.reduce((s,x)=>s+x.w,0),roll=r()*total,chosen=weighted[0]?.def||null;
  for(const x of weighted){roll-=x.w;if(roll<=0){chosen=x.def;break}}
