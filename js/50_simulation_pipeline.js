@@ -1253,9 +1253,9 @@ function buildProductionEvents(f,r){
 function productionCreativeForkSpec(f){
  const d=talentById(f.directorId),lead=talentById(f.cast?.[0]),m=f.metrics||{},genre=f.genre||'',name=d?.name||'The director',star=lead?.name||'The lead',id=ensureFilmIdentity(f);
  const characterLed=(m.chemistry||0)>=76||(m.performances||0)>=82||id.engine==='performance'||id.engine==='chemistry';
- const imageLed=(genre.includes('Action')||genre.includes('Science')||genre==='Fantasy')&&((m.technical||0)>=70||f.creative?.emphasis==='spectacle');
- const uneasy=genre==='Psychological Horror'||genre==='Crime Thriller';
- if(genre==='Comedy'){
+ const imageLed=(genre.includes('Action')||genre.includes('Science')||['Fantasy','Superhero','Adventure','Historical Epic'].includes(genre))&&((m.technical||0)>=70||f.creative?.emphasis==='spectacle');
+ const uneasy=['Psychological Horror','Supernatural Horror','Crime Thriller','Mystery Thriller'].includes(genre);
+ if(['Comedy','Romantic Comedy','Action Comedy'].includes(genre)){
   return {
    title:variationPick(f,'fork-comedy-title',['The film is funnier when it stops chasing the plot','The dailies have found a different comic rhythm','The actors are making the pauses as important as the jokes']),
    text:`${name} thinks the strongest comedy is coming from behaviour and timing rather than the scripted punch lines. ${star} is especially good when scenes are allowed to run a little messier.`,
@@ -1266,7 +1266,7 @@ function productionCreativeForkSpec(f){
    }
   };
  }
- if(genre==='Family Adventure'){
+ if(['Family Adventure','Adventure'].includes(genre)){
   return {
    title:variationPick(f,'fork-family-title',['The adventure is becoming more sincere than expected','The childlike wonder is working','The film has found its heart in the quieter material']),
    text:`The dailies suggest ${f.title} works best when the adventure feels genuinely wondrous rather than relentlessly busy. ${name} wants to decide whether to lean into that sincerity or keep the film moving as a clean crowd-pleaser.`,
@@ -1310,7 +1310,7 @@ function productionCreativeForkSpec(f){
    }
   };
  }
- if(id.engine==='momentum'||genre==='Action Thriller'){
+ if(id.engine==='momentum'||['Action Thriller','Action Comedy','Superhero','Adventure'].includes(genre)){
   return {
    title:variationPick(f,'fork-momentum-title',['The movie wants to move faster than the script','The action is becoming cleaner and meaner','The dailies have found a ruthless pace']),
    text:`The best footage is direct, physical and unusually lean. ${name} thinks the remaining shoot can either commit to that velocity or restore some of the character and explanation the original screenplay carried.`,
@@ -2217,13 +2217,13 @@ function aiCampaignPulse(f){
 
 function aiScriptScore(rv,s){
  ensureScriptEcosystem(s);
- const p=rv.profile||aiStudioProfile(rv.style),genre=p.genres.includes(s.genre)?8:-4;
+ const p=rv.profile||aiStudioProfile(rv.style),genreFit=genreProfileAffinity(p.genres,s.genre),genre=genreFit>=.92?8:genreFit>=.60?4:-4;
  let creative;
  if(rv.style.includes('Prestige'))creative=s.story*.22+s.characters*.15+s.emotion*.13+s.originality*.20+s.structure*.12+s.hook*.08-s.difficulty*.04;
  else if(rv.style==='Genre Specialist')creative=s.hook*.21+s.genreFulfillment*.18+s.story*.16+s.originality*.14+s.structure*.12+s.access*.10-s.difficulty*.035;
  else if(rv.style==='Indie / Prestige')creative=s.story*.20+s.characters*.15+s.emotion*.13+s.originality*.18+s.structure*.11+s.hook*.09-s.difficulty*.03;
  else creative=s.hook*.22+s.access*.17+s.structure*.13+s.story*.14+s.genreFulfillment*.12+s.originality*.09-s.difficulty*.03;
- const baseCap={'Psychological Horror':11,'Prestige Drama':13,'Crime Thriller':16,'Comedy':17,'Family Adventure':23,'Action Thriller':28,'Science Fiction':31,'Fantasy':29}[s.genre]||20;
+ const baseCap={'Psychological Horror':11,'Supernatural Horror':12,'Prestige Drama':13,'Romantic Comedy':16,'Comedy':17,'Sports Drama':17,'Mystery Thriller':17,'Crime Thriller':16,'Action Comedy':25,'Family Adventure':23,'Adventure':27,'Action Thriller':28,'Science Fiction':31,'Historical Epic':34,'Fantasy':29,'Superhero':40}[s.genre]||20;
  const conceptLift=clamp(((s.hook+s.access)-120)/80,-.12,.22),styleScale=rv.style==='Indie / Prestige'?.68:rv.style==='Prestige'?.80:rv.style==='Genre Specialist'?.82:1,target=baseCap*styleScale*(1+conceptLift);
  const scalePenalty=Math.max(0,s.naturalBudget-target)*1.05;
  return creative+genre-scalePenalty-s.price*3.2+industryGenreSignal(s.genre)*.65;
