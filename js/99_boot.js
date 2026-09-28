@@ -108,10 +108,32 @@ if(state.studio&&state.careerStarted){bootstrapStudioMilestones();const __audit=
 if(state?.talent)state.talent.forEach(ensureTalentMarketEconomy);
 if(state?.talent&&typeof bootstrapLot==='function')bootstrapLot();
 if(typeof bootstrapNarrativeEngine==='function')bootstrapNarrativeEngine();
+let persistenceLifecycleBound=false;
+function bindPersistenceLifecycle(){
+ if(persistenceLifecycleBound)return;persistenceLifecycleBound=true;
+ const flush=()=>{try{save()}catch(e){console.error('Project Slate close-save failed',e)}};
+ if(typeof window!=='undefined')window.addEventListener('pagehide',flush);
+ if(typeof document!=='undefined')document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush()});
+}
+function bootstrapRecoveredCareer(){
+ if(state&&state.films)playerFilms().filter(f=>f.stage==='complete').forEach(f=>{ensureAfterlifeState(f);refreshAfterlifeValuation(f);const l=ensureLegacyState(f);if(!l.built)buildFilmLegacy(f,{})});
+ if(state.studio&&state.careerStarted){bootstrapStudioMilestones();const a=ensureSimulationAudit();if(!a.weekly.length)recordSimulationAudit('recovered-baseline')}
+ if(state?.talent)state.talent.forEach(ensureTalentMarketEconomy);
+ if(state?.talent&&typeof bootstrapLot==='function')bootstrapLot();
+ if(typeof bootstrapNarrativeEngine==='function')bootstrapNarrativeEngine();
+ if(state.screen!=='setup')checkLegendsArchive(true);
+}
+function projectSlateRecoveryScreen(){
+ app.innerHTML=`<main class="screen"><div class="card dangerline"><div class="badge">CAREER RECOVERY</div><h2 style="margin:8px 0">Your saved career was detected, but it could not be loaded safely.</h2><div class="body">Project Slate has preserved the raw save instead of starting a new career over it. Export the recovery file and keep it safe; the stored career has not been intentionally deleted.</div><div class="small" style="margin-top:10px">${persistenceRuntime.loadError||'Unknown migration error'}</div><button class="btn primary block" id="exportRecoveryCareer" style="margin-top:14px">Export recovery file</button></div></main>`;
+ const b=document.getElementById('exportRecoveryCareer');if(b)b.onclick=()=>exportRawRecoveryBackup();
+}
+bindPersistenceLifecycle();
+void bootstrapPersistentStorage().then(recovered=>{if(recovered){bootstrapRecoveredCareer();render()}});
+
 if(state.screen!=='setup'){checkLegendsArchive(true);if(!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.legends?.pending?.length)surfacePendingLegendUnlock()}
 function projectSlateSmokeChecks(){
  const failures=[],required=[
-  ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],['bootstrapLot',typeof bootstrapLot],['lotPairHistory',typeof lotPairHistory],['lotRegisterFilmOutcome',typeof lotRegisterFilmOutcome],['lotMaybeResurfacePairHistory',typeof lotMaybeResurfacePairHistory],['lotInfluenceApproachOffer',typeof lotInfluenceApproachOffer],['useLotInfluenceApproach',typeof useLotInfluenceApproach],['lotCampaignOpportunity',typeof lotCampaignOpportunity],['lotApplyCampaignAngle',typeof lotApplyCampaignAngle],['agencyInfluenceOffer',typeof agencyInfluenceOffer],['useAgencyInfluence',typeof useAgencyInfluence],['rivalDetenteOffer',typeof rivalDetenteOffer],['attemptRivalDetente',typeof attemptRivalDetente],['publishExecutiveIntel',typeof publishExecutiveIntel],['executiveFilmIntelRows',typeof executiveFilmIntelRows],['executiveFilmIntelHTML',typeof executiveFilmIntelHTML],['studioBusinessBody',typeof studioBusinessBody],['bootstrapNarrativeEngine',typeof bootstrapNarrativeEngine],['narrativeFilmReviewPacket',typeof narrativeFilmReviewPacket],['queueAIReview',typeof queueAIReview],['reviewDisplayContent',typeof reviewDisplayContent],['narrativeSettingsHTML',typeof narrativeSettingsHTML],['setNarrativeEndpointValue',typeof setNarrativeEndpointValue],['testNarrativeConnection',typeof testNarrativeConnection],
+  ['render',typeof render],['bind',typeof bind],['notificationOverlay',typeof notificationOverlay],['scheduleDraftSave',typeof scheduleDraftSave],['bootstrapLot',typeof bootstrapLot],['lotPairHistory',typeof lotPairHistory],['lotRegisterFilmOutcome',typeof lotRegisterFilmOutcome],['lotMaybeResurfacePairHistory',typeof lotMaybeResurfacePairHistory],['lotInfluenceApproachOffer',typeof lotInfluenceApproachOffer],['useLotInfluenceApproach',typeof useLotInfluenceApproach],['lotCampaignOpportunity',typeof lotCampaignOpportunity],['lotApplyCampaignAngle',typeof lotApplyCampaignAngle],['agencyInfluenceOffer',typeof agencyInfluenceOffer],['useAgencyInfluence',typeof useAgencyInfluence],['rivalDetenteOffer',typeof rivalDetenteOffer],['attemptRivalDetente',typeof attemptRivalDetente],['publishExecutiveIntel',typeof publishExecutiveIntel],['executiveFilmIntelRows',typeof executiveFilmIntelRows],['executiveFilmIntelHTML',typeof executiveFilmIntelHTML],['studioBusinessBody',typeof studioBusinessBody],['bootstrapNarrativeEngine',typeof bootstrapNarrativeEngine],['narrativeFilmReviewPacket',typeof narrativeFilmReviewPacket],['queueAIReview',typeof queueAIReview],['reviewDisplayContent',typeof reviewDisplayContent],['narrativeSettingsHTML',typeof narrativeSettingsHTML],['setNarrativeEndpointValue',typeof setNarrativeEndpointValue],['testNarrativeConnection',typeof testNarrativeConnection],['bootstrapPersistentStorage',typeof bootstrapPersistentStorage],['exportCareerBackup',typeof exportCareerBackup],['importCareerBackupFile',typeof importCareerBackupFile],['persistenceStatus',typeof persistenceStatus],
   ['surfacePendingFilmWrap',typeof surfacePendingFilmWrap],['surfacePendingLegendUnlock',typeof surfacePendingLegendUnlock],['enforceActiveSignatureRoute',typeof enforceActiveSignatureRoute],['ensureProductionCreativeFork',typeof ensureProductionCreativeFork],['agencyMarketLeverage',typeof agencyMarketLeverage],['agencyPackagePitchCandidate',typeof agencyPackagePitchCandidate],['agencyContractMultiplier',typeof agencyContractMultiplier],['executivePersonaSnapshot',typeof executivePersonaSnapshot],['industryMoodSnapshot',typeof industryMoodSnapshot],['recordPressInteraction',typeof recordPressInteraction],['pressRoomSnapshot',typeof pressRoomSnapshot],['rivalrySnapshot',typeof rivalrySnapshot],['recordRivalryEvent',typeof recordRivalryEvent],['rivalryProfileHTML',typeof rivalryProfileHTML],['ensureFilmIdentity',typeof ensureFilmIdentity],['productionEventFlavor',typeof productionEventFlavor],['filmPressAngle',typeof filmPressAngle],['premiseReviewParagraph',typeof premiseReviewParagraph],['dailyScreenCritic',typeof dailyScreenCritic],['criticOpeningParagraph',typeof criticOpeningParagraph],['capsuleOutletLine',typeof capsuleOutletLine],['publishStudioMomentAftermath',typeof publishStudioMomentAftermath],['rivalSignature',typeof rivalSignature],['alignActiveTabs',typeof alignActiveTabs]
  ];
  required.forEach(([name,type])=>{if(type!=='function')failures.push(name+' missing')});
@@ -153,6 +175,12 @@ function projectSlateSmokeChecks(){
   if(!studioBusinessBody.toString().includes("['narrative','Narrative']"))failures.push('Narrative Engine settings tab missing');
   if(!narrativeSettingsHTML.toString().includes('testNarrativeEndpoint'))failures.push('Narrative connection test UI missing');
  }catch(e){failures.push('v4.5a Narrative Engine smoke failed'+(e?.message?': '+e.message:''))}
+ try{
+  if(!save.toString().includes('SAVE_BACKUP_KEY'))failures.push('career backup write missing');
+  if(!save.toString().includes('mirrorCareerToIndexedDB'))failures.push('IndexedDB mirror missing');
+  if(!studioBusinessBody.toString().includes("['backup','Backup']"))failures.push('Career Backup UI missing');
+ }catch(e){failures.push('v4.5b.1 persistence smoke failed'+(e?.message?': '+e.message:''))}
+
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
   if(!buildNewsItem.toString().includes('voicePressStory'))failures.push('press voice pass missing');
@@ -197,4 +225,4 @@ window.ProjectSlate={reset:resetGame,state:()=>deep(state),smokeTest:projectSlat
 if(state.screen!=='setup')enforceActiveSignatureRoute();
 if(state.screen!=='setup'&&!state.pendingCeremony&&!state.pendingAwardsNominations&&!state.activeFilmWrapId&&!state.activeStudioMoment&&!state.activeLegendUnlockId&&state.studioMomentQueue?.length)surfacePendingStudioMoment();
 const bootCheck=projectSlateSmokeChecks();
-if(!bootCheck.ok)projectSlateBootFailure(bootCheck);else{try{render()}catch(e){console.error(e);projectSlateBootFailure(bootCheck,e)}}
+if(persistenceRuntime.recoveryRaw)projectSlateRecoveryScreen();else if(!bootCheck.ok)projectSlateBootFailure(bootCheck);else{try{render()}catch(e){console.error(e);projectSlateBootFailure(bootCheck,e)}}
