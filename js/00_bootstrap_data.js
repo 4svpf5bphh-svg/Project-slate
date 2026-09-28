@@ -1,4 +1,4 @@
-const VERSION='4.6.2';
+const VERSION='4.6.3';
 // Temporary v4.6 Project Intelligence QA switch. Keep progression rules intact; remove/disable after testing.
 const PROJECT_INTELLIGENCE_TEST_BYPASS=true;
 const KEY='projectSlateCareer_v2';
