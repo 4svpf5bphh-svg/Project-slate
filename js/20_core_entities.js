@@ -157,7 +157,9 @@ async function importCareerBackupFile(file){
  if(!rawState||typeof rawState!=='object'||!Array.isArray(rawState.films)||!Array.isArray(rawState.talent))throw new Error('That is not a Project Slate career backup.');
  const migrated=migrateState(rawState);
  if(!migrated)throw new Error('The career could not be migrated.');
- state=migrated;save();return true;
+ state=migrated;persistenceRuntime.loadSource='restored';persistenceRuntime.loadError=null;persistenceRuntime.recoveryRaw=null;persistenceRuntime.pendingCandidates=[];
+ if(!save())throw new Error('The restored career could not be written to local storage.');
+ return true;
 }
 function persistenceStatus(){
  let meta=null;try{meta=JSON.parse(localStorage.getItem(SAVE_META_KEY)||'null')}catch{}
