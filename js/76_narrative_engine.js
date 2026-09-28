@@ -125,6 +125,52 @@ function narrativeReviewStatusHTML(f){
  if(f?.review)return '<div class="narrative-status"><div><span class="pill blue">NARRATIVE ENGINE</span><span>Local review currently shown. Generate an AI-written version from the same simulation verdict.</span></div><button class="btn ghost" data-retry-ai-review="'+f.id+'">Generate AI review</button></div>';
  return '';
 }
+function ensureReviewRevealState(){
+ state.reviewRevealQueue=Array.isArray(state.reviewRevealQueue)?state.reviewRevealQueue:[];
+ if(state.activeReviewReveal===undefined)state.activeReviewReveal=null;
+ return state.reviewRevealQueue;
+}
+function reviewRevealBlocked(){
+ return !state.studio||state.screen==='setup'||!!state.pendingCeremony||!!state.pendingAwardsNominations||!!state.activeFilmWrapId||!!state.activeStudioMoment||!!state.activeLegendUnlockId||['ceremony','nominations','filmWrap','studioMoment','legendUnlock'].includes(state.screen);
+}
+function queueReviewReveal(f){
+ if(!f||!aiReviewContent(f))return false;
+ const q=ensureReviewRevealState(),x=f.aiNarrative.review,token=x.responseId||x.fingerprint||String(x.generatedWeek||Date.now());
+ if(x.lastRevealToken===token||q.some(i=>i.filmId===f.id&&i.token===token)||state.activeReviewReveal?.token===token)return false;
+ q.push({filmId:f.id,token,week:state.week});
+ return surfacePendingReviewReveal();
+}
+function surfacePendingReviewReveal(){
+ const q=ensureReviewRevealState();
+ if(state.activeReviewReveal||reviewRevealBlocked())return false;
+ while(q.length){
+  const item=q.shift(),f=filmById(item.filmId);
+  if(!f||!aiReviewContent(f))continue;
+  state.activeReviewReveal=item;state.screen='reviewReveal';state.detail=null;state.history=[];if(typeof requestScrollTop==='function')requestScrollTop();return true;
+ }
+ return false;
+}
+function reviewRevealScreen(){
+ const item=state.activeReviewReveal,f=item?.filmId?filmById(item.filmId):null;
+ if(!f||!f.review)return typeof releaseScreen==='function'?releaseScreen():studioScreen();
+ const d=reviewDisplayContent(f),critic=f.review.critic||{},score=f.review.critics||0,tone=score>=80?'great':score<55?'bad':score<70?'warn':'neutral';
+ return '<div class="review-reveal review-reveal-'+tone+'"><div class="review-reveal-inner">'+
+  '<div class="review-reveal-mast"><div><span>THE</span><strong>DAILY SCREEN</strong></div><small>REVIEW DROP · '+narrativeEscapeHTML(typeof calendarDateLabel==='function'?calendarDateLabel(state.calendarDay):'WEEK '+state.week)+'</small></div>'+
+  '<div class="review-reveal-grid"><div class="review-reveal-art">'+filmKeyArtHTML(f,'hero')+'</div><div class="review-reveal-copy"><div class="event-super">THE REVIEWS ARE IN</div><div class="review-reveal-film">'+narrativeEscapeHTML(f.title)+'</div><h1>'+narrativeEscapeHTML(d.headline||'The Daily Screen review')+'</h1>'+
+  '<div class="review-reveal-scores"><div><span>DAILY SCREEN</span><strong>'+Number(f.review.stars||0).toFixed(1)+' ★</strong></div><div><span>CRITICS</span><strong>'+score+'%</strong></div><div><span>AUDIENCE</span><strong>'+Number(f.review.audience||0)+'%</strong></div></div>'+
+  '<blockquote>“'+narrativeEscapeHTML(d.quote||f.review.quote||'')+'”</blockquote>'+
+  '<div class="review-reveal-byline">By <strong>'+narrativeEscapeHTML(critic.name||'Staff Critic')+'</strong> · '+narrativeEscapeHTML(critic.title||'Film Critic')+'</div>'+
+  '<div class="review-reveal-actions"><button class="btn primary" id="reviewRevealRead">Read the full review</button><button class="btn ghost" id="reviewRevealContinue">Back to release</button></div></div></div>'+
+  '<div class="review-reveal-foot">AI writes the copy. Project Slate’s simulation owns the verdict.</div></div></div>';
+}
+function closeReviewReveal(readFull=false){
+ const item=state.activeReviewReveal,f=item?.filmId?filmById(item.filmId):null;
+ if(f?.aiNarrative?.review&&item?.token)f.aiNarrative.review.lastRevealToken=item.token;
+ state.activeReviewReveal=null;
+ if(surfacePendingReviewReveal()){save();render();return}
+ if(f){state.screen='release';state.detail=readFull?{type:'review',id:f.id}:{type:'film',id:f.id}}else{state.screen='release';state.detail=null}
+ state.history=[];if(typeof requestScrollTop==='function')requestScrollTop();save();render();
+}
 function queueAIReview(f,{force=false}={}){
  if(!f?.review||f.owner!=='player')return Promise.resolve(null);
  if(typeof simulationBenchmarkActive!=='undefined'&&simulationBenchmarkActive)return Promise.resolve(null);
@@ -136,9 +182,10 @@ function queueAIReview(f,{force=false}={}){
  try{save()}catch{}
  const task=requestNarrative('film_review',packet).then(data=>{
   if(!validAIReview(data.narrative))throw new Error('invalid_review_shape');
-  store.review={status:'ready',fingerprint,narrative:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week};
-  narrativeRuntime.lastError=null;try{save()}catch{}
-  if(typeof render==='function'&&state.detail?.type==='review'&&state.detail?.id===f.id)render();
+  store.review={status:'ready',fingerprint,narrative:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week,qualityRetry:!!data.meta?.qualityRetry};
+  narrativeRuntime.lastError=null;
+  const revealed=queueReviewReveal(f);try{save()}catch{}
+  if(typeof render==='function'&&(revealed||(state.detail?.type==='review'&&state.detail?.id===f.id)))render();
   return store.review;
  }).catch(err=>{
   store.review={status:'failed',fingerprint,lastError:String(err?.message||err),failedWeek:state.week};
@@ -150,5 +197,7 @@ function queueAIReview(f,{force=false}={}){
 }
 function retryAIReview(f){if(!f)return;if(!narrativeEndpoint()){showToast('Set up Narrative Engine under Studio → Business → Narrative.');return}queueAIReview(f,{force:true});render()}
 function bootstrapNarrativeEngine(){
+ ensureReviewRevealState();
  (state.films||[]).forEach(f=>{const x=f.aiNarrative?.review;if(x?.status==='pending')x.status='failed'});
+ if(state.activeReviewReveal&&!filmById(state.activeReviewReveal.filmId))state.activeReviewReveal=null;
 }
