@@ -1,6 +1,6 @@
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=403;
+const SAVE_SCHEMA_VERSION=404;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -229,6 +229,14 @@ function applySaveSchemaMigrations(x,fromVersion){
  if(schema<403){
   x.careerCycle=x.careerCycle||{phase:'building',startedWeek:x.week||1,lastEvaluatedWeek:0,lastTransitionWeek:x.week||1,history:[],lastPlanEndWeek:0,lastRecoveryWeek:0,peakRecognition:x.studioGrowth?.recognition||12};
   schema=403;
+ }
+ if(schema<404){
+  // v4.6.2 expands genre coverage while preserving each writer's live career state.
+  const writerBySeedName=new Map(writerSeed.map(seed=>[seed[0],seed]));
+  (x.writers||[]).forEach(w=>{const seed=writerBySeedName.get(w.name);if(seed){w.genres=[...seed[6]];w.tag=seed[7]}});
+  // Andrew Scott previously hit Wikipedia's disambiguation page; force one clean retry through the new resolver.
+  x.portraitCache=x.portraitCache||{};const andrew=(x.talent||[]).find(t=>t.name==='Andrew Scott');if(andrew)delete x.portraitCache[andrew.id];
+  schema=404;
  }
 
  x.saveSchema=schema;
