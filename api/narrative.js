@@ -50,6 +50,28 @@ function reviewSchema(){
     required:['headline','pull_quote','paragraphs','editorial_note']
   };
 }
+function reviewQualityIssues(narrative,packet){
+  const text=[narrative?.headline,narrative?.pull_quote,...(narrative?.paragraphs||[])].join(' ').toLowerCase();
+  const issues=[];
+  const banned=[
+    ['internal metric language',/\b(?:technical|structure|chemistry|momentum)\s*(?:score|points?|\(\d)/i],
+    ['internal creative-choice label',/protect the original engine|guided control|performance-first/i],
+    ['game-world terminology',/lot-level|lot story|system event|production notes/i],
+    ['generic AI closing scaffold',/\bultimately\b|\bin the end\b|the final takeaway/i],
+    ['star-rating leakage',/four-star badge|\b\d(?:\.\d)?[- ]star badge/i]
+  ];
+  for(const [label,re] of banned)if(re.test(text))issues.push(label);
+  const critics=Number(packet?.verdict?.critics||0),stars=Number(packet?.verdict?.stars||0);
+  if(critics>=75||stars>=3.5){
+    const severe=[/collapses under/i,/runs out of gas/i,/payoff that never arrives/i,/gone awry/i,/fails to cohere/i,/thin (?:story|premise)/i,/self-importance/i,/waste of/i];
+    const hits=severe.filter(re=>re.test(text)).length;
+    if(hits>=2)issues.push('overall tone is materially harsher than the strong simulated verdict');
+  }else if(critics<50||stars<2.5){
+    const rave=[/masterpiece/i,/triumph/i,/essential viewing/i,/one of the year.?s best/i,/near-perfect/i];
+    if(rave.filter(re=>re.test(text)).length>=2)issues.push('overall tone is materially softer than the weak simulated verdict');
+  }
+  return issues;
+}
 function narrativeInstructions(type){
   if(type!=='film_review')return '';
   return [
@@ -69,7 +91,7 @@ function narrativeInstructions(type){
     'Do not invent personality insults simply because a performer is famous. If ego, volatility or another trait is explicitly supplied, it may colour the fictional counterpart subtly; otherwise keep the bite focused on the performance, campaign, studio or documented Project Slate event.',
     'Do not invent character jobs, names, relationships, plot revelations, or role descriptions that are not explicitly present in the supplied logline, synopsis or other public film text. If character detail is absent, discuss the performer’s work without manufacturing a role.',
     'Avoid generic critic scaffolding such as “Ultimately,” “Technically,” “In the end,” or “The final takeaway?” unless the supplied critic voice genuinely demands it. Prefer a more distinctive closing turn.',
-    'The prose must agree with the supplied critic score tier. A high score can still contain specific criticism; a low score can still recognise isolated strengths.',
+    'The prose must agree with the supplied critic score tier. Satire must never invert the verdict. At 75+ critics or roughly 3.5 stars and above, the review must read clearly positive overall even when the critic is cutting about specific flaws. At 50–74 it may be mixed. Below 50 it should read clearly negative overall. A high score can still contain specific criticism; a low score can still recognise isolated strengths.',
     'Give each paragraph a job: opening verdict with personality; premise/performances; craft plus weaknesses; closing verdict with the strongest sting or memorable observation.',
     'Vary sentence length. Avoid four evenly balanced essay paragraphs that sound generated. One sentence may be brutally short if the critic voice earns it.',
     'Return exactly four substantial review paragraphs. Do not mention numerical scores inside the prose; the UI displays those separately.',
@@ -95,30 +117,38 @@ module.exports=async function handler(req,res){
   if(serialized.length>MAX_BODY_CHARS)return res.status(413).json({ok:false,error:'payload_too_large'});
 
   try{
-    const upstream=await fetch(provider.url,{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model,
-        instructions:narrativeInstructions(type),
-        input:[{role:'user',content:'PROJECT SLATE SIMULATION PACKET\n'+serialized}],
-        max_output_tokens:1200,
-        reasoning:{effort:'low'},
-        temperature:.95,
-        store:false,
-        text:{format:{type:'json_schema',name:'project_slate_film_review',schema:reviewSchema()}}
-      })
-    });
-    const data=await upstream.json();
-    if(!upstream.ok){
-      const retryAfter=upstream.headers.get('retry-after');
-      if(retryAfter)res.setHeader('Retry-After',retryAfter);
-      return res.status(upstream.status===429?429:upstream.status>=500?502:400).json({ok:false,error:PROVIDER+'_error',detail:data?.error?.message||'Request failed'});
+    let correction='',lastIssues=[];
+    for(let attempt=0;attempt<2;attempt++){
+      const prompt='PROJECT SLATE SIMULATION PACKET\n'+serialized+(correction?'\n\nQUALITY-CONTROL REWRITE REQUIRED\n'+correction:'');
+      const upstream=await fetch(provider.url,{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model,
+          instructions:narrativeInstructions(type),
+          input:[{role:'user',content:prompt}],
+          max_output_tokens:1200,
+          reasoning:{effort:'low'},
+          temperature:.95,
+          store:false,
+          text:{format:{type:'json_schema',name:'project_slate_film_review',schema:reviewSchema()}}
+        })
+      });
+      const data=await upstream.json();
+      if(!upstream.ok){
+        const retryAfter=upstream.headers.get('retry-after');
+        if(retryAfter)res.setHeader('Retry-After',retryAfter);
+        return res.status(upstream.status===429?429:upstream.status>=500?502:400).json({ok:false,error:PROVIDER+'_error',detail:data?.error?.message||'Request failed'});
+      }
+      const raw=outputText(data);if(!raw)return res.status(502).json({ok:false,error:'empty_model_response'});
+      let narrative;try{narrative=JSON.parse(raw)}catch{return res.status(502).json({ok:false,error:'invalid_model_json'})}
+      if(!Array.isArray(narrative.paragraphs)||narrative.paragraphs.length!==4)return res.status(502).json({ok:false,error:'invalid_review_shape'});
+      const issues=reviewQualityIssues(narrative,packet);
+      if(!issues.length)return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null,qualityRetry:attempt>0}});
+      lastIssues=issues;
+      correction='The previous draft failed quality control for: '+issues.join('; ')+'. Rewrite the entire review. Keep the same simulation verdict and factual packet, preserve the sharp Project Slate voice, remove all listed problems, and do not mention this quality-control instruction.';
     }
-    const raw=outputText(data);if(!raw)return res.status(502).json({ok:false,error:'empty_model_response'});
-    let narrative;try{narrative=JSON.parse(raw)}catch{return res.status(502).json({ok:false,error:'invalid_model_json'})}
-    if(!Array.isArray(narrative.paragraphs)||narrative.paragraphs.length!==4)return res.status(502).json({ok:false,error:'invalid_review_shape'});
-    return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null}});
+    return res.status(502).json({ok:false,error:'review_quality_failed',detail:lastIssues.join('; ')});
   }catch(err){
     return res.status(500).json({ok:false,error:'narrative_request_failed',detail:String(err?.message||err)});
   }
