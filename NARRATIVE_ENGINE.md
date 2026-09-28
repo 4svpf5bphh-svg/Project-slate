@@ -82,3 +82,7 @@ The same endpoint can later accept additional content types without becoming sta
 - Film Wrap narrative;
 - awards-season commentary;
 - year-end retrospective.
+
+
+## v4.5c review reveal
+AI reviews now pass a deterministic quality-control check for simulation-language leaks and verdict mismatch. A failed draft is rewritten once automatically. When a review completes, Project Slate surfaces a full-screen Daily Screen review drop with headline, pull quote, critic identity, stars, critic score and audience score before the player opens the full article.
