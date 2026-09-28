@@ -210,13 +210,30 @@ function enforceActiveSignatureRoute(){
  }
  return false;
 }
+// Single authority for every major interruption. Existing active moments are never
+// displaced; otherwise Awards -> reviews -> Legends -> wraps -> studio moments.
+function surfaceNextSignatureMoment({includeUrgentDesk=false,includeBlocker=false}={}){
+ if(!state.studio||state.screen==='setup')return false;
+ if(enforceActiveSignatureRoute())return true;
+ if(state.pendingCeremony){state.screen='ceremony';state.detail=null;state.history=[];requestScrollTop();return true}
+ if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;state.history=[];requestScrollTop();return true}
+ if(typeof surfacePendingReviewReveal==='function'&&surfacePendingReviewReveal())return true;
+ if(typeof surfacePendingLegendUnlock==='function'&&surfacePendingLegendUnlock())return true;
+ if(typeof surfacePendingFilmWrap==='function'&&surfacePendingFilmWrap())return true;
+ if(typeof surfacePendingStudioMoment==='function'&&surfacePendingStudioMoment())return true;
+ if(includeUrgentDesk&&typeof nextUrgentDeskItem==='function'){
+  const urgent=nextUrgentDeskItem();
+  if(urgent){state.screen='studio';state.uiStudioTab='desk';state.uiDeskTab='briefing';state.detail=null;state.history=[];requestScrollTop();return true}
+ }
+ if(includeBlocker){
+  const blocker=calendarHardBlocker();
+  if(blocker){routeToHardBlocker(blocker,true);return true}
+ }
+ return false;
+}
 function continueLegendUnlock(){
  state.activeLegendUnlockId=null;
- if(surfacePendingLegendUnlock()){save();render();return}
- if(state.pendingCeremony){state.screen='ceremony';state.detail=null;save();render();return}
- if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;save();render();return}
- if(surfacePendingFilmWrap()){save();render();return}
- if(surfacePendingStudioMoment()){save();render();return}
+ if(surfaceNextSignatureMoment()){save();render();return}
  state.screen='studio';state.detail=null;state.uiStudioTab='legacy';state.uiLegacyTab='legends';state.history=[];requestScrollTop();save();render();
 }
 
@@ -3136,18 +3153,7 @@ function calendarHardBlocker(){
  rebuildDecisions();
  return state.decisions.find(x=>x.type==='production'||(x.type==='post'&&!ensurePostState(filmById(x.filmId)).firstDecisionMade)||x.type==='marketing')||null;
 }
-function surfaceCalendarInterrupt(){
- if(enforceActiveSignatureRoute())return true;
- if(state.pendingCeremony){state.screen='ceremony';state.detail=null;state.history=[];return true}
- if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;state.history=[];return true}
- if(surfacePendingLegendUnlock())return true;
- if(surfacePendingFilmWrap())return true;
- if(surfacePendingStudioMoment())return true;
- if(typeof nextUrgentDeskItem==='function'){const urgent=nextUrgentDeskItem();if(urgent){state.screen='studio';state.uiStudioTab='desk';state.uiDeskTab='briefing';state.detail=null;state.history=[];requestScrollTop();return true}}
- const blocker=calendarHardBlocker();
- if(blocker){routeToHardBlocker(blocker,true);return true}
- return false;
-}
+function surfaceCalendarInterrupt(){return surfaceNextSignatureMoment({includeUrgentDesk:true,includeBlocker:true})}
 function continueTime(){
  ensureCalendarState();const blocker=calendarHardBlocker();
  if(blocker){
