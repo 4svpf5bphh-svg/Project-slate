@@ -105,6 +105,56 @@ function save(){
  void mirrorCareerToIndexedDB(raw,meta);return true;
 }
 function resetGame(){localStorage.removeItem(KEY);localStorage.removeItem(SAVE_BACKUP_KEY);localStorage.removeItem(SAVE_META_KEY);state=initialState();save();render()}
+async function bootstrapPersistentStorage(){
+ try{
+  if(navigator.storage?.persisted){
+   let persisted=await navigator.storage.persisted();
+   if(!persisted&&navigator.storage.persist)persisted=await navigator.storage.persist();
+   persistenceRuntime.storagePersisted=!!persisted;
+  }
+ }catch(e){persistenceRuntime.storagePersisted=false}
+ const shouldRecover=persistenceRuntime.loadSource==='new'||persistenceRuntime.loadSource==='recovery'||!state.careerStarted;
+ if(!shouldRecover)return false;
+ const mirrored=await indexedDBCareer();if(!mirrored?.raw)return false;
+ try{
+  const parsed=JSON.parse(mirrored.raw),migrated=migrateState(parsed);
+  if(!migrated?.careerStarted)return false;
+  state=migrated;persistenceRuntime.loadSource='indexeddb';persistenceRuntime.loadError=null;persistenceRuntime.recoveryRaw=null;
+  save();return true;
+ }catch(e){persistenceRuntime.loadError=persistenceRuntime.loadError||String(e?.message||e);return false}
+}
+function careerBackupPayload(){
+ return {format:'project-slate-career-backup',formatVersion:1,exportedAt:new Date().toISOString(),gameVersion:VERSION,studio:state.studio?.name||null,week:state.week||1,state:deep(state)};
+}
+async function exportCareerBackup(){
+ save();
+ const payload=JSON.stringify(careerBackupPayload(),null,2),safe=(state.studio?.name||'studio').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,32)||'studio';
+ const filename=`project-slate-${safe}-week-${state.week||1}.json`;
+ try{
+  const file=new File([payload],filename,{type:'application/json'});
+  if(navigator.canShare?.({files:[file]})&&navigator.share){await navigator.share({files:[file],title:'Project Slate career backup'});return true}
+ }catch(e){if(e?.name==='AbortError')return false}
+ const blob=new Blob([payload],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);return true;
+}
+async function importCareerBackupFile(file){
+ if(!file)return false;
+ const text=await file.text();let parsed;try{parsed=JSON.parse(text)}catch{throw new Error('That file is not valid JSON.')}
+ const rawState=parsed?.format==='project-slate-career-backup'?parsed.state:parsed;
+ if(!rawState||typeof rawState!=='object'||!Array.isArray(rawState.films)||!Array.isArray(rawState.talent))throw new Error('That is not a Project Slate career backup.');
+ const migrated=migrateState(rawState);
+ if(!migrated)throw new Error('The career could not be migrated.');
+ state=migrated;save();return true;
+}
+function persistenceStatus(){
+ let meta=null;try{meta=JSON.parse(localStorage.getItem(SAVE_META_KEY)||'null')}catch{}
+ return {source:persistenceRuntime.loadSource,error:persistenceRuntime.loadError||persistenceRuntime.saveError,lastSavedAt:persistenceRuntime.lastSavedAt||meta?.savedAt||null,meta,storagePersisted:persistenceRuntime.storagePersisted,idbReady:persistenceRuntime.idbReady,recoveryAvailable:!!persistenceRuntime.recoveryRaw};
+}
+function persistenceSaveNow(){const ok=save();if(ok&&typeof showToast==='function')showToast('Career saved locally and mirrored.');else if(!ok&&typeof showToast==='function')showToast('Local save failed — export a career backup now.');return ok}
+function exportRawRecoveryBackup(){
+ const raw=persistenceRuntime.recoveryRaw;if(!raw)return false;
+ const blob=new Blob([raw],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='project-slate-recovery.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);return true;
+}
+
 function addNews(st,text,kind='Industry'){const item=buildNewsItem(st,text,kind);applyJournalistCallback(st,item);recordJournalistCoverage(st,item);st.news.unshift(item);st.news=st.news.slice(0,140);return item}
 function playerFilms(){return state.films.filter(f=>f.owner==='player')}
 function activePlayerFilms(){return playerFilms().filter(f=>!['complete','shelved'].includes(f.stage))}
