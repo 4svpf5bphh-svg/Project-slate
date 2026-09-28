@@ -3,7 +3,7 @@
 
 const NARRATIVE_SCHEMA_VERSION=1;
 const NARRATIVE_DEFAULT_ENDPOINT='https://project-slate-five.vercel.app/api/narrative';
-const NARRATIVE_REQUEST_TIMEOUT_MS=70000;
+const NARRATIVE_REQUEST_TIMEOUT_MS=55000;
 const NARRATIVE_AUTO_RETRY_LIMIT=4;
 const narrativeRuntime={pending:new Map(),retryTimers:new Map(),lastError:null,connection:null,lifecycleBound:false};
 
@@ -256,12 +256,19 @@ function reviewDisplayContent(f){
  if(ai)return {headline:narrativeEscapeHTML(ai.narrative.headline),quote:narrativeEscapeHTML(ai.narrative.pull_quote),paragraphs:ai.narrative.paragraphs.map(narrativeEscapeHTML),ai};
  return {headline:local.headline,quote:local.quote,paragraphs:local.paragraphs||[],ai:null};
 }
+function narrativeRetryEtaLabel(ts){
+ if(!Number.isFinite(ts))return 'soon';
+ const seconds=Math.max(0,Math.ceil((ts-Date.now())/1000));
+ if(seconds<=10)return 'in a few seconds';
+ if(seconds<60)return 'in ~'+seconds+'s';
+ const minutes=Math.max(1,Math.round(seconds/60));return 'in ~'+minutes+'m';
+}
 function narrativeReviewStatusHTML(f){
  const x=ensureFilmNarrative(f)?.review;
  if(x?.status==='ready')return '<div class="narrative-status ready"><span class="pill good">NARRATIVE ENGINE</span><span>AI-authored review prose · scores and outcomes remain simulation-owned.</span></div>';
- if(x?.status==='pending')return '<div class="narrative-status pending"><span class="pill blue">NARRATIVE ENGINE</span><span>AI copy is being written. The local Daily Screen review remains fully available meanwhile.</span></div>';
- if(x?.status==='retry_wait')return '<div class="narrative-status failed"><span class="pill warn">LOCAL COPY</span><span>Narrative Engine is temporarily unavailable. Project Slate is retrying automatically.</span></div>';
- if(x?.status==='degraded')return '<div class="narrative-status"><span class="pill">LOCAL COPY</span><span>The simulation review is complete. AI will retry automatically when the app reconnects or resumes.</span></div>';
+ if(x?.status==='pending')return '<div class="narrative-status pending"><span class="pill blue">NARRATIVE ENGINE</span><span>AI version is being written. The local Daily Screen review remains fully available meanwhile.</span></div>';
+ if(x?.status==='retry_wait')return '<div class="narrative-status failed"><span class="pill warn">LOCAL COPY</span><span>AI version pending · automatic retry '+narrativeRetryEtaLabel(x.nextRetryAt)+'.</span></div>';
+ if(x?.status==='degraded')return '<div class="narrative-status"><span class="pill">LOCAL COPY</span><span>The simulation review is complete. AI will retry when the connection or app session recovers.</span></div>';
  if(f?.review)return '<div class="narrative-status"><span class="pill blue">LOCAL COPY</span><span>Project Slate is preparing the AI-written version automatically.</span></div>';
  return '';
 }
@@ -307,7 +314,7 @@ function closeReviewReveal(readFull=false){
  const item=state.activeReviewReveal,f=item?.filmId?filmById(item.filmId):null;
  if(f?.review&&item?.token)f.review.lastRevealToken=item.token;
  state.activeReviewReveal=null;
- if(surfacePendingReviewReveal()){save();render();return}
+ if(typeof surfaceNextSignatureMoment==='function'&&surfaceNextSignatureMoment()){save();render();return}
  if(f){state.screen='release';state.detail=readFull?{type:'review',id:f.id}:{type:'film',id:f.id}}else{state.screen='release';state.detail=null}
  state.history=[];if(typeof requestScrollTop==='function')requestScrollTop();save();render();
 }
