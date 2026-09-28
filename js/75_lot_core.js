@@ -344,23 +344,42 @@ function lotIncidentTraitWeight(def,a,b){
 }
 function lotChooseIncident(a,b,tier,r){
  const lot=ensureLotState(),hist=lotPairHistory(a,b),ctx=lotIncidentContext(a,b),now=state.week;
- const base=LOT_INCIDENT_LIBRARY.filter(x=>x.tier===tier);
- const eligible=base.filter(def=>{
-  const uses=lot.incidentHistory.filter(x=>x.id===def.id),last=uses[0],cooldown=def.cooldown??(tier==='legendary'?99999:tier==='absurd'?78:tier==='hollywood'?39:26);
+ const tierOrder={ordinary:['ordinary','hollywood'],hollywood:['hollywood','ordinary','absurd'],absurd:['absurd','hollywood','ordinary'],legendary:['legendary','absurd','hollywood']};
+ const recentGlobal=lot.incidentHistory.filter(x=>now-x.week<52),recentFamilies=new Set(recentGlobal.slice(0,8).map(x=>x.family));
+ const filmHistory=ctx.film?.lotIncidentHistory||[],filmFamilies=new Set(filmHistory.map(x=>x.family));
+ function eligibleFor(def,strict=true){
+  const uses=lot.incidentHistory.filter(x=>x.id===def.id),last=uses[0],cooldown=def.cooldown??(def.tier==='legendary'?99999:def.tier==='absurd'?78:def.tier==='hollywood'?39:26);
   if(def.unique&&uses.length)return false;
   if(last&&now-last.week<cooldown)return false;
   if((hist.incidents||[]).some(x=>x.id===def.id&&now-x.week<104))return false;
   if((hist.incidents||[]).some(x=>x.family===def.family&&now-x.week<26))return false;
-  if(ctx.film?.lotIncidentHistory?.some(x=>x.id===def.id))return false;
-  const familyRecent=lot.incidentHistory.find(x=>x.family===def.family);
-  if(familyRecent&&now-familyRecent.week<6)return false;
+  if(filmHistory.some(x=>x.id===def.id)||filmFamilies.has(def.family))return false;
+  if(strict){
+   const familyRecent=lot.incidentHistory.find(x=>x.family===def.family);
+   if(familyRecent&&now-familyRecent.week<10)return false;
+  }
   return true;
+ }
+ let pool=[];
+ for(const candidateTier of (tierOrder[tier]||[tier])){
+  const strict=LOT_INCIDENT_LIBRARY.filter(x=>x.tier===candidateTier&&eligibleFor(x,true));
+  if(strict.length){pool=strict;break}
+ }
+ if(!pool.length){
+  for(const candidateTier of (tierOrder[tier]||[tier])){
+   const relaxed=LOT_INCIDENT_LIBRARY.filter(x=>x.tier===candidateTier&&eligibleFor(x,false));
+   if(relaxed.length){pool=relaxed;break}
+  }
+ }
+ if(!pool.length)return {def:null,ctx};
+ const weighted=pool.map(def=>{
+  const uses=lot.incidentHistory.filter(x=>x.id===def.id),ever=uses.length,lastAge=uses[0]?now-uses[0].week:999;
+  const novelty=ever===0?2.8:ever===1?1.35:0.72;
+  const ageBoost=clamp(lastAge/104,.8,1.8);
+  const familyPenalty=recentFamilies.has(def.family)?.58:1;
+  return {def,w:Math.max(.08,(def.weight||1)*lotIncidentTraitWeight(def,a,b)*novelty*ageBoost*familyPenalty)};
  });
- let pool=eligible.length?eligible:base.filter(def=>!(def.unique&&lot.incidentHistory.some(x=>x.id===def.id)));
- if(!pool.length)pool=base.filter(def=>!def.unique);
- if(!pool.length)pool=base;
- const weighted=pool.map(def=>({def,w:Math.max(.15,(def.weight||1)*lotIncidentTraitWeight(def,a,b))}));
- let total=weighted.reduce((s,x)=>s+x.w,0),roll=r()*total,chosen=weighted[0]?.def||base[0];
+ let total=weighted.reduce((s,x)=>s+x.w,0),roll=r()*total,chosen=weighted[0]?.def||null;
  for(const x of weighted){roll-=x.w;if(roll<=0){chosen=x.def;break}}
  return {def:chosen,ctx};
 }
