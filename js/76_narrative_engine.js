@@ -40,7 +40,7 @@ function narrativeSettingsHTML(){
   ?'<div class="narrative-connection '+(status.configured?'ready':'warn')+'"><span class="pill '+(status.configured?'good':'warn')+'">'+(status.configured?'CONNECTED':'KEY MISSING')+'</span><div><strong>'+narrativeEscapeHTML(status.provider)+' · '+narrativeEscapeHTML(status.model)+'</strong><span>'+(status.configured?'Narrative API is ready to generate reviews.':'The API is live, but its provider key is not configured yet.')+'</span></div></div>'
   :status?'<div class="narrative-connection warn"><span class="pill warn">NOT READY</span><div><strong>Connection failed</strong><span>'+narrativeEscapeHTML(status.error||'Unknown error')+'</span></div></div>'
   :'<div class="narrative-connection"><span class="pill blue">OPTIONAL</span><div><strong>'+(endpoint?'Endpoint saved':'No endpoint configured')+'</strong><span>'+(endpoint?'Test the connection to confirm the server and Groq key are ready.':'Project Slate will continue using its local writing until a Narrative API is connected.')+'</span></div></div>';
- return '<div class="section-title"><h2>Narrative Engine</h2><span class="small">AI changes the writing, never the simulation result</span></div><div class="card narrative-settings">'+statusHTML+'<label class="field-label" for="narrativeEndpointInput">Narrative API URL</label><input id="narrativeEndpointInput" class="input" type="url" inputmode="url" placeholder="https://your-project.vercel.app" value="'+value+'"><div class="small" style="margin-top:6px">You can paste either the Vercel project URL or the full /api/narrative URL. No API key belongs in the game.</div><div class="grid cols2" style="margin-top:10px"><button class="btn" id="saveNarrativeEndpoint">Save endpoint</button><button class="btn primary" id="testNarrativeEndpoint" '+(!endpoint?'disabled':'')+'>Test connection</button></div><div class="small" style="margin-top:10px"><strong>Current AI surface:</strong> The Daily Screen main review. If the service is unavailable, the existing local review remains the automatic fallback.</div></div>';
+ return '<div class="section-title"><h2>Narrative Engine</h2><span class="small">AI changes the writing, never the simulation result</span></div><div class="card narrative-settings">'+statusHTML+'<label class="field-label" for="narrativeEndpointInput">Narrative API URL</label><input id="narrativeEndpointInput" class="input" type="url" inputmode="url" placeholder="https://your-project.vercel.app" value="'+value+'"><div class="small" style="margin-top:6px">You can paste either the Vercel project URL or the full /api/narrative URL. No API key belongs in the game.</div><div class="grid cols2" style="margin-top:10px"><button class="btn" id="saveNarrativeEndpoint">Save endpoint</button><button class="btn primary" id="testNarrativeEndpoint" '+(!endpoint?'disabled':'')+'>Test connection</button></div><div class="small" style="margin-top:10px"><strong>Current AI surfaces:</strong> Daily Screen reviews and Project Intelligence for player-created concepts. If the service is unavailable, the existing local review remains the automatic fallback.</div></div>';
 }
 function ensureFilmNarrative(f){
  if(!f)return null;
@@ -65,6 +65,100 @@ function narrativeLotStoriesForFilm(f){
   chapters:(s.chapters||[]).slice(0,3).map(ch=>({type:ch.type,headline:ch.headline,detail:ch.detail||''}))
  }));
 }
+function validProjectIntelligence(x){
+ return !!x&&typeof x.recognized==='boolean'&&typeof x.confidence==='string'&&typeof x.relationship==='string'&&Array.isArray(x.legacy_talent)&&Array.isArray(x.established_identity);
+}
+function ensureScriptIntelligence(s){
+ if(!s)return null;
+ s.projectIntelligence=s.projectIntelligence||{status:'idle',accepted:null};
+ if(s.projectIntelligence.accepted===undefined)s.projectIntelligence.accepted=null;
+ return s.projectIntelligence;
+}
+function narrativeProjectIntelligencePacket(s){
+ return {
+  schemaVersion:NARRATIVE_SCHEMA_VERSION,
+  contentType:'project_intelligence',
+  fictionalUniverseNotice:'This is creative-context recognition for a personal alternate-Hollywood simulation. It is not legal or rights-clearance advice.',
+  project:{id:s.id,title:s.title||'',genre:s.genre||'',logline:s.logline||'',synopsis:s.synopsis||'',source:s.source||'',audience:s.commissionBrief?.audience||null}
+ };
+}
+function projectIntelligenceAccepted(s){
+ const x=s?.projectIntelligence;
+ return x?.status==='ready'&&x.accepted===true&&validProjectIntelligence(x.result)&&x.result.recognized;
+}
+function projectIntelligencePublicContext(s){
+ if(!projectIntelligenceAccepted(s))return null;
+ const x=s.projectIntelligence.result;
+ return {
+  property:x.property_name,relationship:x.relationship,installmentNumber:x.installment_number||0,confidence:x.confidence,
+  legacyTitles:(x.legacy_titles||[]).slice(0,6),
+  legacyTalent:(x.legacy_talent||[]).slice(0,6),
+  establishedIdentity:(x.established_identity||[]).slice(0,6),
+  contextSummary:x.context_summary||''
+ };
+}
+function projectIntelligenceCastContext(f){
+ const s=f?scriptById(f.scriptId):null,ctx=projectIntelligencePublicContext(s);if(!ctx)return null;
+ const attached=[talentById(f.directorId),...(f.cast||[]).map(talentById),...(f.supportingCastIds||[]).map(talentById)].filter(Boolean);
+ const legacyActors=(ctx.legacyTalent||[]).filter(x=>/lead|actor|cast|star|performer/i.test(x.association||''));
+ const compare=legacyActors.length?legacyActors:(ctx.legacyTalent||[]);
+ const key=n=>String(n||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const attachedMap=new Map(attached.map(t=>[key(t.name),t.name])),returning=compare.filter(x=>attachedMap.has(key(x.name))).map(x=>x.name);
+ const missing=compare.filter(x=>!attachedMap.has(key(x.name))).map(x=>x.name),castAttached=(f.cast||[]).length+(f.supportingCastIds||[]).length;
+ const mode=!castAttached?'unresolved':returning.length===0&&compare.length?'full-recast':returning.length&&missing.length?'partial-return':returning.length?'legacy-return':'new-package';
+ return {...ctx,returning,missing,mode};
+}
+function projectIntelligenceCastSignal(f){
+ const x=projectIntelligenceCastContext(f);if(!x)return '';
+ const label=x.mode==='full-recast'?'Full legacy recast':x.mode==='partial-return'?'Partial legacy return':x.mode==='legacy-return'?'Legacy return':'Franchise context';
+ const detail=x.mode==='full-recast'
+  ?'None of the recognised legacy performers are currently in the package. Project Slate will treat this as a deliberate new casting direction.'
+  :x.mode==='partial-return'
+   ?('Returning: '+x.returning.join(', ')+'. Not returning: '+x.missing.join(', ')+'.')
+   :x.mode==='legacy-return'
+    ?('Recognised returning talent: '+x.returning.join(', ')+'.')
+    :('Legacy associations: '+(x.legacyTalent||[]).map(t=>t.name).join(', ')+'.');
+ return '<div class="card project-intel-signal"><div class="row"><div><div class="badge">PROJECT INTELLIGENCE</div><strong>'+narrativeEscapeHTML(label)+'</strong></div><span class="pill blue">'+narrativeEscapeHTML((x.property||'Recognised IP')+' · '+x.relationship)+'</span></div><div class="small" style="margin-top:8px">'+narrativeEscapeHTML(detail)+'</div></div>';
+}
+function projectIntelligenceHTML(s){
+ if(!s||s.source!=='Original Concept')return '';
+ const x=ensureScriptIntelligence(s);
+ if(x.status==='pending')return '<div class="section-title"><h2>Project Intelligence</h2><span class="small">Checking creative context</span></div><div class="card attention"><div class="row"><strong>Looking for an existing-property connection…</strong><span class="pill blue">AI</span></div><div class="small" style="margin-top:7px">The screenplay remains fully playable while this runs.</div></div>';
+ if(x.status==='failed')return '<div class="section-title"><h2>Project Intelligence</h2></div><div class="card"><div class="body">The context check could not be completed. This does not affect the screenplay or its simulation values.</div><button class="btn block" style="margin-top:10px" data-project-intel-retry="'+s.id+'">Retry context check</button></div>';
+ if(x.status!=='ready'||!validProjectIntelligence(x.result))return '';
+ const p=x.result;
+ if(!p.recognized)return '<div class="section-title"><h2>Project Intelligence</h2></div><div class="card"><div class="row"><strong>No strong existing-property match</strong><span class="pill">ORIGINAL</span></div><div class="small" style="margin-top:7px">'+narrativeEscapeHTML(p.recognition_basis||'The title and premise did not strongly identify a known property.')+'</div><button class="btn ghost" style="margin-top:10px" data-project-intel-retry="'+s.id+'">Check again</button></div>';
+ const confidence=(p.confidence||'low').toUpperCase(),accepted=x.accepted===true,dismissed=x.accepted===false;
+ const talent=(p.legacy_talent||[]).map(t=>'<span class="pill">'+narrativeEscapeHTML(t.name)+' · '+narrativeEscapeHTML(t.association)+'</span>').join('');
+ const identity=(p.established_identity||[]).map(v=>'<span class="pill blue">'+narrativeEscapeHTML(v)+'</span>').join('');
+ const decision=accepted
+  ?'<div class="row" style="margin-top:12px"><span class="pill good">CONTEXT ACTIVE</span><button class="btn ghost" data-project-intel-dismiss="'+s.id+'">Treat as original instead</button></div>'
+  :dismissed
+   ?'<div class="row" style="margin-top:12px"><span class="pill">CONTEXT IGNORED</span><button class="btn" data-project-intel-accept="'+s.id+'">Use recognised context</button></div>'
+   :'<div class="grid cols2" style="margin-top:12px"><button class="btn primary" data-project-intel-accept="'+s.id+'">Use '+narrativeEscapeHTML(p.property_name||'franchise')+' context</button><button class="btn" data-project-intel-dismiss="'+s.id+'">Treat as original</button></div>';
+ return '<div class="section-title"><h2>Project Intelligence</h2><span class="small">Creative context · not rights clearance</span></div><div class="card project-intelligence '+(accepted?'goodline':'')+'"><div class="row"><div><div class="badge">'+confidence+' CONFIDENCE · '+narrativeEscapeHTML(p.relationship).toUpperCase()+'</div><strong style="display:block;margin-top:5px">'+narrativeEscapeHTML(p.property_name||'Recognised property')+'</strong></div><span class="pill '+(accepted?'good':'warn')+'">'+(accepted?'ACTIVE':'CONFIRM')+'</span></div><div class="body" style="margin-top:9px">'+narrativeEscapeHTML(p.context_summary||'')+'</div>'+(talent?'<div class="small" style="margin-top:10px"><strong>Legacy associations</strong></div><div style="margin-top:5px">'+talent+'</div>':'')+(identity?'<div class="small" style="margin-top:10px"><strong>Established identity</strong></div><div style="margin-top:5px">'+identity+'</div>':'')+'<div class="small" style="margin-top:10px">'+narrativeEscapeHTML(p.recognition_basis||'')+'</div><div class="small" style="margin-top:8px">Project Intelligence provides narrative context only. It does not determine ownership, licensing or production rights.</div>'+decision+'</div>';
+}
+function queueProjectIntelligence(s,{force=false}={}){
+ if(!s||s.source!=='Original Concept'||!narrativeEndpoint())return Promise.resolve(null);
+ const store=ensureScriptIntelligence(s),packet=narrativeProjectIntelligencePacket(s),fingerprint=narrativeFingerprint(packet);
+ if(!force&&store.status==='ready'&&store.fingerprint===fingerprint)return Promise.resolve(store);
+ const key='project_intelligence:'+s.id;if(narrativeRuntime.pending.has(key))return narrativeRuntime.pending.get(key);
+ const priorAccepted=store.accepted??null;
+ s.projectIntelligence={status:'pending',accepted:priorAccepted,fingerprint,requestedWeek:state.week};try{save()}catch{}
+ const task=requestNarrative('project_intelligence',packet).then(data=>{
+  if(!validProjectIntelligence(data.narrative))throw new Error('invalid_project_intelligence_shape');
+  s.projectIntelligence={status:'ready',accepted:data.narrative.recognized?priorAccepted:false,fingerprint,result:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week};
+  if(data.narrative.recognized&&priorAccepted===null&&typeof notify==='function')notify('project-intel:'+s.id,'Project Intelligence · '+(data.narrative.property_name||s.title),'A possible '+data.narrative.relationship+' connection was recognised. Confirm whether Project Slate should use that context.',null,false,'info',{screen:'develop',detail:{type:'script',id:s.id}});
+  try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render();return s.projectIntelligence;
+ }).catch(err=>{
+  s.projectIntelligence={status:'failed',accepted:priorAccepted,fingerprint,lastError:String(err?.message||err),failedWeek:state.week};try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render();return null;
+ }).finally(()=>narrativeRuntime.pending.delete(key));
+ narrativeRuntime.pending.set(key,task);return task;
+}
+function acceptProjectIntelligence(s){const x=ensureScriptIntelligence(s);if(x?.status!=='ready'||!x.result?.recognized)return;x.accepted=true;save();render()}
+function dismissProjectIntelligence(s){const x=ensureScriptIntelligence(s);if(!x)return;x.accepted=false;save();render()}
+function retryProjectIntelligence(s){if(!s)return;if(!narrativeEndpoint())return showToast('Narrative Engine is not connected.');queueProjectIntelligence(s,{force:true});render()}
+
 function narrativeFilmReviewPacket(f){
  const sc=scriptById(f.scriptId),id=typeof ensureFilmIdentity==='function'?ensureFilmIdentity(f):{},critic=f.review?.critic||{},m=f.metrics||{},post=f.post||{},marketing=typeof ensureMarketingState==='function'?ensureMarketingState(f):f.marketingState||{},tracking=marketing.trackingHistory?.[0]||null;
  const support=typeof supportingActors==='function'?supportingActors(f):[];
@@ -78,7 +172,7 @@ function narrativeFilmReviewPacket(f){
   verdict:{critics:f.review?.critics,audience:f.review?.audience,stars:f.review?.stars,tier:typeof reviewTier==='function'?reviewTier(f.review?.critics||0):null},
   film:{
    id:f.id,title:f.title,genre:f.genre,logline:sc?.logline||'',synopsis:sc?.synopsis||'',budget:f.budget,investment:f.investment,
-   source:sc?.source||'',runtime:post.runtime||post.targetRuntime||null,
+   source:sc?.source||'',runtime:post.runtime||post.targetRuntime||null,projectContext:projectIntelligencePublicContext(sc),
    identity:{archetype:id.archetype||null,texture:id.texture||null,strength:id.strength||null,risk:id.risk||null},
    creative:deep(f.creative||{}),creativeDirection:f.creativeDirection?.label||null
   },
