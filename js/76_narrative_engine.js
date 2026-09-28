@@ -1,11 +1,13 @@
-// Project Slate v4.6.3 — Narrative Engine reliability client
+// Project Slate v4.6.4.1 — Narrative Engine reliability + cinematic review reveal
 // Gameplay remains authoritative. AI prose is automatic enhancement with resilient local fallback.
 
 const NARRATIVE_SCHEMA_VERSION=1;
 const NARRATIVE_DEFAULT_ENDPOINT='https://project-slate-five.vercel.app/api/narrative';
 const NARRATIVE_REQUEST_TIMEOUT_MS=55000;
 const NARRATIVE_AUTO_RETRY_LIMIT=4;
-const narrativeRuntime={pending:new Map(),retryTimers:new Map(),lastError:null,connection:null,lifecycleBound:false};
+const narrativeRuntime={pending:new Map(),retryTimers:new Map(),revealTimers:new Map(),lastError:null,connection:null,lifecycleBound:false};
+const REVIEW_REVEAL_MIN_WAIT_MS=1200;
+const REVIEW_REVEAL_AI_GRACE_MS=7000;
 
 function narrativeNormalizeEndpoint(value){
  let url=String(value||'').trim();if(!url)return null;
@@ -280,6 +282,44 @@ function ensureReviewRevealState(){
 function reviewRevealBlocked(){
  return !state.studio||state.screen==='setup'||!!state.pendingCeremony||!!state.pendingAwardsNominations||!!state.activeFilmWrapId||!!state.activeStudioMoment||!!state.activeLegendUnlockId||['ceremony','nominations','filmWrap','studioMoment','legendUnlock'].includes(state.screen);
 }
+function reviewRevealTimerKey(item){return item?.token||('film:'+item?.filmId)}
+function clearReviewRevealTimer(item){
+ const key=reviewRevealTimerKey(item),timer=narrativeRuntime.revealTimers.get(key);
+ if(timer)clearTimeout(timer);narrativeRuntime.revealTimers.delete(key);
+}
+function scheduleReviewRevealTimer(item,delay,fn){
+ if(!item)return;clearReviewRevealTimer(item);
+ const key=reviewRevealTimerKey(item),timer=setTimeout(()=>{narrativeRuntime.revealTimers.delete(key);fn()},Math.max(0,delay));
+ narrativeRuntime.revealTimers.set(key,timer);
+}
+function reviewRevealLocalContent(f){
+ const local=f?.review||{};
+ return {headline:local.headline||'The Daily Screen review',quote:local.quote||'',paragraphs:local.paragraphs||[],ai:null};
+}
+function reviewRevealResolveMode(f,mode){
+ const item=state.activeReviewReveal;if(!item||item.filmId!==f?.id||item.displayMode!=='waiting')return false;
+ const elapsed=Date.now()-(item.openedAt||Date.now()),minRemaining=Math.max(0,REVIEW_REVEAL_MIN_WAIT_MS-elapsed);
+ if(minRemaining>0){
+  scheduleReviewRevealTimer(item,minRemaining,()=>reviewRevealResolveMode(f,mode));return true;
+ }
+ item.displayMode=mode;item.resolvedAt=Date.now();clearReviewRevealTimer(item);try{save()}catch{}
+ if(typeof render==='function'&&state.activeReviewReveal?.filmId===f.id)render();return true;
+}
+function reviewRevealResolveAI(f){
+ const item=state.activeReviewReveal;if(!item||item.filmId!==f?.id||item.displayMode==='local')return false;
+ if(!aiReviewContent(f))return false;
+ return reviewRevealResolveMode(f,'ai');
+}
+function reviewRevealResolveLocal(f){
+ const item=state.activeReviewReveal;if(!item||item.filmId!==f?.id||item.displayMode!=='waiting')return false;
+ return reviewRevealResolveMode(f,'local');
+}
+function armReviewRevealDeadline(item){
+ if(!item||item.displayMode!=='waiting')return;
+ const elapsed=Date.now()-(item.openedAt||Date.now()),remaining=Math.max(0,REVIEW_REVEAL_AI_GRACE_MS-elapsed);
+ if(remaining<=0){const f=filmById(item.filmId);if(f)reviewRevealResolveLocal(f);return}
+ scheduleReviewRevealTimer(item,remaining,()=>{const f=filmById(item.filmId);if(f)reviewRevealResolveLocal(f)});
+}
 function queueReviewReveal(f){
  if(!f?.review||f.owner!=='player')return false;
  const q=ensureReviewRevealState(),token=f.review.revealToken||(f.review.revealToken='review:'+f.id+':'+(f.releaseWeek||state.week)+':'+(f.review.critics||0)+':'+(f.review.audience||0));
@@ -293,15 +333,36 @@ function surfacePendingReviewReveal(){
  while(q.length){
   const item=q.shift(),f=filmById(item.filmId);
   if(!f?.review)continue;
-  state.activeReviewReveal=item;state.screen='reviewReveal';state.detail=null;state.history=[];if(typeof requestScrollTop==='function')requestScrollTop();return true;
+  item.openedAt=Date.now();item.displayMode=aiReviewContent(f)?'ai':'waiting';item.resolvedAt=item.displayMode==='ai'?Date.now():null;
+  state.activeReviewReveal=item;state.screen='reviewReveal';state.detail=null;state.history=[];if(typeof requestScrollTop==='function')requestScrollTop();
+  if(item.displayMode==='waiting')armReviewRevealDeadline(item);
+  return true;
  }
  return false;
+}
+function reviewRevealWaitingScreen(f,item){
+ const critic=f.review?.critic||{},date=narrativeEscapeHTML(typeof calendarDateLabel==='function'?calendarDateLabel(state.calendarDay):'WEEK '+state.week);
+ armReviewRevealDeadline(item);
+ return '<div class="review-reveal review-reveal-waiting"><div class="review-reveal-inner">'+
+  '<div class="review-reveal-mast"><div><span>THE</span><strong>DAILY SCREEN</strong></div><small>REVIEW DROP · '+date+'</small></div>'+
+  '<div class="review-reveal-grid review-reveal-wait-grid"><div class="review-reveal-art">'+filmKeyArtHTML(f,'hero')+'</div><div class="review-reveal-copy review-reveal-wait-copy"><div class="event-super">PRESS EMBARGO LIFTED</div><div class="review-reveal-film">'+narrativeEscapeHTML(f.title)+'</div><h1>Film critic reviews are incoming<span class="review-loading-dots" aria-hidden="true"><i></i><i></i><i></i></span></h1>'+
+  '<div class="review-filing-copy">The Daily Screen desk is holding the page while the final review is filed.</div>'+
+  '<div class="review-filing-board"><div><span>DAILY SCREEN</span><strong>Final copy filing</strong></div><div><span>CRITICS</span><strong>Verdicts incoming</strong></div><div><span>AUDIENCE</span><strong>First reactions landing</strong></div></div>'+
+  '<div class="review-reveal-byline">Review desk · <strong>'+narrativeEscapeHTML(critic.name||'Staff Critic')+'</strong> filing</div></div></div>'+
+  '<div class="review-reveal-foot">The simulation result is already locked. Project Slate is waiting briefly for the finished critic copy.</div></div></div>';
 }
 function reviewRevealScreen(){
  const item=state.activeReviewReveal,f=item?.filmId?filmById(item.filmId):null;
  if(!f||!f.review)return typeof releaseScreen==='function'?releaseScreen():studioScreen();
- const d=reviewDisplayContent(f),critic=f.review.critic||{},score=f.review.critics||0,tone=score>=80?'great':score<55?'bad':score<70?'warn':'neutral';
- return '<div class="review-reveal review-reveal-'+tone+'"><div class="review-reveal-inner">'+
+ if(!item.displayMode)item.displayMode=aiReviewContent(f)?'ai':'waiting';
+ if(item.displayMode==='waiting'){
+  const elapsed=Date.now()-(item.openedAt||Date.now());
+  if(aiReviewContent(f)&&elapsed>=REVIEW_REVEAL_MIN_WAIT_MS)item.displayMode='ai';
+  else if(elapsed>=REVIEW_REVEAL_AI_GRACE_MS)item.displayMode='local';
+  else return reviewRevealWaitingScreen(f,item);
+ }
+ const d=item.displayMode==='ai'&&aiReviewContent(f)?reviewDisplayContent(f):reviewRevealLocalContent(f),critic=f.review.critic||{},score=f.review.critics||0,tone=score>=80?'great':score<55?'bad':score<70?'warn':'neutral';
+ return '<div class="review-reveal review-reveal-'+tone+' review-reveal-resolved"><div class="review-reveal-inner">'+
   '<div class="review-reveal-mast"><div><span>THE</span><strong>DAILY SCREEN</strong></div><small>REVIEW DROP · '+narrativeEscapeHTML(typeof calendarDateLabel==='function'?calendarDateLabel(state.calendarDay):'WEEK '+state.week)+'</small></div>'+
   '<div class="review-reveal-grid"><div class="review-reveal-art">'+filmKeyArtHTML(f,'hero')+'</div><div class="review-reveal-copy"><div class="event-super">THE REVIEWS ARE IN</div><div class="review-reveal-film">'+narrativeEscapeHTML(f.title)+'</div><h1>'+(d.headline||'The Daily Screen review')+'</h1>'+
   '<div class="review-reveal-scores"><div><span>DAILY SCREEN</span><strong>'+Number(f.review.stars||0).toFixed(1)+' ★</strong></div><div><span>CRITICS</span><strong>'+score+'%</strong></div><div><span>AUDIENCE</span><strong>'+Number(f.review.audience||0)+'%</strong></div></div>'+
@@ -313,7 +374,7 @@ function reviewRevealScreen(){
 function closeReviewReveal(readFull=false){
  const item=state.activeReviewReveal,f=item?.filmId?filmById(item.filmId):null;
  if(f?.review&&item?.token)f.review.lastRevealToken=item.token;
- state.activeReviewReveal=null;
+ clearReviewRevealTimer(item);state.activeReviewReveal=null;
  if(typeof surfaceNextSignatureMoment==='function'&&surfaceNextSignatureMoment()){save();render();return}
  if(f){state.screen='release';state.detail=readFull?{type:'review',id:f.id}:{type:'film',id:f.id}}else{state.screen='release';state.detail=null}
  state.history=[];if(typeof requestScrollTop==='function')requestScrollTop();save();render();
@@ -332,15 +393,15 @@ function queueAIReview(f,{force=false,automatic=false}={}){
   if(!validAIReview(data.narrative)){const e=new Error('invalid_review_shape');e.code='invalid_review_shape';throw e}
   store.review={status:'ready',fingerprint,narrative:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week,qualityRetry:!!data.meta?.qualityRetry,retryCount:0};
   clearNarrativeRetry('film_review',f.id);narrativeRuntime.lastError=null;try{save()}catch{}
-  const visible=(state.detail?.type==='review'&&state.detail?.id===f.id)||state.activeReviewReveal?.filmId===f.id;
-  if(typeof render==='function'&&visible)render();
+  if(state.activeReviewReveal?.filmId===f.id)reviewRevealResolveAI(f);
+  else if(typeof render==='function'&&state.detail?.type==='review'&&state.detail?.id===f.id)render();
   return store.review;
  }).catch(err=>{
   const nextCount=(retryCount||0)+1,canRetry=narrativeErrorRetryable(err)&&nextCount<=NARRATIVE_AUTO_RETRY_LIMIT,nextRetryAt=canRetry?scheduleNarrativeRetry('film_review',f.id,nextCount):Date.now()+1800000;
   store.review={status:canRetry?'retry_wait':'degraded',fingerprint,lastError:String(err?.message||err),failedWeek:state.week,retryCount:nextCount,nextRetryAt};
   narrativeRuntime.lastError=store.review.lastError;try{save()}catch{}
-  const visible=(state.detail?.type==='review'&&state.detail?.id===f.id)||state.activeReviewReveal?.filmId===f.id;
-  if(typeof render==='function'&&visible)render();
+  if(state.activeReviewReveal?.filmId===f.id)reviewRevealResolveLocal(f);
+  else if(typeof render==='function'&&state.detail?.type==='review'&&state.detail?.id===f.id)render();
   return null;
  }).finally(()=>narrativeRuntime.pending.delete(key));
  narrativeRuntime.pending.set(key,task);return task;
@@ -379,5 +440,10 @@ function bootstrapNarrativeEngine(){
  });
  (state.scripts||[]).forEach(s=>{const x=s.projectIntelligence;if(x?.status==='pending'){x.status='retry_wait';x.nextRetryAt=now;x.lastError='Context check was interrupted before completion.'}});
  if(state.activeReviewReveal&&!filmById(state.activeReviewReveal.filmId))state.activeReviewReveal=null;
+ if(state.activeReviewReveal){
+  const f=filmById(state.activeReviewReveal.filmId),item=state.activeReviewReveal;
+  item.openedAt=item.openedAt||Date.now();item.displayMode=item.displayMode||((f&&aiReviewContent(f))?'ai':'waiting');
+  if(item.displayMode==='waiting')armReviewRevealDeadline(item);
+ }
  resumeNarrativeWork();
 }
