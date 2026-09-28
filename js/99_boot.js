@@ -222,7 +222,7 @@ function projectSlateSmokeChecks(){
  try{
   if(!releaseFilm.toString().includes('queueReviewReveal'))failures.push('v4.6.3 simulation-owned review reveal hook missing');
   if(queueReviewReveal.toString().includes('aiReviewContent(f)'))failures.push('v4.6.3 review reveal still depends on AI');
-  if(surfacePendingReviewReveal.toString().includes('aiReviewContent(f)'))failures.push('v4.6.3 pending reveal still depends on AI');
+  if(!surfacePendingReviewReveal.toString().includes("displayMode=aiReviewContent(f)?'ai':'waiting'"))failures.push('v4.6.3 pending reveal fallback path missing');
   if(narrativeReviewStatusHTML.toString().includes('Generate AI review')||narrativeReviewStatusHTML.toString().includes('Retry AI review')||narrativeReviewStatusHTML.toString().includes('Rewrite review'))failures.push('v4.6.3 manual AI review controls still exposed');
   if(!requestNarrative.toString().includes('NARRATIVE_REQUEST_TIMEOUT_MS')||!requestNarrative.toString().includes('narrativeErrorRetryable'))failures.push('v4.6.3 Narrative request recovery missing');
   if(!bootstrapNarrativeEngine.toString().includes('resumeNarrativeWork')||!bindNarrativeLifecycle.toString().includes("addEventListener('online'"))failures.push('v4.6.3 Narrative lifecycle recovery missing');
@@ -244,7 +244,7 @@ function projectSlateSmokeChecks(){
 
  try{
   if(REVIEW_REVEAL_MIN_WAIT_MS<800||REVIEW_REVEAL_AI_GRACE_MS<5000||REVIEW_REVEAL_AI_GRACE_MS>10000)failures.push('v4.6.4.1 review reveal timing window invalid');
-  if(!reviewRevealScreen.toString().includes('Film critic reviews are incoming'))failures.push('v4.6.4.1 review filing state missing');
+  if(typeof reviewRevealWaitingScreen!=='function'||!reviewRevealWaitingScreen.toString().includes('Film critic reviews are incoming'))failures.push('v4.6.4.1 review filing state missing');
   if(!queueAIReview.toString().includes('reviewRevealResolveAI')||!queueAIReview.toString().includes('reviewRevealResolveLocal'))failures.push('v4.6.4.1 AI result is not routed through reveal lock');
   if(!surfacePendingReviewReveal.toString().includes("displayMode=aiReviewContent(f)?'ai':'waiting'"))failures.push('v4.6.4.1 reveal does not start in filing mode');
   if(!closeReviewReveal.toString().includes('clearReviewRevealTimer'))failures.push('v4.6.4.1 review reveal timer cleanup missing');
