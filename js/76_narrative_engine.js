@@ -357,8 +357,8 @@ function reviewRevealScreen(){
  if(!item.displayMode)item.displayMode=aiReviewContent(f)?'ai':'waiting';
  if(item.displayMode==='waiting'){
   const elapsed=Date.now()-(item.openedAt||Date.now());
-  if(aiReviewContent(f)&&elapsed>=REVIEW_REVEAL_MIN_WAIT_MS)item.displayMode='ai';
-  else if(elapsed>=REVIEW_REVEAL_AI_GRACE_MS)item.displayMode='local';
+  if(aiReviewContent(f)&&elapsed>=REVIEW_REVEAL_MIN_WAIT_MS){item.displayMode='ai';item.resolvedAt=Date.now();clearReviewRevealTimer(item)}
+  else if(elapsed>=REVIEW_REVEAL_AI_GRACE_MS){item.displayMode='local';item.resolvedAt=Date.now();clearReviewRevealTimer(item)}
   else return reviewRevealWaitingScreen(f,item);
  }
  const d=item.displayMode==='ai'&&aiReviewContent(f)?reviewDisplayContent(f):reviewRevealLocalContent(f),critic=f.review.critic||{},score=f.review.critics||0,tone=score>=80?'great':score<55?'bad':score<70?'warn':'neutral';
