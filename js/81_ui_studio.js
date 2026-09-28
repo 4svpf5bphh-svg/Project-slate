@@ -804,20 +804,32 @@ function studioFinanceOverviewBody(){
  <div class="section-title"><h2>Weekly operating position</h2><span class="small">Before new film investment</span></div><div class="card"><div class="listrow"><span>Operating scale</span><strong>${ob.scale.label}</strong></div><div class="listrow"><span>Permanent corporate operation</span><strong>${moneyFine(ob.corporate)}</strong></div><div class="listrow"><span>Upgraded departments</span><strong>${moneyFine(ob.departments)}</strong></div><div class="listrow"><span>Active slate</span><strong>${moneyFine(ob.slate)}</strong></div><div class="listrow"><span>Current catalogue receipts</span><strong>+${moneyFine(idle.catalogue)}</strong></div><div class="listrow"><span>Idle carry</span><strong class="${idle.net>=0?'goodtext':'badtext'}">${idle.net>=0?'+':''}${moneyFine(idle.net)}/week</strong></div><div class="small" style="margin-top:8px">A successful studio carries a larger permanent organisation even between productions. Catalogue cash decays rather than funding the company indefinitely.</div></div>
  ${recoveryPlanPanel()}<div class="section-title"><h2>Treasury</h2></div><div class="card ${state.finance?.bridgeDebt>0?'dangerline':''}"><div class="body">${state.finance?.bridgeDebt>0?'Emergency finance remains outstanding. Keep enough cash for production, campaigns and weekly overhead before expanding the slate.':'The studio has no bridge debt. Cash timing still matters because production and release expenditure peak at different stages.'}</div><button id="openFinance" class="btn block" style="margin-top:10px">Open detailed finance</button></div>`;
 }
+function studioBackupBody(){
+ const p=typeof persistenceStatus==='function'?persistenceStatus():{},last=p.lastSavedAt?new Date(p.lastSavedAt).toLocaleString():'Not recorded';
+ const sourceLabel=p.source==='primary'?'Primary local save':p.source==='backup'?'Local backup recovered':p.source==='indexeddb'?'IndexedDB recovery':p.source==='recovery'?'Recovery mode':'New career / unknown';
+ const persisted=p.storagePersisted===true?'Persistent storage granted':p.storagePersisted===false?'Persistent storage not confirmed':'Persistent storage check pending';
+ return `<div class="section-title"><h2>Career save & backup</h2><span class="small">Protect this career outside the current browser session</span></div>
+ <div class="grid cols3"><div class="card"><div class="badge">Loaded from</div><strong style="display:block;margin-top:6px">${sourceLabel}</strong></div><div class="card ${p.storagePersisted===false?'attention':'goodline'}"><div class="badge">iPhone storage</div><strong style="display:block;margin-top:6px">${persisted}</strong></div><div class="card"><div class="badge">Last autosave</div><strong style="display:block;margin-top:6px">${last}</strong></div></div>
+ ${p.error?`<div class="card dangerline" style="margin-top:12px"><strong>Persistence warning</strong><div class="small" style="margin-top:6px">${narrativeEscapeHTML? narrativeEscapeHTML(p.error):p.error}</div></div>`:''}
+ <div class="section-title"><h2>Automatic protection</h2></div><div class="card body">Project Slate now writes the career to a primary local save, a second local backup and an IndexedDB mirror. The Home Screen app also asks iOS for persistent storage. A failed migration is never silently treated as a new career.</div>
+ <div class="grid cols2" style="margin-top:12px"><button class="btn primary" id="saveCareerNow">Save career now</button><button class="btn" id="exportCareerBackup">Export career backup</button></div>
+ <div class="small" style="margin-top:8px">Export creates a full JSON career file you can keep in Files/iCloud Drive and restore later.</div>
+ <div class="section-title"><h2>Restore a career</h2></div><div class="card"><div class="body">Import a Project Slate career backup. This replaces the currently loaded career only after the file has been validated.</div><label class="btn block" style="margin-top:10px">Choose backup file<input id="importCareerBackup" type="file" accept=".json,application/json" style="display:none"></label></div>`;
+}
 function studioBusinessBody(){
  let tab=state.uiBusinessTab||'finance';
- const allowed=['finance','identity','growth','narrative'];if(typeof corporateVisible==='function'&&corporateVisible())allowed.push('corporate');if(simulationAuditAccess())allowed.push('audit');
+ const allowed=['finance','identity','growth','backup','narrative'];if(typeof corporateVisible==='function'&&corporateVisible())allowed.push('corporate');if(simulationAuditAccess())allowed.push('audit');
  if(!allowed.includes(tab)){tab='finance';state.uiBusinessTab='finance'}
- const items=[['finance','Finance'],['growth','Growth'],['identity','Identity'],['narrative','Narrative']];if(typeof corporateVisible==='function'&&corporateVisible())items.push(['corporate','Corporate']);if(simulationAuditAccess())items.push(['audit','Audit']);
+ const items=[['finance','Finance'],['growth','Growth'],['identity','Identity'],['backup','Backup'],['narrative','Narrative']];if(typeof corporateVisible==='function'&&corporateVisible())items.push(['corporate','Corporate']);if(simulationAuditAccess())items.push(['audit','Audit']);
  const tabs=sectionTabs(items,tab,'data-business-tab');
- let body=tab==='finance'?studioFinanceOverviewBody():tab==='growth'?studioGrowthUI():tab==='identity'?studioIdentityBody():tab==='narrative'&&typeof narrativeSettingsHTML==='function'?narrativeSettingsHTML():tab==='corporate'&&typeof studioCorporateBody==='function'?studioCorporateBody():tab==='audit'&&simulationAuditAccess()?simulationAuditBody():studioFinanceOverviewBody();
+ let body=tab==='finance'?studioFinanceOverviewBody():tab==='growth'?studioGrowthUI():tab==='identity'?studioIdentityBody():tab==='backup'?studioBackupBody():tab==='narrative'&&typeof narrativeSettingsHTML==='function'?narrativeSettingsHTML():tab==='corporate'&&typeof studioCorporateBody==='function'?studioCorporateBody():tab==='audit'&&simulationAuditAccess()?simulationAuditBody():studioFinanceOverviewBody();
  return tabs+body;
 }
 function studioScreen(){
  rebuildDecisions();
  let tab=state.uiStudioTab||'desk';
  if(tab==='overview'){tab='desk';state.uiStudioTab='desk'}
- if(['finance','identity','growth','narrative','corporate','audit'].includes(tab)){state.uiBusinessTab=tab;tab='business';state.uiStudioTab='business'}
+ if(['finance','identity','growth','backup','narrative','corporate','audit'].includes(tab)){state.uiBusinessTab=tab;tab='business';state.uiStudioTab='business'}
  const tabItems=[['desk',deskInboxCount()? `Desk · ${deskInboxCount()}`:'Desk'],['business','Business'],['awards','Awards'],['legacy','Legacy'],['library','Library']];
  const tabs=sectionTabs(tabItems,tab,'data-studio-tab');
  let body='';
