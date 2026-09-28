@@ -15,7 +15,7 @@ const PROVIDERS={
   }
 };
 const provider=PROVIDERS[PROVIDER]||PROVIDERS.groq;
-const ALLOWED_TYPES=new Set(['film_review']);
+const ALLOWED_TYPES=new Set(['film_review','project_intelligence']);
 const MAX_BODY_CHARS=60000;
 
 function allowedOrigin(origin,host=''){
@@ -50,6 +50,27 @@ function reviewSchema(){
     required:['headline','pull_quote','paragraphs','editorial_note']
   };
 }
+function projectIntelligenceSchema(){
+  return {
+    type:'object',
+    additionalProperties:false,
+    properties:{
+      recognized:{type:'boolean'},
+      confidence:{type:'string',enum:['high','medium','low']},
+      relationship:{type:'string',enum:['original','sequel','continuation','remake','reboot','spinoff','adaptation','ambiguous']},
+      property_name:{type:'string'},
+      installment_number:{type:'integer',minimum:0,maximum:99},
+      legacy_titles:{type:'array',items:{type:'string'},maxItems:6},
+      legacy_talent:{type:'array',maxItems:6,items:{type:'object',additionalProperties:false,properties:{name:{type:'string'},association:{type:'string'}},required:['name','association']}},
+      established_identity:{type:'array',items:{type:'string'},maxItems:6},
+      context_summary:{type:'string'},
+      recognition_basis:{type:'string'}
+    },
+    required:['recognized','confidence','relationship','property_name','installment_number','legacy_titles','legacy_talent','established_identity','context_summary','recognition_basis']
+  };
+}
+function schemaForType(type){return type==='project_intelligence'?projectIntelligenceSchema():reviewSchema()}
+function schemaNameForType(type){return type==='project_intelligence'?'project_slate_project_intelligence':'project_slate_film_review'}
 function reviewQualityIssues(narrative,packet){
   const text=[narrative?.headline,narrative?.pull_quote,...(narrative?.paragraphs||[])].join(' ').toLowerCase();
   const issues=[];
@@ -73,6 +94,20 @@ function reviewQualityIssues(narrative,packet){
   return issues;
 }
 function narrativeInstructions(type){
+  if(type==='project_intelligence')return [
+    'You are Project Intelligence inside Project Slate, an alternate-reality Hollywood management game.',
+    'Your task is conservative recognition of whether a player-created screenplay is clearly intended to connect to a well-known pre-existing film, television, book, game, comic or other entertainment property.',
+    'Use broad, well-established public cultural knowledge only. Do not browse, invent obscure continuity, or pretend uncertainty is certainty.',
+    'If the title/logline/synopsis do not provide strong evidence of an existing property, set recognized=false, confidence=low, relationship=original, property_name="", installment_number=0, and keep legacy lists empty.',
+    'A numbered title such as "Rush Hour 4" can be strong evidence when the underlying property is well known. A merely similar title is not enough.',
+    'relationship describes the player concept: sequel, continuation, remake, reboot, spinoff, adaptation, ambiguous, or original.',
+    'legacy_talent should contain only a small number of performers or filmmakers strongly and publicly associated with the recognised property. association must be factual and concise, such as "original lead" or "series co-lead".',
+    'established_identity should describe broad audience-facing franchise DNA such as genre, central pairing, tone or signature premise. Do not expose hidden game metrics.',
+    'Never make legal claims about ownership, licensing, copyright, trademark, permission or whether the player may commercially produce the property. Recognition is creative context, not rights clearance.',
+    'Do not invent real-person conduct, opinions, relationships or private facts.',
+    'context_summary should be one concise sentence suitable for an in-game executive card.',
+    'recognition_basis should be a short factual explanation of what in the supplied title/logline/synopsis triggered the match; do not provide hidden chain-of-thought.'
+  ].join('\n');
   if(type!=='film_review')return '';
   return [
     'You are writing fictional entertainment journalism inside Project Slate, an alternate-reality Hollywood management game.',
@@ -127,11 +162,11 @@ module.exports=async function handler(req,res){
           model,
           instructions:narrativeInstructions(type),
           input:[{role:'user',content:prompt}],
-          max_output_tokens:1200,
+          max_output_tokens:type==='project_intelligence'?700:1200,
           reasoning:{effort:'low'},
-          temperature:.95,
+          temperature:type==='project_intelligence'?.2:.95,
           store:false,
-          text:{format:{type:'json_schema',name:'project_slate_film_review',schema:reviewSchema()}}
+          text:{format:{type:'json_schema',name:schemaNameForType(type),schema:schemaForType(type)}}
         })
       });
       const data=await upstream.json();
@@ -142,6 +177,10 @@ module.exports=async function handler(req,res){
       }
       const raw=outputText(data);if(!raw)return res.status(502).json({ok:false,error:'empty_model_response'});
       let narrative;try{narrative=JSON.parse(raw)}catch{return res.status(502).json({ok:false,error:'invalid_model_json'})}
+      if(type==='project_intelligence'){
+        if(typeof narrative.recognized!=='boolean'||!Array.isArray(narrative.legacy_talent)||!Array.isArray(narrative.established_identity))return res.status(502).json({ok:false,error:'invalid_project_intelligence_shape'});
+        return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null,qualityRetry:false}});
+      }
       if(!Array.isArray(narrative.paragraphs)||narrative.paragraphs.length!==4)return res.status(502).json({ok:false,error:'invalid_review_shape'});
       const issues=reviewQualityIssues(narrative,packet);
       if(!issues.length)return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null,qualityRetry:attempt>0}});
