@@ -209,6 +209,18 @@ function projectSlateSmokeChecks(){
   if(!lotNoveltyBrief.toString().includes('avoidTopics'))failures.push('Lot novelty brief incomplete');
  }catch(e){failures.push('v4.6 Project Intelligence / variety smoke failed'+(e?.message?': '+e.message:''))}
 
+ try{
+  const requiredGenres=['Action Comedy','Mystery Thriller','Supernatural Horror','Sports Drama','Romantic Comedy','Superhero','Adventure','Historical Epic'];
+  if(genres.length<16||requiredGenres.some(g=>!genres.includes(g)))failures.push('v4.6.2 expanded genre taxonomy missing');
+  if(genreProfileAffinity(['Action Thriller','Comedy'],'Action Comedy')<.90)failures.push('v4.6.2 hybrid genre affinity too weak');
+  if(!ROLE_ARCHETYPES['Action Comedy']||!SCRIPT_TITLE_BANK['Action Comedy']||!PREMISE_DNA_BANK['Action Comedy'])failures.push('v4.6.2 Action Comedy systems incomplete');
+  const gp=generatedPremise(state,makeRng(462),'Action Comedy');if(!gp?.title||!gp?.logline)failures.push('v4.6.2 Action Comedy premise generation failed');
+  if(actorSeed.length<118||!actorSeed.some(x=>x[0]==='Jackie Chan')||!actorSeed.some(x=>x[0]==='Chris Tucker'))failures.push('v4.6.2 actor expansion missing');
+  if(directorSeed.length<35)failures.push('v4.6.2 director expansion missing');
+  if(PORTRAIT_WIKIPEDIA_TITLES['Andrew Scott']!=='Andrew Scott (actor)')failures.push('v4.6.2 Andrew Scott portrait alias missing');
+  if(SAVE_SCHEMA_VERSION<404)failures.push('v4.6.2 save migration missing');
+ }catch(e){failures.push('v4.6.2 talent / genre expansion smoke failed'+(e?.message?': '+e.message:''))}
+
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
   if(!buildNewsItem.toString().includes('voicePressStory'))failures.push('press voice pass missing');
