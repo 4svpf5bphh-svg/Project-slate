@@ -419,7 +419,16 @@ function maybeGenerateTalentDrama(){
 
 
 function writerById(id){return (state.writers||[]).find(w=>w.id===id)}
-function scriptRightsText(s){ensureScriptEcosystem(s);return s.rights?.label||'Standard screen rights'}
+function scriptRightsText(s){
+ ensureScriptEcosystem(s);
+ if(typeof projectIntelligenceAccepted==='function'&&projectIntelligenceAccepted(s))return 'Simulation control · recognised IP context';
+ return s.rights?.label||'Standard screen rights';
+}
+function scriptRightsDetail(s){
+ ensureScriptEcosystem(s);
+ if(typeof projectIntelligenceAccepted==='function'&&projectIntelligenceAccepted(s))return 'For Project Slate gameplay, your studio controls this project. Project Intelligence has recognised pre-existing creative context; this is not real-world rights clearance or a legal ownership determination.';
+ return s.rights?.detail||'Standard screen rights.';
+}
 function ensureScriptEcosystem(s){
  if(!s)return s;
  const r=makeRng(hash(state.seed+'|script-ecosystem|'+s.id));
