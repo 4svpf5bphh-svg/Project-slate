@@ -864,3 +864,34 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
  .desk-studio-metrics>div{min-width:46px;padding-left:4px;padding-right:4px}.desk-studio-metrics b{font-size:11px}.desk-studio-metrics span{font-size:7px}
  .casting-readiness-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* v4.6.4.1 — Review filing reveal */
+.review-reveal-waiting{background:
+ radial-gradient(circle at 72% 24%,rgba(105,145,255,.08),transparent 28%),
+ radial-gradient(circle at 18% 12%,rgba(255,255,255,.05),transparent 32%),
+ linear-gradient(180deg,#0d1016,#080a0e 72%)}
+.review-reveal-waiting .review-reveal-mast{border-bottom-color:rgba(130,158,218,.34)}
+.review-reveal-wait-copy h1{max-width:720px}
+.review-filing-copy{max-width:600px;font-family:Georgia,serif;font-size:17px;line-height:1.5;color:#cfd5df;margin:0 0 18px}
+.review-loading-dots{display:inline-flex;gap:5px;margin-left:8px;vertical-align:middle;transform:translateY(-2px)}
+.review-loading-dots i{display:block;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.22;animation:reviewFilingDot 1.15s infinite ease-in-out}
+.review-loading-dots i:nth-child(2){animation-delay:.16s}.review-loading-dots i:nth-child(3){animation-delay:.32s}
+.review-filing-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:17px 0}
+.review-filing-board>div{position:relative;overflow:hidden;padding:11px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.025)}
+.review-filing-board>div:after{content:"";position:absolute;left:-45%;bottom:0;width:45%;height:1px;background:linear-gradient(90deg,transparent,var(--accent2),transparent);animation:reviewFilingScan 1.8s infinite ease-in-out}
+.review-filing-board span,.review-filing-board strong{display:block}
+.review-filing-board span{font-size:8px;font-weight:900;letter-spacing:.12em;color:var(--muted)}
+.review-filing-board strong{font-size:11px;margin-top:5px}
+.review-reveal-resolved .review-reveal-copy{animation:reviewCopyArrive .34s ease-out both}
+.review-reveal-resolved .review-reveal-scores{animation:reviewCopyArrive .42s .04s ease-out both}
+.review-reveal-resolved blockquote{animation:reviewCopyArrive .46s .08s ease-out both}
+@keyframes reviewFilingDot{0%,65%,100%{opacity:.22;transform:translateY(0)}32%{opacity:1;transform:translateY(-3px)}}
+@keyframes reviewFilingScan{0%{left:-45%;opacity:0}20%{opacity:.9}80%{opacity:.9}100%{left:100%;opacity:0}}
+@keyframes reviewCopyArrive{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:720px){
+ .review-reveal-wait-grid{gap:16px}
+ .review-filing-copy{font-size:15px;margin-bottom:13px}
+ .review-filing-board{grid-template-columns:1fr;gap:6px;margin:13px 0}
+ .review-filing-board>div{padding:9px 10px}
+}
