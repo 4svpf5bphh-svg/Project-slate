@@ -1,9 +1,36 @@
-const VERSION='4.6.1';
+const VERSION='4.6.2';
 // Temporary v4.6 Project Intelligence QA switch. Keep progression rules intact; remove/disable after testing.
 const PROJECT_INTELLIGENCE_TEST_BYPASS=true;
 const KEY='projectSlateCareer_v2';
 const app=document.getElementById('app'),toast=document.getElementById('toast');
-const genres=['Action Thriller','Psychological Horror','Prestige Drama','Science Fiction','Comedy','Family Adventure','Crime Thriller','Fantasy'];
+const genres=['Action Thriller','Action Comedy','Crime Thriller','Mystery Thriller','Psychological Horror','Supernatural Horror','Prestige Drama','Sports Drama','Comedy','Romantic Comedy','Science Fiction','Fantasy','Superhero','Family Adventure','Adventure','Historical Epic'];
+// Genre affinity lets hybrid/new genres inherit credible experience from neighbouring lanes
+// without pretending that every adjacent credit is identical to direct genre experience.
+const GENRE_AFFINITIES={
+ 'Action Thriller':{'Action Comedy':.78,'Crime Thriller':.58,'Adventure':.52,'Superhero':.76,'Historical Epic':.34},
+ 'Action Comedy':{'Comedy':.84,'Crime Thriller':.42,'Adventure':.48,'Superhero':.56},
+ 'Crime Thriller':{'Mystery Thriller':.82,'Psychological Horror':.38,'Prestige Drama':.46},
+ 'Mystery Thriller':{'Psychological Horror':.56,'Prestige Drama':.42,'Supernatural Horror':.44},
+ 'Psychological Horror':{'Supernatural Horror':.84,'Prestige Drama':.36},
+ 'Supernatural Horror':{'Fantasy':.64,'Mystery Thriller':.44},
+ 'Prestige Drama':{'Sports Drama':.80,'Romantic Comedy':.42,'Historical Epic':.80},
+ 'Sports Drama':{'Action Thriller':.38,'Comedy':.28},
+ 'Comedy':{'Romantic Comedy':.88,'Family Adventure':.34},
+ 'Romantic Comedy':{'Prestige Drama':.42},
+ 'Science Fiction':{'Fantasy':.46,'Superhero':.74,'Adventure':.42},
+ 'Fantasy':{'Superhero':.72,'Family Adventure':.58,'Adventure':.62,'Historical Epic':.42},
+ 'Superhero':{'Adventure':.58,'Family Adventure':.44},
+ 'Family Adventure':{'Adventure':.82},
+ 'Adventure':{'Historical Epic':.56}
+};
+function genreAffinity(a,b){
+ if(!a||!b)return 0;if(a===b)return 1;
+ return Math.max(GENRE_AFFINITIES[a]?.[b]||0,GENRE_AFFINITIES[b]?.[a]||0);
+}
+function genreProfileAffinity(profileGenres,target){
+ const scores=(profileGenres||[]).map(g=>genreAffinity(g,target)).filter(Boolean).sort((a,b)=>b-a);
+ return clamp((scores[0]||0)+(scores[1]||0)*.22,0,1);
+}
 const audienceNames=['Mainstream Adults','Younger Audiences','Families','Genre Fans','Prestige / Arthouse'];
 
 const scriptSeed=[
@@ -21,18 +48,18 @@ const scriptSeed=[
 
 
 const writerSeed=[
- ['Elena Park',88,92,87,63,.85,['Prestige Drama','Crime Thriller'],'Character specialist'],
- ['Jonas Reed',91,74,72,88,1.05,['Action Thriller','Crime Thriller','Science Fiction'],'Structure and momentum'],
- ['Miriam Cole',77,90,94,61,.72,['Prestige Drama','Comedy'],'Dialogue specialist'],
- ['Felix Ward',82,70,75,93,1.15,['Action Thriller','Family Adventure','Fantasy'],'Commercial screenwriter'],
- ['Anika Rao',84,86,81,78,.78,['Psychological Horror','Science Fiction','Prestige Drama'],'Conceptual dramatist'],
- ['Tomás Vega',76,73,84,89,.68,['Comedy','Family Adventure'],'Audience-friendly writer'],
- ['June Mercer',89,80,77,72,.82,['Psychological Horror','Crime Thriller'],'Genre craftsman'],
- ['Liam Okafor',80,88,86,68,.62,['Prestige Drama','Science Fiction'],'Emotional storyteller'],
- ['Maeve Quinn',86,77,73,85,.76,['Fantasy','Family Adventure'],'Worldbuilding specialist'],
- ['Isaac Bell',78,69,79,91,.70,['Action Thriller','Comedy'],'High-concept writer'],
- ['Nadia Stone',83,91,88,70,.74,['Psychological Horror','Prestige Drama'],'Performance-led writer'],
- ['Owen Shah',92,75,70,82,.96,['Science Fiction','Fantasy','Crime Thriller'],'Architectural storyteller']
+ ['Elena Park',88,92,87,63,.85,['Prestige Drama','Crime Thriller','Mystery Thriller','Historical Epic'],'Character specialist'],
+ ['Jonas Reed',91,74,72,88,1.05,['Action Thriller','Crime Thriller','Science Fiction','Superhero'],'Structure and momentum'],
+ ['Miriam Cole',77,90,94,61,.72,['Prestige Drama','Comedy','Romantic Comedy'],'Dialogue specialist'],
+ ['Felix Ward',82,70,75,93,1.15,['Action Thriller','Action Comedy','Family Adventure','Adventure','Fantasy'],'Commercial screenwriter'],
+ ['Anika Rao',84,86,81,78,.78,['Psychological Horror','Supernatural Horror','Science Fiction','Prestige Drama'],'Conceptual dramatist'],
+ ['Tomás Vega',76,73,84,89,.68,['Comedy','Romantic Comedy','Family Adventure','Action Comedy'],'Audience-friendly writer'],
+ ['June Mercer',89,80,77,72,.82,['Psychological Horror','Supernatural Horror','Crime Thriller','Mystery Thriller'],'Genre craftsman'],
+ ['Liam Okafor',80,88,86,68,.62,['Prestige Drama','Sports Drama','Science Fiction','Historical Epic'],'Emotional storyteller'],
+ ['Maeve Quinn',86,77,73,85,.76,['Fantasy','Family Adventure','Adventure','Superhero'],'Worldbuilding specialist'],
+ ['Isaac Bell',78,69,79,91,.70,['Action Thriller','Action Comedy','Comedy','Superhero'],'High-concept writer'],
+ ['Nadia Stone',83,91,88,70,.74,['Psychological Horror','Prestige Drama','Sports Drama','Romantic Comedy'],'Performance-led writer'],
+ ['Owen Shah',92,75,70,82,.96,['Science Fiction','Fantasy','Crime Thriller','Mystery Thriller','Historical Epic'],'Architectural storyteller']
 ];
 
 const rivalSeed=[
