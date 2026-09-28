@@ -26,7 +26,7 @@ let globalBackToTopListenerBound=false;
 function syncGlobalBackToTop(){
  if(typeof window==='undefined'||typeof document==='undefined')return;
  const b=document.getElementById('globalBackToTop');if(!b)return;
- const blocked=!!document.querySelector('.pickerbar')||['setup','filmWrap','legendUnlock','studioMoment','nominations','ceremony'].includes(state.screen);
+ const blocked=!!document.querySelector('.pickerbar')||['setup','filmWrap','legendUnlock','studioMoment','reviewReveal','nominations','ceremony'].includes(state.screen);
  b.classList.toggle('visible',!blocked&&window.scrollY>420);
 }
 function bindGlobalBackToTop(){
@@ -80,6 +80,8 @@ function bind(){
  document.querySelectorAll('[data-agency-influence-talent]').forEach(b=>b.onclick=e=>{e.stopPropagation();useAgencyInfluence(talentById(b.dataset.agencyInfluenceTalent),filmById(b.dataset.agencyInfluenceFilm))});
  document.querySelectorAll('[data-rival-detente]').forEach(b=>b.onclick=e=>{e.stopPropagation();attemptRivalDetente(rivalById(b.dataset.rivalDetente))});
  document.querySelectorAll('[data-retry-ai-review]').forEach(b=>b.onclick=e=>{e.stopPropagation();retryAIReview(filmById(b.dataset.retryAiReview))});
+ const reviewRevealRead=document.getElementById('reviewRevealRead');if(reviewRevealRead)reviewRevealRead.onclick=()=>closeReviewReveal(true);
+ const reviewRevealContinue=document.getElementById('reviewRevealContinue');if(reviewRevealContinue)reviewRevealContinue.onclick=()=>closeReviewReveal(false);
  document.querySelectorAll('[data-open-narrative-settings]').forEach(b=>b.onclick=e=>{e.stopPropagation();state.history=[];state.screen='studio';state.detail=null;state.uiStudioTab='business';state.uiBusinessTab='narrative';requestScrollTop();save();render()});
  const bb=document.getElementById('backBtn');if(bb)bb.onclick=back;
  document.querySelectorAll('[data-pulse-film]').forEach(b=>b.onclick=()=>push('studio',{type:'pulse',id:b.dataset.pulseFilm}));
