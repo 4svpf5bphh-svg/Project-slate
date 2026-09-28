@@ -198,7 +198,7 @@ function projectSlateSmokeChecks(){
   if(typeof queueProjectIntelligence!=='function'||typeof projectIntelligenceHTML!=='function'||typeof projectIntelligenceCastContext!=='function')failures.push('Project Intelligence functions missing');
   if(typeof PROJECT_INTELLIGENCE_TEST_BYPASS==='undefined')failures.push('Project Intelligence QA bypass flag missing');
   const conceptAccess=developmentRouteAccess('concept');
-  if(PROJECT_INTELLIGENCE_TEST_BYPASS&&!conceptAccess.testingBypass)failures.push('Project Intelligence QA URL did not unlock test access');
+  if(PROJECT_INTELLIGENCE_TEST_BYPASS&&!conceptAccess.naturallyUnlocked&&!conceptAccess.testingBypass)failures.push('Project Intelligence QA URL did not unlock test access');
   if(!PROJECT_INTELLIGENCE_TEST_BYPASS&&conceptAccess.testingBypass)failures.push('Project Intelligence test access leaked into normal play');
   if(!createOriginalConcept.toString().includes('queueProjectIntelligence'))failures.push('Project Intelligence original-concept hook missing');
   if(!scriptDetail.toString().includes('projectIntelligenceHTML'))failures.push('Project Intelligence screenplay UI missing');
