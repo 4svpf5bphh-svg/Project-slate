@@ -160,7 +160,7 @@ function projectSlateSmokeChecks(){
  }catch(e){failures.push('v3.13 systems smoke failed'+(e?.message?': '+e.message:''))}
  try{const f=(state.films||[]).find(x=>x.owner==='player');if(f){const id=ensureFilmIdentity(f);if(!id?.archetype||!id?.texture)failures.push('film identity invalid')}if(makeReview.toString().includes('Strong moments, mixed results'))failures.push('legacy repetitive review generator active');if(soundtrackOffers.toString().indexOf('usedTracks')<0)failures.push('music freshness missing')}catch(e){failures.push('v3.14 variation smoke failed')}
  try{
-  const lot=ensureLotState();if((lot.version||0)<4||!lot.pairHistories||!Array.isArray(lot.incidentHistory))failures.push('Lot incident-memory migration missing');
+  const lot=ensureLotState();if((lot.version||0)<5||!lot.pairHistories||!Array.isArray(lot.incidentHistory)||!lot.variety)failures.push('Lot incident/variety migration missing');
   const t=(state.talent||[]).filter(x=>!x.retired).slice(0,2);if(t.length===2){const h=lotPairHistory(t[0],t[1]);if(!h||!Array.isArray(h.films)||!Array.isArray(h.storyIds))failures.push('Lot pair history invalid')}
    if(!Array.isArray(LOT_INCIDENT_LIBRARY)||LOT_INCIDENT_LIBRARY.length<30)failures.push('Lot incident library too small');
    const dog=LOT_INCIDENT_LIBRARY.find(x=>x.id==='doggate'),parking=LOT_INCIDENT_LIBRARY.find(x=>x.id==='parking-war');
@@ -196,6 +196,16 @@ function projectSlateSmokeChecks(){
   if(!save.toString().includes('mirrorCareerToIndexedDB'))failures.push('IndexedDB mirror missing');
   if(!studioBusinessBody.toString().includes("['backup','Backup']"))failures.push('Career Backup UI missing');
  }catch(e){failures.push('v4.5b.1 persistence smoke failed'+(e?.message?': '+e.message:''))}
+
+ try{
+  if(typeof queueProjectIntelligence!=='function'||typeof projectIntelligenceHTML!=='function'||typeof projectIntelligenceCastContext!=='function')failures.push('Project Intelligence functions missing');
+  if(!createOriginalConcept.toString().includes('queueProjectIntelligence'))failures.push('Project Intelligence original-concept hook missing');
+  if(!scriptDetail.toString().includes('projectIntelligenceHTML'))failures.push('Project Intelligence screenplay UI missing');
+  if(!castingPicker.toString().includes('projectIntelligenceCastSignal'))failures.push('Project Intelligence casting context missing');
+  if(!narrativeFilmReviewPacket.toString().includes('projectContext'))failures.push('Project Intelligence not carried into review packet');
+  if(typeof lotNoveltyBrief!=='function'||!lotChooseIncident.toString().includes('settingPenalty')||!lotChooseIncident.toString().includes('shapePenalty'))failures.push('Lot narrative variety weighting missing');
+  if(!lotNoveltyBrief.toString().includes('avoidTopics'))failures.push('Lot novelty brief incomplete');
+ }catch(e){failures.push('v4.6 Project Intelligence / variety smoke failed'+(e?.message?': '+e.message:''))}
 
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
