@@ -40,7 +40,7 @@ const SAVE_BACKUP_KEY=KEY+'_backup';
 const SAVE_META_KEY=KEY+'_meta';
 const PERSISTENCE_DB='projectSlatePersistence';
 const PERSISTENCE_STORE='careers';
-const persistenceRuntime={loadSource:null,loadError:null,saveError:null,recoveryRaw:null,lastSavedAt:null,storagePersisted:null,idbReady:false};
+const persistenceRuntime={loadSource:null,loadError:null,saveError:null,recoveryRaw:null,pendingCandidates:[],lastSavedAt:null,storagePersisted:null,idbReady:false};
 
 function storedCareerCandidate(key){
  const raw=localStorage.getItem(key);if(!raw)return null;
@@ -48,20 +48,31 @@ function storedCareerCandidate(key){
  return {key,raw,parsed};
 }
 function load(){
- let found=null;
+ const candidates=[];
  for(const key of [KEY,SAVE_BACKUP_KEY]){
-  try{const candidate=storedCareerCandidate(key);if(candidate){found=candidate;break}}catch(e){persistenceRuntime.loadError=String(e?.message||e)}
+  try{const candidate=storedCareerCandidate(key);if(candidate)candidates.push(candidate)}catch(e){persistenceRuntime.loadError=String(e?.message||e)}
  }
- if(found){
-  try{
-   const migrated=migrateState(found.parsed);persistenceRuntime.loadSource=found.key===KEY?'primary':'backup';return migrated;
-  }catch(e){
-   persistenceRuntime.loadError=String(e?.message||e);persistenceRuntime.recoveryRaw=found.raw;persistenceRuntime.loadSource='recovery';
-   console.error('Project Slate save migration failed; preserving raw career for recovery.',e);
-   return initialState();
-  }
+ if(candidates.length){
+  persistenceRuntime.pendingCandidates=candidates;
+  persistenceRuntime.loadSource='pending';
+  return candidates[0].parsed;
  }
  persistenceRuntime.loadSource='new';return initialState();
+}
+function finalizeStoredCareerLoad(){
+ const candidates=persistenceRuntime.pendingCandidates||[];if(!candidates.length)return state;
+ const errors=[];
+ for(const candidate of candidates){
+  try{
+   const migrated=migrateState(JSON.parse(candidate.raw));
+   if(!migrated)throw new Error('Migration returned no career state.');
+   state=migrated;persistenceRuntime.loadSource=candidate.key===KEY?'primary':'backup';persistenceRuntime.loadError=null;persistenceRuntime.recoveryRaw=null;persistenceRuntime.pendingCandidates=[];return state;
+  }catch(e){errors.push(String(e?.message||e))}
+ }
+ persistenceRuntime.loadError=errors.join(' · ')||'Stored career could not be migrated.';
+ persistenceRuntime.recoveryRaw=candidates[0]?.raw||null;persistenceRuntime.loadSource='recovery';persistenceRuntime.pendingCandidates=[];
+ console.error('Project Slate save migration failed after all modules loaded; preserving raw career for recovery.',persistenceRuntime.loadError);
+ state=initialState();return state;
 }
 state=load();
 // Lifecycle bootstrap that depends on later-declared module constants is deferred
@@ -93,6 +104,7 @@ async function indexedDBCareer(){
 }
 function save(){
  if(simulationBenchmarkActive)return true;
+ if(persistenceRuntime.loadSource==='pending'||persistenceRuntime.loadSource==='recovery'||persistenceRuntime.recoveryRaw)return false;
  state.version=VERSION;state.saveSchema=SAVE_SCHEMA_VERSION;
  let raw;try{raw=JSON.stringify(state)}catch(e){persistenceRuntime.saveError=String(e?.message||e);console.error('Project Slate could not serialize career',e);return false}
  const meta=persistenceMeta(raw);
