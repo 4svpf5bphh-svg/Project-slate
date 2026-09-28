@@ -185,7 +185,7 @@ function queueProjectIntelligence(s,{force=false,automatic=false}={}){
   if(data.narrative.recognized&&priorAccepted===null&&typeof notify==='function')notify('project-intel:'+s.id,'Project Intelligence · '+(data.narrative.property_name||s.title),'A possible '+data.narrative.relationship+' connection was recognised. Confirm whether Project Slate should use that context.',null,false,'info',{screen:'develop',detail:{type:'script',id:s.id}});
   try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render();return s.projectIntelligence;
  }).catch(err=>{
-  const nextCount=(retryCount||0)+1,canRetry=narrativeErrorRetryable(err)&&nextCount<=NARRATIVE_AUTO_RETRY_LIMIT,nextRetryAt=canRetry?scheduleNarrativeRetry('project_intelligence',s.id,nextCount):null;
+  const nextCount=(retryCount||0)+1,canRetry=narrativeErrorRetryable(err)&&nextCount<=NARRATIVE_AUTO_RETRY_LIMIT,nextRetryAt=canRetry?scheduleNarrativeRetry('project_intelligence',s.id,nextCount):Date.now()+1800000;
   s.projectIntelligence={status:canRetry?'retry_wait':'degraded',accepted:priorAccepted,fingerprint,lastError:String(err?.message||err),failedWeek:state.week,retryCount:nextCount,nextRetryAt};
   narrativeRuntime.lastError=s.projectIntelligence.lastError;try{save()}catch{};if(typeof render==='function'&&state.detail?.type==='script'&&state.detail?.id===s.id)render();return null;
  }).finally(()=>narrativeRuntime.pending.delete(key));
@@ -329,7 +329,7 @@ function queueAIReview(f,{force=false,automatic=false}={}){
   if(typeof render==='function'&&visible)render();
   return store.review;
  }).catch(err=>{
-  const nextCount=(retryCount||0)+1,canRetry=narrativeErrorRetryable(err)&&nextCount<=NARRATIVE_AUTO_RETRY_LIMIT,nextRetryAt=canRetry?scheduleNarrativeRetry('film_review',f.id,nextCount):null;
+  const nextCount=(retryCount||0)+1,canRetry=narrativeErrorRetryable(err)&&nextCount<=NARRATIVE_AUTO_RETRY_LIMIT,nextRetryAt=canRetry?scheduleNarrativeRetry('film_review',f.id,nextCount):Date.now()+1800000;
   store.review={status:canRetry?'retry_wait':'degraded',fingerprint,lastError:String(err?.message||err),failedWeek:state.week,retryCount:nextCount,nextRetryAt};
   narrativeRuntime.lastError=store.review.lastError;try{save()}catch{}
   const visible=(state.detail?.type==='review'&&state.detail?.id===f.id)||state.activeReviewReveal?.filmId===f.id;
