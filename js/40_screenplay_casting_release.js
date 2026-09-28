@@ -20,10 +20,7 @@ function scriptAssessment(s){
 function naturalRange(s){return [Math.round(s.naturalBudget*.85),Math.round(s.naturalBudget*1.15)]}
 function defaultCreative(){return {positioning:'balanced',tone:'balanced',rating:'mainstream',emphasis:'balanced'}}
 function creativeLabel(f){const c=f.creative||defaultCreative();return `${c.positioning} · ${c.tone} · ${c.rating} · ${c.emphasis}`}
-function adjacentGenre(a,b){
- const groups=[['Action Thriller','Crime Thriller'],['Psychological Horror','Crime Thriller'],['Prestige Drama','Crime Thriller'],['Science Fiction','Fantasy'],['Family Adventure','Fantasy'],['Comedy','Family Adventure']];
- return groups.some(g=>g.includes(a)&&g.includes(b));
-}
+function adjacentGenre(a,b){return genreAffinity(a,b)>=.42}
 function directorScaleComfort(t){return clamp(6+(t.commercial-50)*.34+(t.budgetControl-50)*.22+t.fee*1.7,7,48)}
 function fitContributor(key,delta,positive,negative){
  return {key,delta:+delta.toFixed(2),text:delta>=0?positive:negative};
@@ -38,8 +35,10 @@ function strongestFitEvidence(breakdown,max=4){
 function directorProjectFitBreakdown(t,f){
  const sc=scriptById(f.scriptId),c=f.creative||defaultCreative(),contributors=[];let score=58;
  const add=(x)=>{score+=x.delta;contributors.push(x)};
- if(t.genres.includes(f.genre))add(fitContributor('genre',16,`Direct ${f.genre.toLowerCase()} experience is a major positive.`,`Genre experience works against this project.`));
- else if(t.genres.some(g=>adjacentGenre(g,f.genre)))add(fitContributor('genre',4,'Adjacent genre experience provides some useful evidence.',''));
+ const genreFit=genreProfileAffinity(t.genres,f.genre);
+ if(genreFit>=.96)add(fitContributor('genre',16,`Direct or exceptionally strong hybrid ${f.genre.toLowerCase()} experience is a major positive.`,`Genre experience works against this project.`));
+ else if(genreFit>=.74)add(fitContributor('genre',11,'Strong adjacent experience maps convincingly onto this genre.',''));
+ else if(genreFit>=.44)add(fitContributor('genre',5,'Adjacent genre experience provides some useful evidence.',''));
  else add(fitContributor('genre',-12,'',`No meaningful ${f.genre.toLowerCase()} track record is a significant creative risk.`));
  const scale=directorScaleComfort(t);
  if(f.budget>scale*1.25)add(fitContributor('scale',-13,'',`${money(f.budget)} is well above the production scale the studio considers proven for ${t.name}.`));
@@ -72,9 +71,11 @@ function directorProjectFit(t,f){return directorProjectFitBreakdown(t,f).score}
 function actorProjectFitBreakdown(t,f){
  const sc=scriptById(f.scriptId),c=f.creative||defaultCreative(),contributors=[];let score=55;
  const add=(x)=>{score+=x.delta;contributors.push(x)};
- if(t.genres.includes(f.genre))add(fitContributor('genre',15,`Credible ${f.genre.toLowerCase()} experience is a major positive.`,`Genre experience works against this project.`));
- else if(t.genres.some(g=>adjacentGenre(g,f.genre)))add(fitContributor('genre',4,'Adjacent genre experience gives the casting team some supporting evidence.',''));
- else add(fitContributor('genre',-11,'',`No direct ${f.genre.toLowerCase()} evidence makes this a meaningful casting gamble.`));
+ const genreFit=genreProfileAffinity(t.genres,f.genre);
+ if(genreFit>=.96)add(fitContributor('genre',15,`Credible direct or hybrid ${f.genre.toLowerCase()} experience is a major positive.`,`Genre experience works against this project.`));
+ else if(genreFit>=.74)add(fitContributor('genre',10,'Strong adjacent experience maps convincingly onto this role.',''));
+ else if(genreFit>=.44)add(fitContributor('genre',5,'Adjacent genre experience gives the casting team some supporting evidence.',''));
+ else add(fitContributor('genre',-11,'',`No meaningful ${f.genre.toLowerCase()} evidence makes this a casting gamble.`));
  const craft=(t.acting-76)*.18;add(fitContributor('acting',craft,'Acting craft strengthens the case for the role.','Acting craft is below what this material ideally wants.'));
  if(c.positioning==='prestige'||c.emphasis==='performance'){
   const d=(t.acting-78)*.17;add(fitContributor('performanceBrief',d,'The performance-led brief plays to this actor’s strongest evidence.','The performance-led brief asks more of the actor than the current craft evidence supports.'));
@@ -363,13 +364,21 @@ function releaseSeasonFit(genre,week){
  const y=((week-1)%52)+1;
  const bands={
   'Psychological Horror':[[38,45,.055],[1,6,.018]],
+  'Supernatural Horror':[[37,45,.060],[1,6,.016]],
   'Family Adventure':[[24,33,.045],[48,52,.055]],
+  'Adventure':[[20,34,.038],[47,52,.025]],
   'Action Thriller':[[20,34,.038],[46,51,.015]],
+  'Action Comedy':[[18,34,.032],[47,52,.022]],
   'Science Fiction':[[20,34,.045],[46,51,.020]],
   'Fantasy':[[20,34,.040],[47,52,.040]],
+  'Superhero':[[20,34,.050],[46,51,.025]],
   'Prestige Drama':[[41,52,.050],[5,12,.012]],
+  'Historical Epic':[[41,52,.038],[20,32,.020]],
+  'Sports Drama':[[5,14,.026],[34,45,.026]],
   'Comedy':[[18,32,.025],[47,52,.018]],
-  'Crime Thriller':[[5,18,.020],[34,44,.018]]
+  'Romantic Comedy':[[5,10,.035],[18,32,.024],[47,52,.020]],
+  'Crime Thriller':[[5,18,.020],[34,44,.018]],
+  'Mystery Thriller':[[5,18,.022],[34,44,.022]]
  };
  const hits=(bands[genre]||[]).filter(([a,b])=>y>=a&&y<=b);return hits.length?Math.max(...hits.map(x=>x[2])):0;
 }
