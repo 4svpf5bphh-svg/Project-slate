@@ -51,8 +51,12 @@ function bind(){
  document.querySelectorAll('[data-news-id]').forEach(b=>b.onclick=()=>push(state.screen,{type:'news',id:b.dataset.newsId}));
  document.querySelectorAll('[data-rival]').forEach(b=>b.onclick=()=>push('industry',{type:'rival',id:b.dataset.rival}));
  document.querySelectorAll('[data-industry-tab]').forEach(b=>b.onclick=()=>{state.industryTab=b.dataset.industryTab;save();render()});
- document.querySelectorAll('[data-studio-tab]').forEach(b=>b.onclick=()=>{const dest=b.dataset.studioTab;if(['finance','identity','growth','narrative','corporate','audit'].includes(dest)){state.uiStudioTab='business';state.uiBusinessTab=dest}else state.uiStudioTab=dest;save();render()});
+ document.querySelectorAll('[data-studio-tab]').forEach(b=>b.onclick=()=>{const dest=b.dataset.studioTab;if(['finance','identity','growth','backup','narrative','corporate','audit'].includes(dest)){state.uiStudioTab='business';state.uiBusinessTab=dest}else state.uiStudioTab=dest;save();render()});
  document.querySelectorAll('[data-business-tab]').forEach(b=>b.onclick=()=>{state.uiStudioTab='business';state.uiBusinessTab=b.dataset.businessTab;save();render()});
+ const saveCareerNow=document.getElementById('saveCareerNow');if(saveCareerNow)saveCareerNow.onclick=()=>persistenceSaveNow();
+ const exportCareerBackupBtn=document.getElementById('exportCareerBackup');if(exportCareerBackupBtn)exportCareerBackupBtn.onclick=async()=>{try{await exportCareerBackup()}catch(e){showToast('Career backup could not be exported.')}};
+ const importCareerBackup=document.getElementById('importCareerBackup');if(importCareerBackup)importCareerBackup.onchange=async()=>{const file=importCareerBackup.files?.[0];if(!file)return;if(!confirm('Restore this Project Slate career backup? The currently loaded career will be replaced.')){importCareerBackup.value='';return}try{await importCareerBackupFile(file);location.reload()}catch(e){showToast(e?.message||'Career backup could not be restored.');importCareerBackup.value=''}};
+
  const saveNarrativeEndpoint=document.getElementById('saveNarrativeEndpoint');if(saveNarrativeEndpoint)saveNarrativeEndpoint.onclick=()=>{const input=document.getElementById('narrativeEndpointInput');setNarrativeEndpointValue(input?.value||'');showToast(narrativeEndpoint()?'Narrative API endpoint saved.':'Narrative API endpoint cleared.');render()};
  const testNarrativeEndpoint=document.getElementById('testNarrativeEndpoint');if(testNarrativeEndpoint)testNarrativeEndpoint.onclick=async()=>{testNarrativeEndpoint.disabled=true;testNarrativeEndpoint.textContent='Testing…';await testNarrativeConnection();render()};
  document.querySelectorAll('[data-desk-tab]').forEach(b=>b.onclick=()=>{state.uiDeskTab=b.dataset.deskTab;save();render()});
