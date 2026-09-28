@@ -83,6 +83,37 @@ function soundtrackStrategyInfo(f,strategy,trackId=null){
  const band=fit>=82?{label:'Inspired fit',cls:'good'}:fit>=70?{label:'Strong fit',cls:'blue'}:fit>=58?{label:'Workable',cls:'warn'}:{label:'Creative risk',cls:'bad'};
  return {strategy,track,fit,cost,label,desc,...band};
 }
+function soundtrackTrackRecency(f,t){
+ const recent=playerFilms().filter(x=>x.id!==f.id&&x.soundtrack?.committed).sort((a,b)=>(b.soundtrack?.committedWeek||0)-(a.soundtrack?.committedWeek||0)).slice(0,5);
+ return {trackUsed:recent.some(x=>x.soundtrack?.trackId===t?.id),artistUsed:recent.some(x=>x.soundtrack?.trackArtist===t?.artist)};
+}
+function soundtrackChoiceRead(f,strategy,trackId=null){
+ const info=soundtrackStrategyInfo(f,strategy,trackId),track=info.track,c=f.creative||defaultCreative(),id=ensureFilmIdentity(f),tags=[],tradeoffs=[];
+ let headline='A viable music direction for this cut.';
+ if(strategy==='original'){
+  headline=info.fit>=78?'Best for giving this film its own musical identity':'A bespoke score keeps the film cohesive without borrowing a familiar identity';
+  tags.push('Own musical identity');if(c.positioning==='prestige'||c.emphasis==='performance')tags.push('Supports critical craft');if(info.fit>=78)tags.push('Tone-led');
+  tradeoffs.push('No built-in audience familiarity or signature-song campaign hook.');
+ }else if(strategy==='minimal'){
+  headline=c.tone==='grounded'||c.positioning==='prestige'?'A restrained choice that lets the film do the talking':'The low-cost choice, with less music pushing the audience';
+  tags.push('Low cost');tags.push('Scene-first');if(c.tone==='grounded')tags.push('Grounded approach');
+  tradeoffs.push(c.emphasis==='spectacle'?'This film is asking for scale; a restrained plan may make the finish feel smaller.':'Little campaign value and a deliberately lighter musical identity.');
+ }else if(track){
+  const genre=genreProfileAffinity(track.genres,f.genre),tone=track.tones.includes(c.tone),recency=soundtrackTrackRecency(f,track);
+  headline=genre>=.72&&tone?`Fits the film's ${c.tone} ${f.genre.toLowerCase()} identity`:tone?'Matches the chosen tone even if the genre connection is less direct':genre>=.72?'Strong genre connection with a different tonal flavour':'A deliberate left-field musical choice';
+  if(genre>=.72)tags.push('Genre match');if(tone)tags.push('Tone match');if(track.familiarity>=86)tags.push('Campaign friendly');if(/playful|bright|kinetic|propulsive|chaotic|soaring|rebellious/i.test(track.mood)&&['Action Comedy','Comedy','Adventure','Superhero'].includes(f.genre))tags.push('Crowd energy');
+  if(strategy==='hybrid')tags.push('Score + song');
+  if(track.license>=1.05)tradeoffs.push('Expensive licence at '+money(track.license)+'.');else tradeoffs.push('Licence cost '+money(track.license)+'.');
+  if(recency.trackUsed)tradeoffs.push('This exact song appeared on a recent studio film.');else if(recency.artistUsed)tradeoffs.push(track.artist+' was used on a recent studio film.');
+  if(track.familiarity>=90)tradeoffs.push('A very familiar song can dominate the film’s own identity if overused.');
+  if(strategy==='hybrid')tradeoffs.push('Highest music spend, but the score preserves cohesion around the needle drop.');
+ }else{
+  headline=strategy==='hybrid'?'Choose a signature song to define the public-facing side of the score':'Choose a signature song before judging this direction';
+  tags.push('Song required');tradeoffs.push('The final creative read depends on the selected track.');
+ }
+ if(!tags.length)tags.push(id.texture||'Film-specific');
+ return {info,headline,tags:[...new Set(tags)].slice(0,4),tradeoffs:[...new Set(tradeoffs)].slice(0,3)};
+}
 function soundtrackReleaseModifiers(f){
  if(!f?.soundtrack?.committed)return {critics:0,audience:0,awareness:0,legs:0};
  const s=f.soundtrack,fit=s.fit||60,q=(fit-60)/20;let critics=0,audience=0,awareness=0,legs=0;
@@ -109,12 +140,19 @@ function commitSoundtrack(f){
  save();render();
 }
 function soundtrackPostUI(f){
- ensureSoundtrackState(f);if(f.soundtrack?.committed){const s=f.soundtrack,mods=soundtrackReleaseModifiers(f);return `<div class="section-title"><h2>Music & soundtrack</h2><span class="pill good">Locked</span></div><div class="card goodline"><div class="row"><div><strong>${soundtrackSummary(f)}</strong><div class="small">Creative fit ${Math.round(s.fit)} · ${money(s.cost)} committed</div></div><span class="pill good">Music locked</span></div><div class="small" style="margin-top:8px">The music plan now feeds into finished-film reception and, where relevant, pre-release awareness. It does not consume a major post intervention.</div></div>`}
+ ensureSoundtrackState(f);
+ if(f.soundtrack?.committed){
+  const s=f.soundtrack,read=soundtrackChoiceRead(f,s.strategy,s.trackId);
+  return `<div class="section-title"><h2>Music & soundtrack</h2><span class="pill good">Locked</span></div><div class="card goodline music-locked-card"><div class="row"><div><strong>${soundtrackSummary(f)}</strong><div class="small">${money(s.cost)} committed</div></div><span class="pill good">Music locked</span></div><div class="music-choice-headline">${read.headline}</div><div class="music-tag-row">${read.tags.map(x=>`<span class="pill blue">${x}</span>`).join('')}</div>${read.tradeoffs.length?`<div class="music-tradeoff"><strong>Trade-off</strong><span>${read.tradeoffs.join(' ')}</span></div>`:''}</div>`;
+ }
  const p=ensurePostState(f),draft=p.musicDraft||{strategy:'original',trackId:null},offers=soundtrackOffers(f),strategies=['original','needle','hybrid','minimal'];
- const cards=strategies.map(id=>{const info=soundtrackStrategyInfo(f,id,draft.trackId);return `<button class="card music-strategy selection-card ${draft.strategy===id?'selected-choice':''}" data-music-strategy="${id}" aria-pressed="${draft.strategy===id?'true':'false'}">${draft.strategy===id?'<div class="selected-choice-badge">✓ Selected music strategy</div>':''}<div class="row"><strong>${info.label}</strong><span class="pill ${info.cls}">${info.label==='Original score'?Math.round(info.fit)+' fit':info.label==='Minimal / source music'?Math.round(info.fit)+' fit':info.track?Math.round(info.fit)+' fit':'Choose song'}</span></div><div class="small" style="margin-top:7px">${info.desc}</div><div class="small" style="margin-top:7px"><strong>${money(info.cost)}</strong>${['needle','hybrid'].includes(id)&&!draft.trackId?' + song selection':''}</div></button>`}).join('');
- const songs=['needle','hybrid'].includes(draft.strategy)?`<div class="section-title"><h2>Signature song shortlist</h2><span class="small">${offers.length} deterministic music-supervisor options for this film</span></div><div class="grid">${offers.map(({track,fit})=>`<button class="card selection-card ${draft.trackId===track.id?'selected-choice':''}" data-music-track="${track.id}" aria-pressed="${draft.trackId===track.id?'true':'false'}">${draft.trackId===track.id?'<div class="selected-choice-badge">✓ Selected song</div>':''}<div class="row"><div><strong>${track.artist}</strong><div class="small">“${track.title}” · ${track.mood}</div></div><span class="pill ${fit>=82?'good':fit>=70?'blue':fit>=58?'warn':'bad'}">Fit ${fit}</span></div><div class="small" style="margin-top:7px">Licence ${money(track.license)} · familiarity ${track.familiarity}/100 · ${ensureFilmIdentity(f).texture} film fit</div></button>`).join('')}</div>`:'';
- const preview=soundtrackStrategyInfo(f,draft.strategy,draft.trackId);
- return `<div class="section-title"><h2>Music & soundtrack</h2><span class="small">Required before picture lock · does not use an intervention</span></div><div class="grid cols2">${cards}</div>${songs}<div class="card music-commit-card ${preview.fit>=82?'goodline':''}" style="margin-top:12px"><div class="row"><div><strong>${preview.label}</strong><div class="small">Creative fit ${Math.round(preview.fit)} · ${money(preview.cost)}</div></div><span class="pill ${preview.cls}">${preview.label==='Licensed signature song'||preview.label.startsWith('Hybrid')?(preview.track?`${preview.track.artist} · ${preview.track.title}`:'Song required'):preview.label}</span></div><div class="body" style="margin-top:8px">Music can improve or undermine the finished film depending on fit. Recognisable songs can also add release awareness — but familiarity is not a substitute for creative fit.</div><button id="commitSoundtrack" class="btn primary block" style="margin-top:10px" ${['needle','hybrid'].includes(draft.strategy)&&!draft.trackId?'disabled':''}>Commit music plan · ${money(preview.cost)}</button></div>`;
+ const cards=strategies.map(id=>{
+  const read=soundtrackChoiceRead(f,id,draft.trackId),info=read.info;
+  return `<button class="card music-strategy selection-card ${draft.strategy===id?'selected-choice':''}" data-music-strategy="${id}" aria-pressed="${draft.strategy===id?'true':'false'}">${draft.strategy===id?'<div class="selected-choice-badge">✓ Selected music strategy</div>':''}<div class="row"><strong>${info.label}</strong><strong>${money(info.cost)}</strong></div><div class="music-choice-headline">${read.headline}</div><div class="music-tag-row">${read.tags.map(x=>`<span class="pill blue">${x}</span>`).join('')}</div><div class="small music-choice-desc">${info.desc}</div>${read.tradeoffs.length?`<div class="music-tradeoff"><strong>What you give up</strong><span>${read.tradeoffs[0]}</span></div>`:''}</button>`;
+ }).join('');
+ const songs=['needle','hybrid'].includes(draft.strategy)?`<div class="section-title"><h2>Signature song shortlist</h2><span class="small">Pick the musical job you want the song to do — not the highest hidden score</span></div><div class="grid">${offers.map(({track})=>{const read=soundtrackChoiceRead(f,draft.strategy,track.id);return `<button class="card selection-card music-track-card ${draft.trackId===track.id?'selected-choice':''}" data-music-track="${track.id}" aria-pressed="${draft.trackId===track.id?'true':'false'}">${draft.trackId===track.id?'<div class="selected-choice-badge">✓ Selected song</div>':''}<div class="row"><div><strong>${track.artist}</strong><div class="small">“${track.title}” · ${track.mood}</div></div><strong>${money(track.license)}</strong></div><div class="music-choice-headline">${read.headline}</div><div class="music-tag-row">${read.tags.map(x=>`<span class="pill blue">${x}</span>`).join('')}</div>${read.tradeoffs.length?`<div class="music-tradeoff"><strong>Trade-off</strong><span>${read.tradeoffs.join(' ')}</span></div>`:''}</button>`}).join('')}</div>`:'';
+ const preview=soundtrackChoiceRead(f,draft.strategy,draft.trackId),info=preview.info;
+ return `<div class="section-title"><h2>Music & soundtrack</h2><span class="small">Required before picture lock · choose what the music should do for the film</span></div><div class="card music-explainer"><strong>There is no single correct colour.</strong><div class="small" style="margin-top:5px">A score can protect cohesion, a famous song can help the campaign, and restraint can preserve tone and cash. The labels below explain the trade rather than grading your choice.</div></div><div class="grid cols2" style="margin-top:12px">${cards}</div>${songs}<div class="card music-commit-card" style="margin-top:12px"><div class="row"><div><strong>${info.label}</strong><div class="small">${money(info.cost)} total music commitment</div></div><span class="pill">${info.track?`${info.track.artist} · ${info.track.title}`:['needle','hybrid'].includes(draft.strategy)?'Song required':'Ready'}</span></div><div class="music-choice-headline">${preview.headline}</div><div class="music-tag-row">${preview.tags.map(x=>`<span class="pill blue">${x}</span>`).join('')}</div>${preview.tradeoffs.length?`<div class="music-tradeoff"><strong>Trade-off</strong><span>${preview.tradeoffs.join(' ')}</span></div>`:''}<button id="commitSoundtrack" class="btn primary block" style="margin-top:10px" ${['needle','hybrid'].includes(draft.strategy)&&!draft.trackId?'disabled':''}>Commit music plan · ${money(info.cost)}</button></div>`;
 }
 // Observational production story: one entry per shoot week, with no extra
 // decisions or stat changes. Entries survive in the completed film's record.
@@ -126,6 +164,14 @@ function recordProductionDaily(f){
  const d=director?.name||'The director',l=lead?.name||'The lead',pool=[];
  const add=(topic,...lines)=>lines.forEach(text=>pool.push({topic,text}));
  const pw=Math.max(1,f.productionWeek||1),progress=f.productionStart&&f.productionEnd?clamp((state.week-f.productionStart+1)/Math.max(1,f.productionEnd-f.productionStart+1),0,1):.5;
+ const untested=typeof untestedPrincipalRoles==='function'?untestedPrincipalRoles(f):[];
+ if(untested.length&&pw>=2&&!journal.some(x=>x.topic==='castingGamble')){
+  const names=untested.map(x=>x.talent?.name||x.role?.name).filter(Boolean),subject=names.length===1?names[0]:names.join(' and ');let text='';
+  if((m.performances||0)>=80)text=`The studio greenlit ${subject} without role-specific screen-test evidence. The early performance footage is making that gamble look increasingly well judged.`;
+  else if((m.performances||0)<60)text=`The studio chose not to screen test ${subject} for these roles. The concern left unanswered at greenlight is now visible in uneven performance footage.`;
+  else if(pw>=3)text=`The studio greenlit ${subject} without screen tests. The footage is competent enough that the gamble has not hurt the film, but the dailies still have not turned it into an obvious advantage.`;
+  if(text){journal.push({week,productionWeek:f.productionWeek,text,topic:'castingGamble',mood:(m.performances||0)>=80?'steady':(m.performances||0)<60?'strained':'mixed'});if(journal.length>24)journal.shift();return}
+ }
  if(pw<=2)add('start',`${d} is still establishing the rhythm of the unit; the early footage is more about coverage than verdicts.`,`The first blocks are in the can. Editorial is seeing enough to spot texture, but not enough to call the film yet.`,`The shoot is still finding its working tempo. Nothing in the rushes is forcing a studio intervention.`);
  else if(progress>.72)add('finish',`The unit has moved into the back stretch. ${d} is protecting the scenes the cut will need rather than chasing extra coverage.`,`With the finish line in sight, the dailies are becoming more coherent: there is now enough footage to see the film's shape.`,`The production team is starting to talk in terms of what the edit already has, not simply what remains on the call sheet.`);
  else add('middle',`The shoot has settled into its working rhythm; the dailies are beginning to reveal which choices are surviving from page to screen.`,`There is enough footage now for patterns to emerge. The current material feels more like a film than a collection of successful shooting days.`,`Editorial is seeing a consistent visual and performance language across the material coming in this week.`);
