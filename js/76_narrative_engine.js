@@ -156,9 +156,9 @@ function reviewRevealScreen(){
  const d=reviewDisplayContent(f),critic=f.review.critic||{},score=f.review.critics||0,tone=score>=80?'great':score<55?'bad':score<70?'warn':'neutral';
  return '<div class="review-reveal review-reveal-'+tone+'"><div class="review-reveal-inner">'+
   '<div class="review-reveal-mast"><div><span>THE</span><strong>DAILY SCREEN</strong></div><small>REVIEW DROP · '+narrativeEscapeHTML(typeof calendarDateLabel==='function'?calendarDateLabel(state.calendarDay):'WEEK '+state.week)+'</small></div>'+
-  '<div class="review-reveal-grid"><div class="review-reveal-art">'+filmKeyArtHTML(f,'hero')+'</div><div class="review-reveal-copy"><div class="event-super">THE REVIEWS ARE IN</div><div class="review-reveal-film">'+narrativeEscapeHTML(f.title)+'</div><h1>'+narrativeEscapeHTML(d.headline||'The Daily Screen review')+'</h1>'+
+  '<div class="review-reveal-grid"><div class="review-reveal-art">'+filmKeyArtHTML(f,'hero')+'</div><div class="review-reveal-copy"><div class="event-super">THE REVIEWS ARE IN</div><div class="review-reveal-film">'+narrativeEscapeHTML(f.title)+'</div><h1>'+(d.headline||'The Daily Screen review')+'</h1>'+
   '<div class="review-reveal-scores"><div><span>DAILY SCREEN</span><strong>'+Number(f.review.stars||0).toFixed(1)+' ★</strong></div><div><span>CRITICS</span><strong>'+score+'%</strong></div><div><span>AUDIENCE</span><strong>'+Number(f.review.audience||0)+'%</strong></div></div>'+
-  '<blockquote>“'+narrativeEscapeHTML(d.quote||f.review.quote||'')+'”</blockquote>'+
+  '<blockquote>“'+(d.quote||narrativeEscapeHTML(f.review.quote||''))+'”</blockquote>'+
   '<div class="review-reveal-byline">By <strong>'+narrativeEscapeHTML(critic.name||'Staff Critic')+'</strong> · '+narrativeEscapeHTML(critic.title||'Film Critic')+'</div>'+
   '<div class="review-reveal-actions"><button class="btn primary" id="reviewRevealRead">Read the full review</button><button class="btn ghost" id="reviewRevealContinue">Back to release</button></div></div></div>'+
   '<div class="review-reveal-foot">AI writes the copy. Project Slate’s simulation owns the verdict.</div></div></div>';
