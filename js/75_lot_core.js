@@ -3,8 +3,8 @@
 // fictional in-game personality, relationships, memories and alternate-Hollywood events.
 
 function ensureLotState(st=state){
- st.lot=st.lot||{version:4,profiles:{},relationships:{},pairHistories:{},memories:[],stories:[],history:[],incidentHistory:[],lastIncidentWeek:0};
- st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.pairHistories=st.lot.pairHistories||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];st.lot.incidentHistory=st.lot.incidentHistory||[];
+ st.lot=st.lot||{version:5,profiles:{},relationships:{},pairHistories:{},memories:[],stories:[],history:[],incidentHistory:[],variety:{recent:[]},lastIncidentWeek:0};
+ st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.pairHistories=st.lot.pairHistories||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];st.lot.incidentHistory=st.lot.incidentHistory||[];st.lot.variety=st.lot.variety||{recent:[]};st.lot.variety.recent=st.lot.variety.recent||[];
  if((st.lot.version||1)<2)Object.entries(st.lot.profiles).forEach(([id,p])=>{const t=(st.talent||[]).find(x=>x.id===id);if(t&&p)p.alias=t.name});
  if((st.lot.version||1)<3){
   st.lot.stories.forEach(s=>{s.chapters=s.chapters||[];s.phase=s.active?'active':'resolved';s.timesResurfaced=s.timesResurfaced||0;s.lastChapterWeek=s.lastChapterWeek||s.lastWeek||s.startedWeek});
@@ -14,6 +14,12 @@ function ensureLotState(st=state){
   st.lot.incidentHistory=st.lot.incidentHistory||[];
   Object.values(st.lot.pairHistories||{}).forEach(h=>{h.incidents=h.incidents||[];h.lastIncidentWeek=h.lastIncidentWeek||0});
   st.lot.version=4;
+ }
+ if((st.lot.version||1)<5){
+  st.lot.variety=st.lot.variety||{recent:[]};st.lot.variety.recent=st.lot.variety.recent||[];
+  st.lot.incidentHistory.forEach(x=>{if(!x.variety)x.variety=lotIncidentVarietyFromEntry(x)});
+  st.lot.variety.recent=st.lot.incidentHistory.slice(0,24).map(x=>x.variety).filter(Boolean);
+  st.lot.version=5;
  }
  return st.lot;
 }
