@@ -42,13 +42,13 @@ function ensureSoundtrackState(f){
 }
 function soundtrackOriginalFit(f){
  const c=f.creative||defaultCreative();let v=64;
- if(['Prestige Drama','Fantasy','Science Fiction','Psychological Horror'].includes(f.genre))v+=7;
+ if(['Prestige Drama','Historical Epic','Fantasy','Science Fiction','Psychological Horror','Supernatural Horror'].includes(f.genre))v+=7;
  if(c.positioning==='prestige')v+=7;if(c.emphasis==='performance')v+=3;if(c.tone==='grounded')v+=2;
  return clamp(v,42,91);
 }
 function soundtrackTrackFit(f,t){
  if(!t)return 0;const c=f.creative||defaultCreative();let v=43;
- if(t.genres.includes(f.genre))v+=27;else if((f.genre.includes('Thriller')&&t.genres.some(g=>g.includes('Thriller'))))v+=13;
+ const genreFit=genreProfileAffinity(t.genres,f.genre);v+=Math.round(genreFit*27);
  if(t.tones.includes(c.tone))v+=9;
  if(c.emphasis==='spectacle'&&/kinetic|propulsive|relentless|explosive|soaring/i.test(t.mood))v+=6;
  if(c.positioning==='prestige'&&/intimate|cerebral|reflective|atmospheric|minimal/i.test(t.mood))v+=5;
@@ -79,7 +79,7 @@ function soundtrackStrategyInfo(f,strategy,trackId=null){
  if(strategy==='original'){cost=+(.55+Math.min(1.15,f.budget*.024)).toFixed(2);label='Original score';desc='Commission a bespoke score shaped around the finished cut. Strongest for cohesion and critical craft; little pre-existing awareness.'}
  if(strategy==='needle'){fit=track?soundtrackTrackFit(f,track):55;cost=+(.25+(track?.license||0)).toFixed(2);label='Licensed signature song';desc='Build the music identity around a recognisable needle drop. More audience familiarity and campaign utility, but expensive and fit matters.'}
  if(strategy==='hybrid'){const tf=track?soundtrackTrackFit(f,track):55;fit=Math.round(originalFit*.42+tf*.58);cost=+(.62+(track?.license||0)*.82).toFixed(2);label='Hybrid score + signature song';desc='Use an original score for cohesion and one recognisable song as a public-facing musical hook. Highest cost, broadest upside.'}
- if(strategy==='minimal'){fit=58+(f.creative?.tone==='grounded'?10:0)+(f.creative?.positioning==='prestige'?7:0)+(f.genre==='Psychological Horror'?5:0)-(f.creative?.emphasis==='spectacle'?10:0);fit=Math.round(clamp(fit,35,88))}
+ if(strategy==='minimal'){fit=58+(f.creative?.tone==='grounded'?10:0)+(f.creative?.positioning==='prestige'?7:0)+(['Psychological Horror','Supernatural Horror'].includes(f.genre)?5:0)-(f.creative?.emphasis==='spectacle'?10:0);fit=Math.round(clamp(fit,35,88))}
  const band=fit>=82?{label:'Inspired fit',cls:'good'}:fit>=70?{label:'Strong fit',cls:'blue'}:fit>=58?{label:'Workable',cls:'warn'}:{label:'Creative risk',cls:'bad'};
  return {strategy,track,fit,cost,label,desc,...band};
 }
