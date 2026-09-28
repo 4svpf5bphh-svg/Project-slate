@@ -191,6 +191,11 @@ function surfacePendingLegendUnlock(){
 }
 function enforceActiveSignatureRoute(){
  if(!state.studio||state.screen==='setup')return false;
+ if(state.activeReviewReveal){
+  const rf=filmById(state.activeReviewReveal.filmId);
+  if(rf?.review){state.screen='reviewReveal';state.detail=null;state.history=[];requestScrollTop();return true}
+  state.activeReviewReveal=null;
+ }
  if(state.activeLegendUnlockId){
   if(legendUnlocked(state.activeLegendUnlockId)&&legendEntryById(state.activeLegendUnlockId)){state.screen='legendUnlock';state.detail=null;state.history=[];requestScrollTop();return true}
   state.activeLegendUnlockId=null;
