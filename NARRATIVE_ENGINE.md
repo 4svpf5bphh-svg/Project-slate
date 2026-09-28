@@ -86,3 +86,20 @@ The same endpoint can later accept additional content types without becoming sta
 
 ## v4.5c review reveal
 AI reviews now pass a deterministic quality-control check for simulation-language leaks and verdict mismatch. A failed draft is rewritten once automatically. When a review completes, Project Slate surfaces a full-screen Daily Screen review drop with headline, pull quote, critic identity, stars, critic score and audience score before the player opens the full article.
+
+
+## v4.6 — Project Intelligence
+
+Player-created Original Concepts now make one optional Narrative Engine request after funding. The request contains only the title, genre, logline, synopsis and high-level project context. The model returns conservative structured recognition rather than prose.
+
+Recognition can identify a likely sequel, continuation, remake, reboot, spin-off or adaptation and may return a small set of widely associated legacy titles, talent and franchise identity signals. Ambiguous projects are expected to return as original/unrecognised.
+
+A recognised property is never automatically activated. The player explicitly chooses **Use recognised context** or **Treat as original**. Accepted context is then available to later narrative packets and deterministic casting comparison. For example, a recognised legacy property can distinguish a legacy return, partial return or full recast without another AI request.
+
+Project Intelligence is creative context only. It does not alter screenplay quality, box office, talent acceptance, legal ownership, licensing or real-world rights status.
+
+## v4.6 — Narrative Variety Foundation
+
+The Lot now maintains narrative-variety memory across incident ID, family, setting, story shape and topic. Incident selection strongly prefers unseen material, penalises recently used dimensions and will allow a quiet week rather than bypass cooldown rules simply to force an event.
+
+Each deterministic Lot incident also stores a compact narrative seed containing its tier, family, tags, setting, shape, participants, relationship state, deterministic consequence and a dynamic novelty brief. This is the contract for a later generative-Lot layer: the simulation will decide what happened mechanically, while the Narrative Engine invents fresh specific expression without repeating recent subjects or joke structures.
