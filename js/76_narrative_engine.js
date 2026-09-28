@@ -285,7 +285,7 @@ function queueReviewReveal(f){
  const q=ensureReviewRevealState(),token=f.review.revealToken||(f.review.revealToken='review:'+f.id+':'+(f.releaseWeek||state.week)+':'+(f.review.critics||0)+':'+(f.review.audience||0));
  if(f.review.lastRevealToken===token||q.some(i=>i.filmId===f.id&&i.token===token)||state.activeReviewReveal?.token===token)return false;
  q.push({filmId:f.id,token,week:state.week});
- return surfacePendingReviewReveal();
+ return typeof surfaceNextSignatureMoment==='function'?surfaceNextSignatureMoment():surfacePendingReviewReveal();
 }
 function surfacePendingReviewReveal(){
  const q=ensureReviewRevealState();
