@@ -181,7 +181,7 @@ function unlockLegend(entry,retroactive=false){
 function checkLegendsArchive(retroactive=false){
  if(!state.studio||!state.careerStarted)return [];
  const a=ensureLegendsArchive(),out=[];LEGEND_ARCHIVE.forEach(entry=>{if(!a.unlocked[entry.id]&&legendRequirementProgress(entry).done&&unlockLegend(entry,retroactive))out.push(entry.id)});a.initialized=true;
- if(out.length&&!retroactive&&!legendUnlockBlocked()&&!state.activeLegendUnlockId)surfacePendingLegendUnlock();
+ if(out.length&&!retroactive&&typeof surfaceNextSignatureMoment==='function')surfaceNextSignatureMoment();
  return out;
 }
 function legendUnlockBlocked(){return !!state.pendingCeremony||!!state.pendingAwardsNominations||!!state.activeFilmWrapId||!!state.activeStudioMoment||state.screen==='ceremony'||state.screen==='nominations'||state.screen==='filmWrap'||state.screen==='studioMoment'}
@@ -1865,7 +1865,7 @@ function runTestScreen(f){
  const ordered=Object.entries(f.post.testSegments).sort((a,b)=>b[1]-a[1]),best=ordered[0],weak=ordered.at(-1),spread=best[1]-weak[1];
  f.post.testFinding={best,weak,spread,overall:f.testScore};
  queueStudioMoment(f,'testScreening',{kicker:'AUDIENCE RESEARCH',title:`${f.title} meets its first audience`,tone:f.testScore>=76?'great':f.testScore<56?'bad':'neutral',result:f.testScore>=76?'strong':f.testScore<56?'soft':'mixed',summary:f.testScore>=76?'The screening found a genuinely enthusiastic audience.':f.testScore<56?'The room exposed problems the internal team can no longer dismiss.':'The screening produced useful evidence without a clean consensus.',stats:[['Overall',`${Math.round(f.testScore)}%`],['Strongest',`${best[0]} · ${Math.round(best[1])}%`],['Weakest',`${weak[0]} · ${Math.round(weak[1])}%`]],sections:[{title:'What the room told you',text:spread>=24?`Response is sharply segmented: ${best[0]} connected strongly while ${weak[0]} struggled. The film may have a clearer niche than the studio expected.`:`Responses are relatively consistent across audience groups, which makes the overall result more trustworthy.`},{title:'What changes now',text:'The numbers do not automatically change the film. They give you evidence for the remaining post-production decisions — or a reason to trust the cut as it is.'}]});
- surfacePendingStudioMoment();save();render();
+ if(typeof surfaceNextSignatureMoment==='function')surfaceNextSignatureMoment();save();render();
 }
 function skipTest(f){f.tested=false;save();render()}
 function availablePostActions(f){
@@ -1953,7 +1953,7 @@ function lockCut(f){
  // then keep it as a hard calendar checkpoint until the player commits a release plan.
  queueStudioMoment(f,'releasePlanning',{kicker:'PICTURE LOCKED',title:`${f.title} is ready to go to market`,tone:'neutral',result:'RELEASE PLANNING',summary:'The film is finished. The next decision is how to position it, how much to spend, and when to release it.',stats:[['Final runtime',`${f.post.runtime} min`],['Stage','Marketing'],['Calendar','Paused for release planning']],sections:[{title:'What happens now',text:'Choose the trailer approach, publicity plan, launch strategy, distribution route and release date. Time will not move again until that plan is committed.'},{title:'Why the calendar is paused',text:'A finished film should never lose campaign weeks because release planning was missed. This is now a mandatory studio checkpoint.'}]});
  rebuildDecisions();
- if(surfacePendingStudioMoment()){save();render();return}
+ if(typeof surfaceNextSignatureMoment==='function'&&surfaceNextSignatureMoment()){save();render();return}
  save();render();
 }
 
@@ -2951,11 +2951,7 @@ function continueToNextEvent(){
 
 
 function surfaceDecisionInterrupt(){
- if(enforceActiveSignatureRoute())return true;
- if(state.pendingCeremony){state.screen='ceremony';state.detail=null;state.history=[];return true}
- if(state.pendingAwardsNominations){state.screen='nominations';state.detail=null;state.history=[];return true}
- if(surfacePendingLegendUnlock())return true;if(surfacePendingFilmWrap())return true;if(surfacePendingStudioMoment())return true;
- if(typeof ensureDesk==='function'){const item=ensureDesk().items.find(x=>!x.resolved&&x.requiresAction);if(item){state.screen='studio';state.uiStudioTab='desk';state.uiDeskTab='briefing';state.detail=null;state.history=[];requestScrollTop();return true}}
+ if(surfaceNextSignatureMoment({includeUrgentDesk:true}))return true;
  rebuildDecisions();const d=state.decisions.find(x=>['production','post','marketing','campaign'].includes(x.type));if(d){routeToHardBlocker(d,true);return true}
  return false;
 }
