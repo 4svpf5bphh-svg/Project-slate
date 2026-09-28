@@ -1,4 +1,4 @@
-// Project Slate v4.5a — stateless Narrative Engine API
+// Project Slate v4.6.3 — stateless Narrative Engine API
 // Designed for a Vercel deployment. The API key lives only in server environment variables.
 
 const PROVIDER=(process.env.NARRATIVE_PROVIDER||'groq').toLowerCase();
@@ -31,6 +31,8 @@ function setCors(req,res){
   if(origin&&allowedOrigin(origin,host)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}
   res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  res.setHeader('Access-Control-Expose-Headers','Retry-After');
+  res.setHeader('Cache-Control','no-store');
 }
 function outputText(data){
   if(typeof data?.output_text==='string')return data.output_text;
