@@ -928,8 +928,8 @@ function contractQuote(f,t,draft=contractDraftFor(f,t.id)){
  const backend=clamp(Number(draft.backend)||0,0,contractBackendMax(t)),producerCredit=t.type==='Director'&&!!draft.producerCredit;
  let upfront=set.flat*(1-contractBackendDiscount(t,backend));
  let franchiseTerm=t.type==='Actor'?(draft.franchiseTerm||'none'):'none',futureFee=null,futureBackend=0,sequelOption=false,guaranteedReturn=false;
- if(franchiseTerm==='option'){upfront*=1.06;futureFee=+(set.flat*1.25).toFixed(2);futureBackend=backend;sequelOption=true}
- else if(franchiseTerm==='guaranteed'){upfront*=1.12;futureFee=+(set.flat*1.18).toFixed(2);futureBackend=backend;guaranteedReturn=true}
+ if(franchiseTerm==='option'){upfront*=.95;futureFee=+(set.flat*1.25).toFixed(2);futureBackend=backend;sequelOption=true}
+ else if(franchiseTerm==='guaranteed'){upfront*=.88;futureFee=+(set.flat*1.18).toFixed(2);futureBackend=backend;guaranteedReturn=true}
  else franchiseTerm='none';
  if(producerCredit)upfront*=.90;
  upfront=+Math.max(.05,upfront).toFixed(2);
@@ -1792,7 +1792,7 @@ function finishFilm(f){
  state.reputation.creative=clamp(state.reputation.creative+(f.review.critics-65)*.08,20,95);
  state.reputation.commercial=clamp(state.reputation.commercial+(profit>0?2:-2)+(f.finalGross>120?2:0),20,95);
  state.reputation.talent=clamp(state.reputation.talent+(impact>75?2:impact<55?-1:0),20,95);
- updateRelationshipsAfterFilm(f,profit);if(typeof lotRegisterFilmOutcome==='function')lotRegisterFilmOutcome(f,profit);buildFilmLegacy(f,talentBefore);if(typeof updateCareerCycle==='function')updateCareerCycle();queueFilmWrap(f);if(typeof checkStudioMilestones==='function')checkStudioMilestones();
+ updateRelationshipsAfterFilm(f,profit);if(typeof lotRegisterFilmOutcome==='function')lotRegisterFilmOutcome(f,profit);if(typeof lotResolveFilmCrisisThreads==='function')lotResolveFilmCrisisThreads(f);buildFilmLegacy(f,talentBefore);if(typeof updateCareerCycle==='function')updateCareerCycle();queueFilmWrap(f);if(typeof checkStudioMilestones==='function')checkStudioMilestones();
  state.completed.unshift(f.id);addNews(state,`${f.title} closes its theatrical run at ${money(f.finalGross)} worldwide, leaving ${state.studio.name} with ${profit>=0?'a recorded profit of':'a recorded loss of'} ${money(Math.abs(profit))}.`,'Your Studio');
 }
 function boxPressureForWeek(week,genre,excludeId=null){
@@ -1911,7 +1911,7 @@ function availablePostActions(f){
  const add=(x)=>{if(!arr.some(a=>a.id===x.id)&&!p.actions.some(a=>a.id===x.id))arr.push(x)};
  if(m.pacing<72||p.runtime>p.targetRuntime+8)add({id:'trim',label:'Tighten the cut',cost:.25,time:1,desc:'Remove repetition and compress transitions. Cheap and effective for pace, but a hard trim can sacrifice performance texture.'});
  if((m.pacing<68&&m.clarity<70)||p.runtime>p.targetRuntime+15)add({id:'restructure',label:'Restructure the middle',cost:.65,time:1,desc:'A deeper editorial rebuild: move scenes, collapse beats and reshape the second act without new photography.'});
- if(m.clarity<74)add({id:'clarity',label:'Clarity pickups',cost:.8,time:1,desc:'Shoot connective material to clarify motivations and cause-and-effect.'});
+ if(m.clarity<74)add({id:'clarity',label:'Targeted pickup shoot',cost:.8,time:1,desc:'Shoot a small amount of connective material to make motivations and cause-and-effect easier to follow.'});
  if(m.performances<74||m.chemistry<63)add({id:'performance',label:'Performance pickups',cost:1.15,time:1,desc:'Bring principals back for a focused performance pass.'});
  if(m.technical<76||f.creative?.emphasis==='spectacle')add({id:'vfx',label:'Technical polish',cost:1.3,time:1,desc:'Spend another week on VFX, sound and finishing work.'});
  if(p.endingStrength<74)add({id:'ending',label:'Rework the ending',cost:2.2,time:1,desc:'The expensive option: reshape or partially reshoot the final movement. High upside, some creative risk.'});
@@ -3209,7 +3209,7 @@ function continueTime(){
   state.calendarDay=day;const week=calendarWeekForDay(day);state.week=week;
   if(calendarWeekdayIndex(day)===0&&week>state.lastWeeklyHeartbeatWeek){runWeeklyHeartbeat(week);if(surfaceCalendarInterrupt()){save();render();return}}
   const campaignHit=processCampaignDay(day);if(campaignHit&&surfaceCalendarInterrupt()){save();render();return}
-  processReleaseDay(day);
+  const released=processReleaseDay(day);if(released&&surfaceCalendarInterrupt()){save();render();return}
   if(calendarWeekdayIndex(day)===6){const box=processBoxOfficeSunday(day);if(surfaceCalendarInterrupt()){save();render();return}if(box){save();render();return}}
  }
  save();render();

@@ -260,6 +260,8 @@ function filmWrapVerdictCopy(f,l=ensureLegacyState(f)){
 }
 function wrapCapitalise(text=''){const s=String(text||'').trim();return s?s[0].toUpperCase()+s.slice(1):s}
 function filmWrapProductionMoment(f){
+ const crisis=(f.talentCrises||[]).filter(x=>x.status==='resolved').sort((a,b)=>(b.resolvedWeek||b.week||0)-(a.resolvedWeek||a.week||0))[0];
+ if(crisis)return {phase:'PRODUCTION',label:'Talent crisis · Week '+(crisis.week||'—'),text:crisis.headline+' '+(crisis.outcome||'The production was forced to adapt.'),tone:crisis.resolutionChoice==='pause'?'warn':'bad'};
  const journal=ensureShootJournal(f);if(!journal.length)return null;
  const decisions=journal.filter(x=>x.mood==='decision'),creative=decisions.find(x=>x.topic==='creativeDirection');
  const dramatic=/injury|walk|friction|director|stunt|location|weather|overrun|story|rehears|chemistry/i;

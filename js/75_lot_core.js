@@ -3,8 +3,8 @@
 // fictional in-game personality, relationships, memories and alternate-Hollywood events.
 
 function ensureLotState(st=state){
- st.lot=st.lot||{version:5,profiles:{},relationships:{},pairHistories:{},memories:[],stories:[],history:[],incidentHistory:[],variety:{recent:[]},lastIncidentWeek:0};
- st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.pairHistories=st.lot.pairHistories||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];st.lot.incidentHistory=st.lot.incidentHistory||[];st.lot.variety=st.lot.variety||{recent:[]};st.lot.variety.recent=st.lot.variety.recent||[];
+ st.lot=st.lot||{version:6,profiles:{},relationships:{},pairHistories:{},memories:[],stories:[],history:[],incidentHistory:[],variety:{recent:[]},lastIncidentWeek:0,talentCrises:[],lastTalentCrisisWeek:0};
+ st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.pairHistories=st.lot.pairHistories||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];st.lot.incidentHistory=st.lot.incidentHistory||[];st.lot.variety=st.lot.variety||{recent:[]};st.lot.variety.recent=st.lot.variety.recent||[];st.lot.talentCrises=Array.isArray(st.lot.talentCrises)?st.lot.talentCrises:[];st.lot.lastTalentCrisisWeek=st.lot.lastTalentCrisisWeek||0;
  if((st.lot.version||1)<2)Object.entries(st.lot.profiles).forEach(([id,p])=>{const t=(st.talent||[]).find(x=>x.id===id);if(t&&p)p.alias=t.name});
  if((st.lot.version||1)<3){
   st.lot.stories.forEach(s=>{s.chapters=s.chapters||[];s.phase=s.active?'active':'resolved';s.timesResurfaced=s.timesResurfaced||0;s.lastChapterWeek=s.lastChapterWeek||s.lastWeek||s.startedWeek});
@@ -20,6 +20,9 @@ function ensureLotState(st=state){
   st.lot.incidentHistory.forEach(x=>{if(!x.variety)x.variety=lotIncidentVarietyFromEntry(x)});
   st.lot.variety.recent=st.lot.incidentHistory.slice(0,24).map(x=>x.variety).filter(Boolean);
   st.lot.version=5;
+ }
+ if((st.lot.version||1)<6){
+  st.lot.talentCrises=Array.isArray(st.lot.talentCrises)?st.lot.talentCrises:[];st.lot.lastTalentCrisisWeek=st.lot.lastTalentCrisisWeek||0;st.lot.version=6;
  }
  return st.lot;
 }
@@ -463,6 +466,96 @@ function lotApplyIncident(a,b,tier,r){
  return {headline,summary,detail,tier,intensity,incidentId:def.id,family:def.family,relationship:updated,variety,narrativeSeed};
 }
 
+
+function lotTalentCrisisRisk(t,f){
+ const p=ensureLotProfile(t),hostile=lotActiveStoriesForFilm(f).filter(s=>s.type!=='friendship'&&s.participants?.includes(t.id)).sort((a,b)=>(b.heat||0)-(a.heat||0))[0];
+ let risk=(p.traits.volatility||50)*.30+(p.traits.ego||50)*.14+(p.traits.grudge||50)*.10+(100-(p.traits.professionalism||50))*.24+(100-(p.traits.loyalty||50))*.14;
+ if(hostile)risk+=Math.min(18,(hostile.intensity||2)*3+(hostile.heat||50)*.09);
+ if((t.relationship||0)<0)risk+=Math.min(7,Math.abs(t.relationship||0)*.18);
+ return {risk:clamp(risk,0,100),hostile};
+}
+function lotCrisisReplacementCandidate(f,role,departingId){
+ const attached=new Set(lotAttachedTalentIds(f));
+ const rows=(state.talent||[]).filter(t=>t.type==='Actor'&&!t.retired&&t.id!==departingId&&!attached.has(t.id)&&!talentUnavailableForFilm(t,f)).map(t=>{
+  const fit=actorRoleFit(t,f,role.id),score=fit*.56+(t.reliability||60)*.24+(t.acting||60)*.15+(t.star||50)*.05;
+  return {t,fit,score};
+ }).filter(x=>x.fit>=42).sort((a,b)=>b.score-a.score||(a.t.fee||0)-(b.t.fee||0));
+ return rows[0]||null;
+}
+function lotCrisisReason(t,f,riskInfo){
+ const p=ensureLotProfile(t),story=riskInfo.hostile;
+ if(story)return {id:'working-breakdown',headline:t.name+' says the current working arrangement on '+f.title+' is untenable',summary:'A live Lot conflict has crossed from off-camera noise into the production itself. '+t.name+"'s representatives want the studio to change the working arrangement before filming continues."};
+ if((p.traits.volatility||0)>=72&&(p.traits.professionalism||100)<=58)return {id:'set-standoff',headline:t.name+' has reached a production standoff on '+f.title,summary:'A run of difficult working days has become a formal impasse between the production and '+t.name+"'s team. The film needs a decision, not another holding statement."};
+ if((p.traits.ego||0)>=74)return {id:'role-dispute',headline:t.name+' is threatening to leave '+f.title+' over the shape of the role',summary:'A disagreement about the part has hardened into a real production problem. The studio can replace the performer, pause to repair the relationship, or reconfigure the role.'};
+ return {id:'availability-collision',headline:t.name+"'s team says "+f.title+' cannot continue on the current schedule',summary:'A fictional scheduling collision inside The Lot has become serious enough that the existing plan no longer holds. The studio must decide how much of the film to protect.'};
+}
+function lotCreateTalentCrisis(f,t,riskInfo){
+ ensureFilmRoles(f);const role=roleForTalent(f,t.id);if(!role)return null;
+ const lot=ensureLotState(),reason=lotCrisisReason(t,f,riskInfo),replacement=lotCrisisReplacementCandidate(f,role,t.id);
+ const crisis={id:'TC'+(lot.talentCrises.length+1)+'W'+state.week,filmId:f.id,talentId:t.id,roleId:role.id,week:state.week,status:'waiting',reasonId:reason.id,headline:reason.headline,summary:reason.summary,risk:Math.round(riskInfo.risk),replacementId:replacement?.t?.id||null,recastCost:replacement?+(contractOffers(f,replacement.t).flat*1.18).toFixed(2):null,pauseCost:+Math.max(.35,Math.min(1.6,(f.budget||20)*.018)).toFixed(2),rewriteCost:+Math.max(.35,Math.min(1.25,.35+(f.budget||20)*.009)).toFixed(2)};
+ lot.talentCrises.unshift(crisis);lot.talentCrises=lot.talentCrises.slice(0,80);lot.lastTalentCrisisWeek=state.week;
+ f.talentCrises=Array.isArray(f.talentCrises)?f.talentCrises:[];f.talentCrises.unshift(crisis);f.history=f.history||[];f.history.push('Week '+state.week+': Talent crisis — '+crisis.headline+'.');
+ const choices=[];
+ if(crisis.replacementId){const rep=talentById(crisis.replacementId);choices.push(['recast','Emergency recast · '+rep.name+' · '+money(crisis.recastCost)])}
+ choices.push(['pause','Pause & repair · '+money(crisis.pauseCost)+' · +2 weeks']);
+ choices.push(['rewrite','Reconfigure the role · '+money(crisis.rewriteCost)+' · +1 week']);
+ if(typeof pushDeskItem==='function')pushDeskItem({templateId:'talent-crisis',repeatKey:'talent-crisis:'+crisis.id,family:'talent-crisis',type:'production',source:'The Lot',urgency:'urgent',requiresAction:true,headline:crisis.headline,body:crisis.summary,choices,filmId:f.id,talentId:t.id,crisisId:crisis.id});
+ if(typeof upsertCareerThread==='function')upsertCareerThread({key:'talent-crisis:'+crisis.id,type:'production',tone:'bad',priority:94,filmId:f.id,talentId:t.id,title:crisis.headline,summary:crisis.summary,detail:'This is a simulation-owned production crisis. The studio response will change the film mechanically and remain in its history.',progress:'DECISION REQUIRED'});
+ if(typeof addNews==='function')addNews(state,t.name+"'s team and "+state.studio.name+' have hit a production impasse on '+f.title+'. The studio is weighing how to keep the film moving.','The Lot');
+ if(typeof applyPulseDelta==='function')applyPulseDelta(f,{volume:5,sentiment:-2,controversy:5,topic:'Production turmoil'},'Talent crisis on The Lot');
+ if(typeof addSocialFeed==='function')addSocialFeed(f,'Production chatter spikes as the '+t.name+' situation on '+f.title+' becomes public.','bad');
+ return crisis;
+}
+function lotMaybeTalentCrisis(){
+ const lot=ensureLotState();if(state.week-(lot.lastTalentCrisisWeek||0)<24)return false;
+ const films=playerFilms().filter(f=>f.stage==='production'&&!(f.talentCrises||[]).some(c=>c.status==='waiting'));
+ const candidates=[];
+ films.forEach(f=>lotAttachedTalentIds(f).map(talentById).filter(t=>t&&t.type==='Actor').forEach(t=>{const info=lotTalentCrisisRisk(t,f);if(info.risk>=58)candidates.push({f,t,info})}));
+ if(!candidates.length)return false;
+ candidates.sort((a,b)=>b.info.risk-a.info.risk);
+ const top=candidates[0],r=makeRng(hash((state.seed||1)+'|talent-crisis|'+state.week+'|'+top.f.id+'|'+top.t.id)),chance=clamp(.012+(top.info.risk-58)*.0012,.012,.055);
+ if(r()>chance)return false;
+ return !!lotCreateTalentCrisis(top.f,top.t,top.info);
+}
+function lotResolveTalentCrisisDeskChoice(item,key){
+ if(item?.templateId!=='talent-crisis')return null;
+ const f=filmById(item.filmId),t=talentById(item.talentId),crisis=(f?.talentCrises||[]).find(c=>c.id===item.crisisId);
+ if(!f||!t||!crisis||crisis.status!=='waiting')return false;
+ const role=roleById(f,crisis.roleId);let outcome='';
+ if(key==='recast'){
+  const replacement=talentById(crisis.replacementId),candidate=replacement&&!talentUnavailableForFilm(replacement,f)?replacement:lotCrisisReplacementCandidate(f,role,t.id)?.t;
+  if(!candidate){showToast('No credible emergency replacement is currently available. Choose another response.');return false}
+  const cost=candidate.id===crisis.replacementId?crisis.recastCost:+(contractOffers(f,candidate).flat*1.18).toFixed(2);
+  if(!applyProductionImpact(f,{cost,week:1,performances:-2,chemistry:-3,stability:-4,morale:-4,note:'Talent crisis: emergency recast after '+t.name+' left the film.'}))return false;
+  f.crisisReleasedContracts=f.crisisReleasedContracts||[];if(f.contracts?.[t.id])f.crisisReleasedContracts.push({talentId:t.id,contract:deep(f.contracts[t.id]),week:state.week,reason:crisis.id});
+  ensureFilmRoles(f);f.roleAssignments[role.id]=candidate.id;syncRoleAssignments(f);delete f.contracts[t.id];if(f.contractDrafts)delete f.contractDrafts[t.id];
+  f.contracts[candidate.id]={id:'crisis-recast',label:'Emergency replacement',upfront:cost,backend:0,sequelOption:false,guaranteedReturn:false,franchiseTerm:'none',producerCredit:false,futureFee:null,futureBackend:0,talentId:candidate.id,baseFee:candidate.fee,acceptedWeek:state.week};
+  candidate.busyUntil=Math.max(candidate.busyUntil||0,f.productionEnd+1);adjustTalentRelationship(t,-8,f.title+': left during production',f.id);adjustTalentRelationship(candidate,2,f.title+': stepped into an emergency recast',f.id);
+  crisis.replacementId=candidate.id;crisis.recastCost=cost;crisis.departed=true;outcome=candidate.name+' replaces '+t.name+' as '+role.name+'. The film loses one week to the change and absorbs '+money(cost)+' in emergency casting cost.';
+  if(typeof addNews==='function')addNews(state,candidate.name+' is replacing '+t.name+' on '+f.title+' after the production impasse.','Casting');
+  if(typeof applyPulseDelta==='function')applyPulseDelta(f,{volume:5,sentiment:-2,controversy:4,topic:'Emergency recast'},'Emergency recast');
+ }else if(key==='pause'){
+  if(!applyProductionImpact(f,{cost:crisis.pauseCost,week:2,performances:1,stability:1,morale:-1,note:'Talent crisis: production paused to repair the working arrangement with '+t.name+'.'}))return false;
+  adjustTalentRelationship(t,2,f.title+': studio paused to repair the working relationship',f.id);
+  outcome=f.title+' pauses for two weeks while the studio resets the working plan with '+t.name+'. The performer remains in the film.';
+  if(typeof addNews==='function')addNews(state,f.title+' has paused for two weeks to reset its working plan with '+t.name+'. The performer remains attached.','Trade Report');
+  if(typeof applyPulseDelta==='function')applyPulseDelta(f,{volume:2,sentiment:1,controversy:-2,topic:'Production pause'},'Studio contains talent crisis');
+ }else if(key==='rewrite'){
+  if(!applyProductionImpact(f,{cost:crisis.rewriteCost,week:1,performances:-2,pacing:1,clarity:2,chemistry:-1,stability:-1,note:'Talent crisis: '+role.name+' was reconfigured to keep '+t.name+' in the film.'}))return false;
+  crisis.roleReconfigured=true;outcome='The studio reconfigures '+role.name+' around the dispute. '+t.name+' stays, the film loses one week, and the finished performance carries some compromise risk.';
+  if(typeof addNews==='function')addNews(state,f.title+' is reworking '+role.name+' after its production impasse with '+t.name+'. '+t.name+' remains in the film.','Trade Report');
+  if(typeof applyPulseDelta==='function')applyPulseDelta(f,{volume:3,sentiment:0,controversy:-1,topic:'Role reworked'},'Studio reconfigures role');
+ }else return false;
+ crisis.status='resolved';crisis.resolutionChoice=key;crisis.resolvedWeek=state.week;crisis.outcome=outcome;f.history.push('Week '+state.week+': Talent crisis resolved — '+outcome);
+ const master=ensureLotState().talentCrises.find(c=>c.id===crisis.id);if(master&&master!==crisis)Object.assign(master,crisis);
+ if(typeof upsertCareerThread==='function')upsertCareerThread({key:'talent-crisis:'+crisis.id,type:'production',tone:key==='pause'?'warn':'bad',priority:86,filmId:f.id,talentId:t.id,title:crisis.headline,summary:outcome,detail:'The decision is settled, but the incident remains part of '+f.title+"'s production story until the film is finished.",progress:'RESOLVED · '+(key==='recast'?'EMERGENCY RECAST':key==='pause'?'PAUSE & REPAIR':'ROLE RECONFIGURED')});
+ if(typeof addSocialFeed==='function')addSocialFeed(f,outcome,key==='pause'?'neutral':'warn');
+ return outcome;
+}
+function lotResolveFilmCrisisThreads(f){
+ (f?.talentCrises||[]).forEach(c=>{if(typeof resolveCareerThread==='function'&&c.status==='resolved')resolveCareerThread('talent-crisis:'+c.id,(c.outcome||'The production adapted.')+' The film is now complete, so the crisis moves into its permanent production history.')});
+}
+
 function lotRegisterFilmOutcome(f,profit=0){
  if(!f||f.lotFilmMemoryRecorded)return;const ids=lotAttachedTalentIds(f).filter(id=>talentById(id));if(ids.length<2){f.lotFilmMemoryRecorded=true;return}
  const actors=new Set([...(f.cast||[]),...(f.supportingCastIds||[]),f.supportingCastId].filter(Boolean)),m=f.metrics||{},lot=ensureLotState(),eventWeek=f.completeWeek||state.week;
@@ -536,6 +629,7 @@ function lotAgeStories(){
 }
 function processLotWeek(){
  if(!state.studio)return;const lot=ensureLotState();state.talent.forEach(t=>{if(!t.retired)ensureLotProfile(t)});lotAgeStories();lotMaybeResurfacePairHistory();lotEvolveActiveStories();
+ if(lotMaybeTalentCrisis())return;
  if(state.week-(lot.lastIncidentWeek||0)<2)return;
  const pairs=lotEligiblePairs();if(!pairs.length)return;
  const r=makeRng(hash((state.seed||1)+'|lot-week|'+state.week));if(r()>.18)return;

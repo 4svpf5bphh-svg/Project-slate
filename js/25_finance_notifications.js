@@ -172,12 +172,20 @@ function notificationOverlay(){
 }
 function toggleProjectHold(f){
  if(!f||f.stage!=='development')return;
- f.paused=!f.paused;
- f.history.push(`Week ${state.week}: development ${f.paused?'put on hold':'resumed'}.`);
- addNews(state,`${f.title} development ${f.paused?'was placed on hold':'resumed'}.`,'Your Studio');
+ const wasPaused=!!f.paused,started=f.holdStartedWeek;
+ f.paused=!wasPaused;
+ if(f.paused)f.holdStartedWeek=state.week;
+ const heldFor=!f.paused&&started?Math.max(0,state.week-started):0;
+ f.history.push('Week '+state.week+': development '+(f.paused?'put on hold':'resumed')+'.');
+ if(!f.paused){
+  f.holdStartedWeek=null;
+  if(heldFor>=8&&state.week-(f.lastHoldNewsWeek||0)>=16){
+   addNews(state,f.title+' is back in active development after '+heldFor+' weeks on hold.','Your Studio');
+   f.lastHoldNewsWeek=state.week;
+  }
+ }
  rebuildDecisions();save();render();
 }
-let renderedRouteKey=null,pendingScrollMode=null,pendingScrollRestore=0;
 function routeKey(){const d=state.detail||null,phase=d?.type==='film'?(state.films||[]).find(f=>f.id===d.id)?.stage||'':'';return `${state.screen}|${JSON.stringify(d)}|${phase}`}
 function requestScrollTop(){pendingScrollMode='top'}
 function requestScrollRestore(y){pendingScrollMode='restore';pendingScrollRestore=y||0}

@@ -1,6 +1,6 @@
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=406;
+const SAVE_SCHEMA_VERSION=407;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -280,6 +280,18 @@ function applySaveSchemaMigrations(x,fromVersion){
   schema=406;
  }
 
+ if(schema<407){
+  // v4.7.2 adds persistent production-crisis memory and quieter development holds.
+  x.lot=x.lot||{};x.lot.talentCrises=Array.isArray(x.lot.talentCrises)?x.lot.talentCrises:[];x.lot.lastTalentCrisisWeek=x.lot.lastTalentCrisisWeek||0;
+  (x.films||[]).forEach(f=>{
+   if(f.owner!=='player')return;
+   f.talentCrises=Array.isArray(f.talentCrises)?f.talentCrises:[];
+   if(f.holdStartedWeek===undefined)f.holdStartedWeek=f.paused?(f.createdWeek||x.week||1):null;
+   if(f.lastHoldNewsWeek===undefined)f.lastHoldNewsWeek=0;
+  });
+  schema=407;
+ }
+
  x.saveSchema=schema;
  return x;
 }
@@ -300,6 +312,7 @@ function migrateState(x){
   if(f.ipParentId&&!f.franchiseMode)f.franchiseMode='sequel';
   if(f.socialPulse)f.socialPulse.moves=f.socialPulse.moves||[];
   if(f.owner==='player'&&f.soundtrack===undefined)f.soundtrack=null;
+  if(f.owner==='player'){f.talentCrises=Array.isArray(f.talentCrises)?f.talentCrises:[];if(f.holdStartedWeek===undefined)f.holdStartedWeek=f.paused?(f.createdWeek||x.week||1):null;if(f.lastHoldNewsWeek===undefined)f.lastHoldNewsWeek=0;}
   if(f.post){f.post.musicDraft=f.post.musicDraft||{strategy:'original',trackId:null};f.post.firstDecisionMade=f.post.firstDecisionMade===true||(f.post.actions||[]).length>0;}
   if(f.stage==='complete')ensureLegacyState(f)
  });x.studioGrowth=x.studioGrowth||{fans:.04,recognition:12,upgrades:{production:0,casting:0,publicity:0},history:[]};ensureStudioGrowth(x);x.talentDrama=x.talentDrama||[];x.ids=x.ids||{};x.ids.talent=x.ids.talent||0;x.ids.news=x.ids.news||0;(x.talent||[]).forEach(ensureTalentCareer);x.news=(x.news||[]).map(n=>normalizeNewsItem(x,n));

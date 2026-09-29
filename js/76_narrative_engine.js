@@ -197,6 +197,16 @@ function acceptProjectIntelligence(s){const x=ensureScriptIntelligence(s);if(x?.
 function dismissProjectIntelligence(s){const x=ensureScriptIntelligence(s);if(!x)return;x.accepted=false;save();render()}
 function retryProjectIntelligence(s){if(!s)return;queueProjectIntelligence(s,{force:true});render()}
 
+function narrativeReviewHistoryLine(text=''){
+ return String(text||'')
+  .replace(/clarity pickups/gi,'a small pickup shoot')
+  .replace(/targeted pickup shoot/gi,'a small pickup shoot')
+  .replace(/restructure the middle/gi,'a substantial editorial restructure')
+  .replace(/tighten the cut/gi,'a tighter edit')
+  .replace(/protect the original engine/gi,'the production preserved the original dramatic shape')
+  .replace(/guided control/gi,'a more controlled creative approach')
+  .replace(/performance-first/gi,'a performance-led approach');
+}
 function narrativeFilmReviewPacket(f){
  const sc=scriptById(f.scriptId),id=typeof ensureFilmIdentity==='function'?ensureFilmIdentity(f):{},critic=f.review?.critic||{},m=f.metrics||{},post=f.post||{},marketing=typeof ensureMarketingState==='function'?ensureMarketingState(f):f.marketingState||{},tracking=marketing.trackingHistory?.[0]||null;
  const support=typeof supportingActors==='function'?supportingActors(f):[];
@@ -220,9 +230,10 @@ function narrativeFilmReviewPacket(f){
    script:{story:Math.round(sc?.story||0),structure:Math.round(sc?.structure||0),characters:Math.round(sc?.characters||0),emotion:Math.round(sc?.emotion||0),originality:Math.round(sc?.originality||0),access:Math.round(sc?.access||0),hook:Math.round(sc?.hook||0),genreFulfillment:Math.round(sc?.genreFulfillment||0)}
   },
   production:{
-   selectedHistory:(f.history||[]).slice(-10),
-   shootJournal:(f.shootJournal||[]).slice(-6).map(x=>({week:x.week,text:x.text,topic:x.topic||null,mood:x.mood||null})),
-   post:{runtime:post.runtime||null,endingStrength:post.endingStrength||null}
+   selectedHistory:(f.history||[]).slice(-10).map(narrativeReviewHistoryLine),
+   shootJournal:(f.shootJournal||[]).slice(-6).map(x=>({week:x.week,text:narrativeReviewHistoryLine(x.text),topic:x.topic||null,mood:x.mood||null})),
+   post:{runtime:post.runtime||null,endingStrength:post.endingStrength||null},
+   talentCrises:(f.talentCrises||[]).filter(x=>x.status==='resolved').map(x=>({week:x.week,talentId:x.talentId,roleId:x.roleId,reasonId:x.reasonId,resolution:x.resolutionChoice,outcome:x.outcome||null,replacementId:x.replacementId||null,departed:!!x.departed}))
   },
   campaign:{type:f.campaign||null,tracking:tracking?{phase:tracking.phase,low:tracking.low,high:tracking.high,center:tracking.center}:null,lotAngle:marketing.lotAngle||null},
   publicLotContext:narrativeLotStoriesForFilm(f),

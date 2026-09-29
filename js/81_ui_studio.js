@@ -606,7 +606,13 @@ function deskChoiceEffects(item,key){
 }
 
 function resolveDeskChoice(id,key){
- const d=ensureDesk(),item=deskItemById(id,d);if(!item||item.resolved)return;const before=deskImpactSnapshot(item);item.read=true;item.expanded=true;item.resolved=true;item.resolvedWeek=state.week;item.choice=key;item.outcome=deskChoiceEffects(item,key);
+ const d=ensureDesk(),item=deskItemById(id,d);if(!item||item.resolved)return;const before=deskImpactSnapshot(item);
+ if(item.templateId==='talent-crisis'&&typeof lotResolveTalentCrisisDeskChoice==='function'){
+  const outcome=lotResolveTalentCrisisDeskChoice(item,key);if(outcome===false||outcome===null)return;
+  item.read=true;item.expanded=true;item.resolved=true;item.resolvedWeek=state.week;item.choice=key;item.outcome=outcome;
+  if(typeof recordPressInteraction==='function')recordPressInteraction(item,key);if(typeof updateCareerThreads==='function')updateCareerThreads();const after=deskImpactSnapshot(item);item.impact=deskImpactSummary(before,after);save();render();return;
+ }
+ item.read=true;item.expanded=true;item.resolved=true;item.resolvedWeek=state.week;item.choice=key;item.outcome=deskChoiceEffects(item,key);
  if(item.templateId==='agency-package'){
   const ids=[...new Set(((item.talentIds?.length?item.talentIds:[item.talentId])||[]).filter(Boolean))],people=ids.map(talentById).filter(Boolean),f=filmById(item.filmId),a=AGENCIES.find(x=>x.id===item.agencyId)||(people[0]?talentAgency(people[0]):null);
   if(key==='meet'&&f){
@@ -631,8 +637,12 @@ function archiveReadDeskItems(){const d=ensureDesk(),keep=[],move=[];d.items.for
 function toggleDeskItem(id){const item=deskItemById(id,ensureDesk());if(item){item.read=true;item.expanded=!item.expanded;save();render()}}
 function archiveDeskItem(id){const d=ensureDesk(),key=String(id),i=d.items.findIndex(x=>String(x.id)===key);if(i<0)return;const [item]=d.items.splice(i,1);item.archived=true;d.archive.unshift(item);save();render()}
 function openDeskItemTarget(id){
- const item=deskItemById(id,ensureDesk());if(!item)return;item.read=true;item.expanded=false;
- const t=item.destination||inferNotificationDestination(item.notificationKey||'',item.filmId,item.type,null);
+ const item=deskItemById(id,ensureDesk());if(!item)return;
+ const t=item.destination||inferNotificationDestination(item.notificationKey||'',item.filmId,item.type,null),deskTarget=t?.screen==='studio'&&t?.studioTab==='desk';
+ if(deskTarget){
+  item.expanded=true;state.screen='studio';state.detail=null;state.uiStudioTab='desk';state.uiDeskTab='briefing';state.history=[];requestScrollTop();save();render();return;
+ }
+ item.read=true;item.expanded=false;
  state.screen=t?.screen||'studio';state.detail=t?.detail||null;if(t?.studioTab)state.uiStudioTab=t.studioTab;if(t?.studioTab==='desk')state.uiDeskTab='briefing';if(t?.legacyTab)state.uiLegacyTab=t.legacyTab;requestScrollTop();save();render();
 }
 function socialSentimentLabel(v){return v>=75?'Enthusiastic':v>=62?'Positive':v>=48?'Mixed-positive':v>=38?'Divided':'Negative'}
@@ -692,7 +702,7 @@ function pulseDetailScreen(id){
 }
 function deskSubnav(){
  const tab=state.uiDeskTab||'briefing',d=ensureDesk(),open=d.items.filter(x=>!x.resolved&&x.requiresAction).length,threads=ensureCareerThreads().active.length,pulse=studioPulseRows().length,briefs=d.items.filter(x=>!x.read&&!(!x.resolved&&x.requiresAction)).length;
- return sectionTabs([['briefing',open?`Desk · ${open}`:briefs?`Desk · ${briefs}`:'Desk'],['threads',threads?`Threads · ${threads}`:'Threads'],['pulse',pulse?`Pulse · ${pulse}`:'Pulse']],tab,'data-desk-tab');
+ return sectionTabs([['briefing',open?`Desk · ${open}`:briefs?`Desk · ${briefs}`:'Desk'],['threads',threads?`Active Stories · ${threads}`:'Active Stories'],['pulse',pulse?`Pulse · ${pulse}`:'Pulse']],tab,'data-desk-tab');
 }
 function executiveFilmIntelRows(limit=6){
  const rows=[],desk=ensureDesk();
@@ -740,18 +750,18 @@ function deskScriptMarketPressureHTML(){
 }
 function deskBriefingBody(){
  const d=ensureDesk();expireDeskItems();syncOperationalDeskItems();
- const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0));
- const open=ranked.filter(x=>!x.resolved&&x.requiresAction),briefing=ranked.filter(x=>!open.includes(x)&&!x.read),readResolved=ranked.filter(x=>x.read&&x.resolved),upcoming=studioUpcomingEvents(4,35);
- return `${deskStudioStatusStrip()}<div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} item${open.length===1?'':'s'} need attention`:briefing.length?`${briefing.length} unread briefing${briefing.length===1?'':'s'}`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'Continue will stop here until interactive items are dealt with.':briefing.length?'These are informational. Read them when useful; they never block time.':'Nothing needs you right now. Continue can move the calendar.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid desk-command-grid-two"><div><span>Needs attention</span><strong>${open.length}</strong></div><div><span>Unread briefing</span><strong>${briefing.length}</strong></div></div>${briefing.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark briefing read</button>`:''}${readResolved.length?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
+ const chrono=d.items.slice().sort((a,b)=>(b.day||b.week*7)-(a.day||a.week*7)||(b.id||0)-(a.id||0));
+ const open=d.items.filter(x=>!x.resolved&&x.requiresAction).sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0)),briefing=chrono.filter(x=>!open.includes(x)),unreadBriefing=briefing.filter(x=>!x.read),readResolved=briefing.filter(x=>x.read&&x.resolved),upcoming=studioUpcomingEvents(4,35);
+ return `${deskStudioStatusStrip()}<div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} item${open.length===1?'':'s'} need attention`:unreadBriefing.length?`${unreadBriefing.length} unread briefing${unreadBriefing.length===1?'':'s'}`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'Continue will stop here until interactive items are dealt with.':unreadBriefing.length?'These are informational. Read them when useful; they never block time.':'Nothing needs you right now. Continue can move the calendar.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid desk-command-grid-two"><div><span>Needs attention</span><strong>${open.length}</strong></div><div><span>Unread briefing</span><strong>${briefing.length}</strong></div></div>${unreadBriefing.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark briefing read</button>`:''}${readResolved.length?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
  <div class="section-title executive-intel-title"><h2>Film intelligence</h2><span class="small">Tracking, reviews and box office remain visible without becoming inbox clutter</span></div>${executiveFilmIntelHTML()}
  ${deskScriptMarketPressureHTML()}
  <div class="section-title"><h2>Up next</h2><span class="small">Known studio checkpoints · next five weeks</span></div>${deskUpcomingHTML(upcoming)}
  <div class="section-title"><h2>Needs attention</h2><span class="small">Interactive items · Continue stops for these</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>Nothing is waiting on you.</strong><div class="small" style="margin-top:5px">Interactive press calls, auctions and production decisions will appear here when they matter.</div></div>`}</div>
- <div class="section-title desk-section"><h2>Briefing</h2><span class="small">Unread information · never blocks Continue</span></div><div class="desk-stack">${briefing.length?briefing.slice(0,12).map(deskItemHTML).join(''):`<div class="card body">No unread briefing is waiting. Read items can be archived from their cards or with the control above.</div>`}</div>`;
+ <div class="section-title desk-section"><h2>Briefing</h2><span class="small">Chronological studio feed · read items stay collapsed until archived</span></div><div class="desk-stack">${briefing.length?briefing.slice(0,12).map(deskItemHTML).join(''):`<div class="card body">No briefing items are waiting. Read items stay here as collapsed headlines until you archive them.</div>`}</div>`;
 }
 function deskThreadsBody(){
  const box=ensureCareerThreads(),active=activeCareerThreads(6),recent=(box.history||[]).slice(0,12);
- return `<div class="desk-section-hero"><div><div class="badge">ACTIVE THREADS</div><div class="kpi">${active.length} live ${active.length===1?'story':'stories'}</div><div class="body">These are the relationships, rivalries, successes, failures and pressures that persist across weeks. They are the studio's current narrative, not one-off notifications.</div></div></div>
+ return `<div class="desk-section-hero"><div><div class="badge">ACTIVE STORIES</div><div class="kpi">${active.length} live ${active.length===1?'story':'stories'}</div><div class="body">These are the relationships, rivalries, successes, failures, crises and pressures that persist across weeks. They are the studio's current narrative, not one-off notifications.</div></div></div>
  <div class="section-title"><h2>In play</h2><span class="small">Highest-consequence threads first</span></div><div class="desk-thread-grid desk-thread-grid-full">${active.length?active.map(deskThreadHTML).join(''):`<div class="card body">No persistent thread has taken hold yet. Repeated rival clashes, trusted collaborators, financial pressure and major film outcomes can all become ongoing stories.</div>`}</div>
  <div class="section-title"><h2>Recently resolved</h2><span class="small">Stories that stopped driving the current industry narrative</span></div><div class="card">${recent.length?recent.map(t=>`<div class="listrow"><div><strong>${t.title}</strong><div class="small">${t.resolution||'The story moved on.'}</div></div><span class="small">W${t.resolvedWeek||t.lastUpdatedWeek||'—'}</span></div>`).join(''):`<div class="body">No thread has resolved yet.</div>`}</div>`;
 }

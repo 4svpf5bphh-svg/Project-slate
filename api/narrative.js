@@ -1,4 +1,4 @@
-// Project Slate v4.7.1 — stateless Narrative Engine API
+// Project Slate v4.7.2 — stateless Narrative Engine API
 // Designed for a Vercel deployment. The API key lives only in server environment variables.
 
 const PROVIDER=(process.env.NARRATIVE_PROVIDER||'groq').toLowerCase();
@@ -160,6 +160,7 @@ function narrativeInstructions(type){
     'Prefer specific comic images, dry comparisons, elegant insults aimed at the film-making or campaign, and callbacks to supplied Project Slate history. Avoid safe phrases that merely sound witty, such as “Hollywood being Hollywood”, “the real star is”, or “you have to hand it to them”.',
     'The review should feel like the critic watched this specific finished film. Use the premise, creative choices, strongest and weakest craft signals, performances and any supplied public production context. Prefer concrete, memorable observations over phrases like “undeniably the engine”, “technically the film shines”, “seasoned in the art of”, or “ultimately”.',
     'Never expose simulation/debug language. Do not mention internal metric numbers, point scores, hidden attributes, tracking fields, production-note warnings, schema labels, game-state terminology, or phrases such as “technical score”, “structure 61”, “chemistry risk”, “four-star badge”, “momentum”, or “the production notes say”. Convert those inputs into natural criticism instead.',
+     'Post-production action names are internal machinery, not film criticism. Never repeat labels such as “Clarity pickups”, “Targeted pickup shoot”, “Restructure the middle”, or “Tighten the cut”. Describe only the visible result in natural language — for example, clearer connective tissue, a reshaped middle act, or a tighter edit.',
     'Do not reveal the numeric critic score, audience score, star rating, or internal craft metrics anywhere in the prose. The UI displays those separately.',
     'Internal creative-choice labels are not public copy. Never quote or paraphrase labels such as “protect the original engine”, “guided control”, “performance-first”, or any other decision/menu wording. Describe only the visible artistic consequence.',
     'Budget may be mentioned only as ordinary public-facing trade context when it is editorially useful; never describe it as an internal game variable.',

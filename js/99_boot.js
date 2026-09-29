@@ -279,6 +279,19 @@ function projectSlateSmokeChecks(){
   if(aiStartProjects.toString().includes('2.6+r()*1.5')||aiStartProjects.toString().includes('Math.min(budget,4.0)'))failures.push('v4.7.1 cheap turnaround production-scale bug remains');
  }catch(e){failures.push('v4.7.1 Friction & Flow smoke failed'+(e?.message?': '+e.message:''))}
 
+ try{
+  if(SAVE_SCHEMA_VERSION<407)failures.push('v4.7.2 save migration missing');
+  if(!continueTime.toString().includes('released&&surfaceCalendarInterrupt'))failures.push('v4.7.2 release-day review interrupt missing');
+  if(contractQuote.toString().includes('upfront*=1.06')||contractQuote.toString().includes('upfront*=1.12')||!contractQuote.toString().includes('upfront*=.95')||!contractQuote.toString().includes('upfront*=.88'))failures.push('v4.7.2 sequel-term economics not reversed');
+  if(!deskBriefingBody.toString().includes('unreadBriefing')||!deskBriefingBody.toString().includes('Chronological studio feed'))failures.push('v4.7.2 chronological Desk briefing missing');
+  if(!deskSubnav.toString().includes('Active Stories')||!deskThreadsBody.toString().includes('ACTIVE STORIES'))failures.push('v4.7.2 Active Stories surface missing');
+  if(!industryScreen.toString().includes('latestNews')||!industryScreen.toString().includes('Featured now'))failures.push('v4.7.2 newest-first News flow missing');
+  if(!toggleProjectHold.toString().includes('heldFor>=8'))failures.push('v4.7.2 hold-news suppression missing');
+  if(typeof lotMaybeTalentCrisis!=='function'||typeof lotResolveTalentCrisisDeskChoice!=='function'||!processLotWeek.toString().includes('lotMaybeTalentCrisis'))failures.push('v4.7.2 talent crisis engine missing');
+  if(!filmWrapProductionMoment.toString().includes('talentCrises')||!narrativeFilmReviewPacket.toString().includes('talentCrises'))failures.push('v4.7.2 crisis narrative memory missing');
+  if(!narrativeFilmReviewPacket.toString().includes('narrativeReviewHistoryLine'))failures.push('v4.7.2 review history sanitiser missing');
+ }catch(e){failures.push('v4.7.2 Narrative & Flow smoke failed'+(e?.message?': '+e.message:''))}
+
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
   if(!buildNewsItem.toString().includes('voicePressStory'))failures.push('press voice pass missing');
