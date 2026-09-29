@@ -507,10 +507,10 @@ function lotCreateTalentCrisis(f,t,riskInfo){
  return crisis;
 }
 function lotMaybeTalentCrisis(){
- const lot=ensureLotState();if(state.week-(lot.lastTalentCrisisWeek||0)<24)return false;
+ const lot=ensureLotState();if((lot.lastTalentCrisisWeek||0)>0&&state.week-lot.lastTalentCrisisWeek<24)return false;
  const films=playerFilms().filter(f=>f.stage==='production'&&!(f.talentCrises||[]).some(c=>c.status==='waiting'));
  const candidates=[];
- films.forEach(f=>lotAttachedTalentIds(f).map(talentById).filter(t=>t&&t.type==='Actor').forEach(t=>{const info=lotTalentCrisisRisk(t,f);if(info.risk>=58)candidates.push({f,t,info})}));
+ films.forEach(f=>(f.cast||[]).map(talentById).filter(t=>t&&t.type==='Actor').forEach(t=>{const info=lotTalentCrisisRisk(t,f);if(info.risk>=58)candidates.push({f,t,info})}));
  if(!candidates.length)return false;
  candidates.sort((a,b)=>b.info.risk-a.info.risk);
  const top=candidates[0],r=makeRng(hash((state.seed||1)+'|talent-crisis|'+state.week+'|'+top.f.id+'|'+top.t.id)),chance=clamp(.012+(top.info.risk-58)*.0012,.012,.055);
@@ -529,6 +529,7 @@ function lotResolveTalentCrisisDeskChoice(item,key){
   if(!applyProductionImpact(f,{cost,week:1,performances:-2,chemistry:-3,stability:-4,morale:-4,note:'Talent crisis: emergency recast after '+t.name+' left the film.'}))return false;
   f.crisisReleasedContracts=f.crisisReleasedContracts||[];if(f.contracts?.[t.id])f.crisisReleasedContracts.push({talentId:t.id,contract:deep(f.contracts[t.id]),week:state.week,reason:crisis.id});
   ensureFilmRoles(f);f.roleAssignments[role.id]=candidate.id;syncRoleAssignments(f);delete f.contracts[t.id];if(f.contractDrafts)delete f.contractDrafts[t.id];
+  if(role.type==='lead'){const leadFits=f.cast.map((id,i)=>actorRoleFit(talentById(id),f,'lead'+(i+1)));f.packageFit=f.packageFit||{};f.packageFit.actors=leadFits;f.packageFit.average=((f.packageFit.director??directorProjectFit(talentById(f.directorId),f))+(leadFits[0]||0)+(leadFits[1]||0))/3;}
   f.contracts[candidate.id]={id:'crisis-recast',label:'Emergency replacement',upfront:cost,backend:0,sequelOption:false,guaranteedReturn:false,franchiseTerm:'none',producerCredit:false,futureFee:null,futureBackend:0,talentId:candidate.id,baseFee:candidate.fee,acceptedWeek:state.week};
   candidate.busyUntil=Math.max(candidate.busyUntil||0,f.productionEnd+1);adjustTalentRelationship(t,-8,f.title+': left during production',f.id);adjustTalentRelationship(candidate,2,f.title+': stepped into an emergency recast',f.id);
   crisis.replacementId=candidate.id;crisis.recastCost=cost;crisis.departed=true;outcome=candidate.name+' replaces '+t.name+' as '+role.name+'. The film loses one week to the change and absorbs '+money(cost)+' in emergency casting cost.';

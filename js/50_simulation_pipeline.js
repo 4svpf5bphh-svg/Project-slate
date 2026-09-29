@@ -1419,7 +1419,7 @@ function applyProductionImpact(f,{cost=0,week=0,morale=0,direction=0,performance
  if(saving>0){earn(saving);f.investment=Math.max(0,f.investment-saving)}
  if(week){
   f.productionEnd+=week;f.productionState.schedule+=(week>0?week:0);
-  const ids=[f.directorId,...f.cast];ids.forEach(id=>{const t=talentById(id);if(t)t.busyUntil=Math.max(t.busyUntil||0,f.productionEnd+1)})
+  const ids=[...new Set([f.directorId,...f.cast,...(f.supportingCastIds||[]),f.supportingCastId].filter(Boolean))];ids.forEach(id=>{const t=talentById(id);if(t)t.busyUntil=Math.max(t.busyUntil||0,f.productionEnd+1)})
  }
  const m=f.metrics;m.direction+=direction;m.performances+=performances;m.technical+=technical;m.pacing+=pacing;m.clarity+=clarity;m.chemistry+=chemistry;m.stability+=stability;
  Object.keys(m).forEach(k=>m[k]=clamp(m[k],20,98));
