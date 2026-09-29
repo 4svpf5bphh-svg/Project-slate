@@ -86,14 +86,14 @@ function newsArticleScreen(id){
  return topbar(n.publication||newsKindLabel(n.kind),`${newsKindLabel(n.kind)} · Week ${n.week}`)+`<main class="screen articlepage"><button class="back articleback" id="backBtn">← Back to news</button>
  <article class="newsarticle"><div class="newsmast"><div class="news-mast-brand">${pressLogoHTML(n.publication||'Screen Trade','lg',true)}</div><div class="newstimestamp">${n.day&&typeof calendarDateLabel==='function'?calendarDateLabel(n.day):'Week '+n.week}</div></div>
  <div class="newssection">${newsKindLabel(n.kind)}</div>${typeof tradePressArticleStatusHTML==='function'?tradePressArticleStatusHTML(n):''}<h1 class="newsheadline">${n.headline}</h1>${n.deck?`<div class="newsdeck">${n.deck}</div>`:''}<div class="newsbyline">By ${n.byline||'Trade desk'}</div>${n.voiceLabel?`<div class="small" style="margin:-3px 0 11px">${n.voiceLabel}</div>`:''}${journalistProfileCard(n)}
- <div class="articlebody">${(n.body||[n.text]).map(p=>`<p>${p}</p>`).join('')}</div></article>
+ <div class="articlebody">${(n.body||[n.text]).map(p=>`<p>${p}</p>`).join('')}</div></article>${typeof lotPressBundleHTML==='function'?lotPressBundleHTML(n):''}
  </main>${nav()}`;
 }
 function homeNewsDesk(){
  const stories=state.news.filter(n=>n.kind!=='System').slice(0,6),lead=stories[0],rest=stories.slice(1,5);if(!lead)return '';
  return `<div class="section-title"><h2>Newsroom</h2><button class="btn ghost" data-nav="industry">All stories</button></div>
- <div class="card click newslead" data-news-id="${lead.id}"><div class="row">${pressLogoHTML(lead.publication||'Screen Trade','sm',true)}<div>${typeof tradePressCardBadge==='function'?tradePressCardBadge(lead):''}<span class="small">${lead.day?calendarShortDate(lead.day):'W'+lead.week}</span></div></div><div class="newsleadhead">${lead.headline}</div>${lead.deck?`<div class="newsleaddeck">${lead.deck}</div>`:''}</div>
- <div class="card newslist">${rest.map(n=>`<div class="listrow click" data-news-id="${n.id}"><div style="min-width:0">${pressLogoHTML(n.publication||'Screen Trade','xs',true)}<strong style="display:block;margin-top:6px">${n.headline}</strong><div class="small">${newsKindLabel(n.kind)} ${typeof tradePressCardBadge==='function'?tradePressCardBadge(n):''}</div></div><span class="small">${n.day?calendarShortDate(n.day):'W'+n.week}</span></div>`).join('')}</div>`;
+ <div class="card click newslead" data-news-id="${lead.id}"><div class="row">${pressLogoHTML(lead.publication||'Screen Trade','sm',true)}<div>${typeof tradePressCardBadge==='function'?tradePressCardBadge(lead):''}${typeof lotPressCardBadge==='function'?lotPressCardBadge(lead):''}<span class="small">${lead.day?calendarShortDate(lead.day):'W'+lead.week}</span></div></div><div class="newsleadhead">${lead.headline}</div>${lead.deck?`<div class="newsleaddeck">${lead.deck}</div>`:''}</div>
+ <div class="card newslist">${rest.map(n=>`<div class="listrow click" data-news-id="${n.id}"><div style="min-width:0">${pressLogoHTML(n.publication||'Screen Trade','xs',true)}<strong style="display:block;margin-top:6px">${n.headline}</strong><div class="small">${newsKindLabel(n.kind)} ${typeof tradePressCardBadge==='function'?tradePressCardBadge(n):''}${typeof lotPressCardBadge==='function'?lotPressCardBadge(n):''}</div></div><span class="small">${n.day?calendarShortDate(n.day):'W'+n.week}</span></div>`).join('')}</div>`;
 }
 function lateGameOpportunityProgress(kind){
  if(typeof corporateFundamentals!=='function')return null;const f=corporateFundamentals(),year=Math.floor(state.week/52),financial=state.reputation?.financial||0;
@@ -229,7 +229,7 @@ function deskUpcomingHTML(events){
 }
 function deskThreadHTML(t){
  const tone=['good','bad','warn','blue'].includes(t.tone)?t.tone:'blue';
- return `<div class="card desk-thread desk-thread-${tone}"><div class="desk-thread-top"><span class="desk-thread-kicker">ACTIVE STORYLINE</span><span class="pill ${tone==='bad'?'bad':tone==='warn'?'warn':tone==='good'?'good':'blue'}">${t.progress||'Developing'}</span></div><strong>${t.title}</strong><div class="small" style="margin-top:6px">${t.summary}</div><div class="desk-thread-detail">${t.detail||''}</div></div>`;
+ return `<div class="card desk-thread desk-thread-${tone}"><div class="desk-thread-top"><span class="desk-thread-kicker">ACTIVE STORYLINE</span><span class="pill ${tone==='bad'?'bad':tone==='warn'?'warn':tone==='good'?'good':'blue'}">${t.progress||'Developing'}</span></div><strong>${t.title}</strong><div class="small" style="margin-top:6px">${t.summary}</div><div class="desk-thread-detail">${t.detail||''}</div>${typeof lotPressThreadAddon==='function'?lotPressThreadAddon(t):''}</div>`;
 }
 function deskDigestHTML(items){
  if(!items.length)return `<div class="card body">No background briefings are waiting.</div>`;
@@ -271,9 +271,9 @@ function applyPulseDelta(f,{volume=0,sentiment=0,fandom=0,controversy=0,topic=nu
 }
 function deskMarketing(f,{buzz=0,sentiment=0,expectations=0}={}){if(!f)return;const m=ensureMarketingState(f);m.buzz=clamp((m.buzz||0)+buzz,-20,45);m.sentiment=clamp((m.sentiment||0)+sentiment,-20,30);m.expectations=clamp((m.expectations||0)+expectations,-10,45);f.buzz=clamp((f.buzz??50)+buzz,0,100)}
 function deskSocial(f,spec={},reason='Studio response'){applyPulseDelta(f,spec,reason)}
-function addSocialFeed(f,text,tone='neutral'){
+function addSocialFeed(f,text,tone='neutral',meta={}){
  const p=ensureFilmSocial(f);if(!p||!text)return;
- p.feed=p.feed||[];p.feed.unshift({week:state.week,day:typeof currentCalendarDay==='function'?currentCalendarDay():null,text,tone});p.feed=p.feed.slice(0,6);
+ p.feed=p.feed||[];p.feed.unshift({week:state.week,day:typeof currentCalendarDay==='function'?currentCalendarDay():null,text,tone,...(meta||{})});p.feed=p.feed.slice(0,6);
 }
 function organicSocialSignal(f,p,r){
  if(r()>.40)return;
@@ -453,9 +453,9 @@ function generateStudioDeskWeek(){
  expireDeskItems();return item;
 }
 function expireDeskItems(){const d=ensureDesk();d.items.forEach(x=>{if(!x.resolved&&x.expiresWeek&&state.week>x.expiresWeek){x.resolved=true;x.expired=true;x.expanded=false;x.outcome='The window closed without a studio response.'}})}
-function nextUrgentDeskItem(){expireDeskItems();return ensureDesk().items.find(x=>!x.resolved&&x.requiresAction&&x.urgency==='urgent')||null}
+function nextUrgentDeskItem(){expireDeskItems();if(typeof syncOperationalDeskItems==='function')syncOperationalDeskItems();return ensureDesk().items.find(x=>!x.resolved&&x.requiresAction&&x.urgency==='urgent')||null}
 function nextInteractiveDeskItem(){
- expireDeskItems();
+ expireDeskItems();if(typeof syncOperationalDeskItems==='function')syncOperationalDeskItems();
  return ensureDesk().items.filter(x=>!x.resolved&&x.requiresAction).sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(a.expiresWeek||9999)-(b.expiresWeek||9999)||(a.week||0)-(b.week||0))[0]||null;
 }
 function deskFilmForItem(item){return item?.filmId?filmById(item.filmId):(item?.subject?playerFilms().find(x=>x.title===item.subject):null)||deskFilm()}

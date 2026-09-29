@@ -3,8 +3,8 @@
 // fictional in-game personality, relationships, memories and alternate-Hollywood events.
 
 function ensureLotState(st=state){
- st.lot=st.lot||{version:6,profiles:{},relationships:{},pairHistories:{},memories:[],stories:[],history:[],incidentHistory:[],variety:{recent:[]},lastIncidentWeek:0,talentCrises:[],lastTalentCrisisWeek:0};
- st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.pairHistories=st.lot.pairHistories||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];st.lot.incidentHistory=st.lot.incidentHistory||[];st.lot.variety=st.lot.variety||{recent:[]};st.lot.variety.recent=st.lot.variety.recent||[];st.lot.talentCrises=Array.isArray(st.lot.talentCrises)?st.lot.talentCrises:[];st.lot.lastTalentCrisisWeek=st.lot.lastTalentCrisisWeek||0;
+ st.lot=st.lot||{version:7,profiles:{},relationships:{},pairHistories:{},memories:[],stories:[],history:[],incidentHistory:[],variety:{recent:[]},lastIncidentWeek:0,talentCrises:[],lastTalentCrisisWeek:0,pressCycles:[],pressCycleSeq:0};
+ st.lot.profiles=st.lot.profiles||{};st.lot.relationships=st.lot.relationships||{};st.lot.pairHistories=st.lot.pairHistories||{};st.lot.memories=st.lot.memories||[];st.lot.stories=st.lot.stories||[];st.lot.history=st.lot.history||[];st.lot.incidentHistory=st.lot.incidentHistory||[];st.lot.variety=st.lot.variety||{recent:[]};st.lot.variety.recent=st.lot.variety.recent||[];st.lot.talentCrises=Array.isArray(st.lot.talentCrises)?st.lot.talentCrises:[];st.lot.lastTalentCrisisWeek=st.lot.lastTalentCrisisWeek||0;st.lot.pressCycles=Array.isArray(st.lot.pressCycles)?st.lot.pressCycles:[];st.lot.pressCycleSeq=st.lot.pressCycleSeq||0;
  if((st.lot.version||1)<2)Object.entries(st.lot.profiles).forEach(([id,p])=>{const t=(st.talent||[]).find(x=>x.id===id);if(t&&p)p.alias=t.name});
  if((st.lot.version||1)<3){
   st.lot.stories.forEach(s=>{s.chapters=s.chapters||[];s.phase=s.active?'active':'resolved';s.timesResurfaced=s.timesResurfaced||0;s.lastChapterWeek=s.lastChapterWeek||s.lastWeek||s.startedWeek});
@@ -23,6 +23,11 @@ function ensureLotState(st=state){
  }
  if((st.lot.version||1)<6){
   st.lot.talentCrises=Array.isArray(st.lot.talentCrises)?st.lot.talentCrises:[];st.lot.lastTalentCrisisWeek=st.lot.lastTalentCrisisWeek||0;st.lot.version=6;
+ }
+ if((st.lot.version||1)<7){
+  st.lot.pressCycles=Array.isArray(st.lot.pressCycles)?st.lot.pressCycles:[];st.lot.pressCycleSeq=st.lot.pressCycleSeq||0;
+  st.lot.stories.forEach(story=>{story.pressCycleIds=Array.isArray(story.pressCycleIds)?story.pressCycleIds:[]});
+  st.lot.version=7;
  }
  return st.lot;
 }
@@ -282,11 +287,12 @@ function lotStory({type='feud',participants=[],headline,summary,detail,intensity
  const lot=ensureLotState(),pair=participants.slice().sort().join('|');
  let story=lot.stories.find(x=>x.active&&x.type===type&&x.pair===pair);
  if(!story){
-  story={id:'LS'+(lot.stories.length+1),type,pair,participants:[...participants],headline,summary,detail,intensity,durability,heat:55+intensity*10,active:true,phase:'active',startedWeek:state.week,lastWeek:state.week,lastChapterWeek:state.week,memoryIds:[],chapters:[],timesResurfaced:resurfacedFrom?1:0,resurfacedFrom:resurfacedFrom||null,filmIds:filmId?[filmId]:[]};lot.stories.unshift(story);
+  story={id:'LS'+(lot.stories.length+1),type,pair,participants:[...participants],headline,summary,detail,intensity,durability,heat:55+intensity*10,active:true,phase:'active',startedWeek:state.week,lastWeek:state.week,lastChapterWeek:state.week,memoryIds:[],chapters:[],pressCycleIds:[],timesResurfaced:resurfacedFrom?1:0,resurfacedFrom:resurfacedFrom||null,filmIds:filmId?[filmId]:[]};lot.stories.unshift(story);
  }else{
   story.headline=headline;story.summary=summary;story.detail=detail;story.heat=clamp((story.heat||0)+12,0,100);story.lastWeek=state.week;story.phase='active';story.intensity=Math.max(story.intensity||1,intensity);
   if(filmId&&!story.filmIds?.includes(filmId)){story.filmIds=story.filmIds||[];story.filmIds.unshift(filmId)}
  }
+ story.pressCycleIds=Array.isArray(story.pressCycleIds)?story.pressCycleIds:[];
  if(memoryId){story.memoryIds=story.memoryIds||[];story.memoryIds.unshift(memoryId)}
  lotStoryChapter(story,{type:chapterType,headline,detail,filmId,memoryId,intensity});
  const hist=participants.length>=2?lotPairHistory(participants[0],participants[1]):null;if(hist&&!hist.storyIds.includes(story.id))hist.storyIds.unshift(story.id);
@@ -463,6 +469,7 @@ function lotApplyIncident(a,b,tier,r){
  const lot=ensureLotState(),hist=lotPairHistory(a,b);lot.incidentHistory.unshift(entry);lot.incidentHistory=lot.incidentHistory.slice(0,240);lot.variety.recent=lot.incidentHistory.slice(0,24).map(x=>x.variety||lotIncidentVarietyFromEntry(x)).filter(Boolean);hist.incidents.unshift(entry);hist.incidents=hist.incidents.slice(0,30);hist.lastIncidentWeek=state.week;
  if(ctx.film){ctx.film.lotIncidentHistory=ctx.film.lotIncidentHistory||[];ctx.film.lotIncidentHistory.unshift(entry);ctx.film.lotIncidentHistory=ctx.film.lotIncidentHistory.slice(0,12)}
  lotApplyIncidentConsequences(a,b,type,intensity,headline);
+ if(story&&intensity>=2&&typeof startLotPressCycle==='function')startLotPressCycle(story,{memoryId:mem.id,filmId:ctx.film?.id||null,chapterType:'incident',incidentId:def.id,importance:clamp(62+intensity*8+(tier==='legendary'?8:tier==='absurd'?4:0),0,100)});
  return {headline,summary,detail,tier,intensity,incidentId:def.id,family:def.family,relationship:updated,variety,narrativeSeed};
 }
 
@@ -605,6 +612,7 @@ function lotMaybeResurfacePairHistory(){
    lotAdjustRelationship(a,b,negative?{tension:6,grudge:3}:{affection:4,trust:3},mem.id);
    const story=lotStory({type,participants:[a.id,b.id],headline,summary,detail,intensity,durability:negative?42:28,publicEvent:false,memoryId:mem.id,filmId:f.id,resurfacedFrom:archived?.id||null,chapterType:'resurfacing'});
    story.timesResurfaced=Math.max(1,story.timesResurfaced||0);
+   if(typeof startLotPressCycle==='function')startLotPressCycle(story,{memoryId:mem.id,filmId:f.id,chapterType:'resurfacing',importance:clamp(68+intensity*7+(archived?5:0),0,96)});
   }
  });
 }
@@ -620,7 +628,8 @@ function lotEvolveActiveStories(){
    headline=a.name+' vs '+b.name+' finds another front on '+shared.title;summary='The original argument has acquired another chapter instead of disappearing.';detail='Nobody has formally escalated anything. Everyone has somehow escalated everything.';delta={affection:-4,trust:-5,tension:10,grudge:5};intensity=Math.max(2,intensity);
   }
   const mem=lotRemember({type:'story-chapter',participants:[a.id,b.id],headline,detail,intensity,publicEvent:false,filmId:shared.id,storyId:s.id});lotAdjustRelationship(a,b,delta,mem.id);
-  lotStory({type:s.type,participants:[a.id,b.id],headline,summary,detail,intensity,durability:s.durability||30,publicEvent:false,memoryId:mem.id,filmId:shared.id,chapterType:'escalation'});
+  const evolved=lotStory({type:s.type,participants:[a.id,b.id],headline,summary,detail,intensity,durability:s.durability||30,publicEvent:false,memoryId:mem.id,filmId:shared.id,chapterType:'escalation'});
+  if(evolved&&intensity>=2&&typeof startLotPressCycle==='function')startLotPressCycle(evolved,{memoryId:mem.id,filmId:shared.id,chapterType:'escalation',importance:clamp(66+intensity*7,0,96)});
   if(shared.stage==='production'&&s.type!=='friendship')lotApplyIncidentConsequences(a,b,s.type,Math.min(2,intensity),headline);
  });
 }

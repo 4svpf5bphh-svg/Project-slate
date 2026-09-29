@@ -1,4 +1,4 @@
-// Project Slate v4.7.2 — stateless Narrative Engine API
+// Project Slate v4.8 — stateless Narrative Engine API
 // Designed for a Vercel deployment. The API key lives only in server environment variables.
 
 const PROVIDER=(process.env.NARRATIVE_PROVIDER||'groq').toLowerCase();
@@ -15,7 +15,7 @@ const PROVIDERS={
   }
 };
 const provider=PROVIDERS[PROVIDER]||PROVIDERS.groq;
-const ALLOWED_TYPES=new Set(['film_review','project_intelligence','trade_story']);
+const ALLOWED_TYPES=new Set(['film_review','project_intelligence','trade_story','lot_press_bundle']);
 const MAX_BODY_CHARS=60000;
 
 function allowedOrigin(origin,host=''){
@@ -84,13 +84,50 @@ function tradeStorySchema(){
     required:['headline','deck','paragraphs','editorial_note']
   };
 }
-function schemaForType(type){return type==='project_intelligence'?projectIntelligenceSchema():type==='trade_story'?tradeStorySchema():reviewSchema()}
-function schemaNameForType(type){return type==='project_intelligence'?'project_slate_project_intelligence':type==='trade_story'?'project_slate_trade_story':'project_slate_film_review'}
+function lotPressBundleSchema(){
+  return {
+    type:'object',
+    additionalProperties:false,
+    properties:{
+      trade:{
+        type:'object',additionalProperties:false,
+        properties:{
+          headline:{type:'string'},
+          deck:{type:'string'},
+          paragraphs:{type:'array',items:{type:'string'},minItems:2,maxItems:4}
+        },
+        required:['headline','deck','paragraphs']
+      },
+      gossip_headline:{type:'string'},
+      agency_statement:{type:'string'},
+      rival_quote:{type:'string'},
+      pulse_reactions:{type:'array',items:{type:'string'},minItems:2,maxItems:3},
+      editorial_note:{type:'string'}
+    },
+    required:['trade','gossip_headline','agency_statement','rival_quote','pulse_reactions','editorial_note']
+  };
+}
+function schemaForType(type){return type==='project_intelligence'?projectIntelligenceSchema():type==='trade_story'?tradeStorySchema():type==='lot_press_bundle'?lotPressBundleSchema():reviewSchema()}
+function schemaNameForType(type){return type==='project_intelligence'?'project_slate_project_intelligence':type==='trade_story'?'project_slate_trade_story':type==='lot_press_bundle'?'project_slate_lot_press_bundle':'project_slate_film_review'}
 function tradeStoryQualityIssues(narrative){
   const text=[narrative?.headline,narrative?.deck,...(narrative?.paragraphs||[])].join(' ').toLowerCase(),issues=[];
   const banned=[
     ['game language',/\bplayer\b|\bsimulation\b|\bgame state\b|\bhidden metric\b/i],
     ['internal Lot language',/\blot story\b|\blot-level\b|\bsystem event\b/i],
+    ['generic AI scaffold',/\bultimately\b|\bin conclusion\b|the final takeaway/i]
+  ];
+  for(const [label,re] of banned)if(re.test(text))issues.push(label);
+  return issues;
+}
+function lotPressBundleQualityIssues(narrative){
+  const text=[
+    narrative?.trade?.headline,narrative?.trade?.deck,...(narrative?.trade?.paragraphs||[]),
+    narrative?.gossip_headline,narrative?.agency_statement,narrative?.rival_quote,...(narrative?.pulse_reactions||[])
+  ].join(' ').toLowerCase(),issues=[];
+  const banned=[
+    ['game language',/\bplayer\b|\bsimulation\b|\bgame state\b|\bhidden metric\b|\bprompt\b|\bpacket\b/i],
+    ['internal Lot language',/\blot story\b|\blot-level\b|\bsystem event\b|\bincident id\b|\brelationship score\b/i],
+    ['model language',/\bai-generated\b|\blanguage model\b|\bmodel response\b/i],
     ['generic AI scaffold',/\bultimately\b|\bin conclusion\b|the final takeaway/i]
   ];
   for(const [label,re] of banned)if(re.test(text))issues.push(label);
@@ -119,6 +156,23 @@ function reviewQualityIssues(narrative,packet){
   return issues;
 }
 function narrativeInstructions(type){
+  if(type==='lot_press_bundle')return [
+    'You are the connected entertainment-media ecosystem inside Project Slate, an alternate-reality Hollywood management game.',
+    'One deterministic public event has already happened. The supplied event, relationship history, attached production context and response directives are authoritative facts.',
+    'Create five different media reactions to that same event in one bundle: a credible trade article, a shameless but fact-bound gossip headline, a short representative statement, one anonymous rival-executive quote, and 2 to 3 Pulse social reactions.',
+    'Do not create another event. Do not invent a new feud, deal, firing, injury, crime, affair, medical issue, private conversation, salary, motive, legal claim, production shutdown, casting change or outcome.',
+    'Every named real-world performer or filmmaker is a fictionalized Project Slate counterpart. Never turn supplied fictional events into claims about the real person outside this alternate world.',
+    'The trade article should be sharp entertainment-industry journalism: explain why the supplied event matters to the film, talent market or public narrative when those facts are present.',
+    'The gossip headline may be louder and more shameless than the trade article, but it must exaggerate tone rather than facts.',
+    'The representative statement is itself a simulation-owned public response. Follow response_directive.agency_stance and do not add factual claims beyond the supplied event.',
+    'The rival quote is a simulation-owned anonymous comment. Follow response_directive.rival_tone, keep it witty and competitive, and do not reveal or invent a named source.',
+    'Pulse reactions should sound like different members of the public noticing Hollywood as performance. They may be amused, sceptical, delighted or critical according to response_directive.pulse_tones, and they may be wrong in interpretation, but must not invent concrete new events.',
+    'Use prior_press and story_history as memory. If this is a continuation, resurfacing or escalation, write it as a new chapter rather than pretending the relationship is newly discovered.',
+    'Aim for high show-business satire without breaking the fourth wall. People in this world know publicity is theatre; they do not know they are in a game.',
+    'Never expose game or system terminology such as player, simulation, hidden metric, system event, Lot story, incident ID, relationship score, AI, prompt, packet or internal state.',
+    'Return 2 to 4 substantial trade paragraphs. Keep the representative statement and rival quote concise.',
+    'editorial_note is internal only: briefly state the factual angle and continuity you preserved.'
+  ].join('\n');
   if(type==='trade_story')return [
     'You are a trade journalist inside Project Slate, an alternate-reality Hollywood management game.',
     'Rewrite only the supplied factual event into a sharp, credible entertainment-industry trade article. The simulation packet is authoritative.',
@@ -204,9 +258,9 @@ module.exports=async function handler(req,res){
           model,
           instructions:narrativeInstructions(type),
           input:[{role:'user',content:prompt}],
-          max_output_tokens:type==='project_intelligence'?700:type==='trade_story'?900:1200,
+          max_output_tokens:type==='project_intelligence'?700:type==='trade_story'?900:type==='lot_press_bundle'?1250:1200,
           reasoning:{effort:'low'},
-          temperature:type==='project_intelligence'?.2:type==='trade_story'?.82:.95,
+          temperature:type==='project_intelligence'?.2:type==='trade_story'?.82:type==='lot_press_bundle'?.92:.95,
           store:false,
           text:{format:{type:'json_schema',name:schemaNameForType(type),schema:schemaForType(type)}}
         })
@@ -223,6 +277,15 @@ module.exports=async function handler(req,res){
         if(typeof narrative.recognized!=='boolean'||!Array.isArray(narrative.legacy_talent)||!Array.isArray(narrative.established_identity))return res.status(502).json({ok:false,error:'invalid_project_intelligence_shape'});
         return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null,qualityRetry:false}});
       }
+      if(type==='lot_press_bundle'){
+        const valid=typeof narrative?.trade?.headline==='string'&&typeof narrative?.trade?.deck==='string'&&Array.isArray(narrative?.trade?.paragraphs)&&narrative.trade.paragraphs.length>=2&&narrative.trade.paragraphs.length<=4&&typeof narrative.gossip_headline==='string'&&typeof narrative.agency_statement==='string'&&typeof narrative.rival_quote==='string'&&Array.isArray(narrative.pulse_reactions)&&narrative.pulse_reactions.length>=2&&narrative.pulse_reactions.length<=3;
+        if(!valid)return res.status(502).json({ok:false,error:'invalid_lot_press_bundle_shape'});
+        const issues=lotPressBundleQualityIssues(narrative);
+        if(!issues.length)return res.status(200).json({ok:true,narrative,meta:{provider:PROVIDER,model,responseId:data.id||null,qualityRetry:attempt>0}});
+        lastIssues=issues;
+        correction='The previous press bundle failed quality control for: '+issues.join('; ')+'. Rewrite the entire bundle around the same supplied event. Keep all five media surfaces, preserve continuity, invent no new event or allegation, and remove all game or internal-system language.';
+        continue;
+      }
       if(type==='trade_story'){
         if(typeof narrative.headline!=='string'||typeof narrative.deck!=='string'||!Array.isArray(narrative.paragraphs)||narrative.paragraphs.length<2||narrative.paragraphs.length>4)return res.status(502).json({ok:false,error:'invalid_trade_story_shape'});
         const issues=tradeStoryQualityIssues(narrative);
@@ -237,7 +300,7 @@ module.exports=async function handler(req,res){
       lastIssues=issues;
       correction='The previous draft failed quality control for: '+issues.join('; ')+'. Rewrite the entire review. Keep the same simulation verdict and factual packet, preserve the sharp Project Slate voice, remove all listed problems, and do not mention this quality-control instruction.';
     }
-    return res.status(502).json({ok:false,error:type==='trade_story'?'trade_story_quality_failed':'review_quality_failed',detail:lastIssues.join('; ')});
+    return res.status(502).json({ok:false,error:type==='trade_story'?'trade_story_quality_failed':type==='lot_press_bundle'?'lot_press_bundle_quality_failed':'review_quality_failed',detail:lastIssues.join('; ')});
   }catch(err){
     return res.status(500).json({ok:false,error:'narrative_request_failed',detail:String(err?.message||err)});
   }

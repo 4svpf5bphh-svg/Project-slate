@@ -118,10 +118,14 @@ function screenplayRecordSale(s,buyerId,price,kind='auction'){
  const e=ensureScreenplayEconomy(),buyer=buyerId==='player'?state.studio?.name:rivalById(buyerId)?.name||'External buyer';
  e.history.unshift({week:state.week,scriptId:s.id,title:s.title,buyerId,buyer,price,kind,turnaround:!!s.turnaround});e.history=e.history.slice(0,80);
 }
+function resolveScriptAuctionDeskItems(s,outcome='The screenplay auction has closed.'){
+ const d=state.desk;if(!d||!s)return;
+ d.items.filter(x=>x.scriptId===s.id&&x.templateId==='script-auction'&&!x.resolved).forEach(x=>{x.resolved=true;x.requiresAction=false;x.read=true;x.expanded=false;x.resolvedWeek=state.week;x.outcome=outcome});
+}
 function acquireScreenplayForPlayer(s,price,kind='market'){
  if(state.cash+1e-9<price)return false;state.cash-=price;s.available=false;s.status='owned';s.owner='player';s.acquisitionCost=price;s.developmentSpend=(s.developmentSpend||0)+price;state.market=state.market.filter(id=>id!==s.id);if(s.marketState)s.marketState.status='sold';
  screenplayRecordSale(s,'player',price,kind);addNews(state,`${state.studio.name} acquired ${s.title} for ${money(price)}${s.turnaround?' in turnaround':''}.`,'Your Studio');
- const d=state.desk;if(d){d.items.filter(x=>x.scriptId===s.id&&x.templateId==='script-auction').forEach(x=>{x.resolved=true;x.requiresAction=false;x.read=true;x.expanded=false;x.resolvedWeek=state.week})}
+ resolveScriptAuctionDeskItems(s,`${state.studio.name} acquired the screenplay and the auction is closed.`);
  return true;
 }
 function sellScreenplayToRival(s,rv,price,kind='auction'){
@@ -129,6 +133,7 @@ function sellScreenplayToRival(s,rv,price,kind='auction'){
  screenplayRecordSale(s,rv.id,price,kind);ensureRivalCharacter(rv);
  const m=s.marketState||{},contested=(m.playerBid||0)>0;if(contested){rv.scriptWinsAgainstPlayer=(rv.scriptWinsAgainstPlayer||0)+1;rv.lastScriptWinAgainstPlayerWeek=state.week;adjustRivalRelationship(rv,-2,`Won ${s.title} after a screenplay auction`);recordRivalryEvent(rv,'auction-loss',`${rv.name} beat ${state.studio.name} to ${s.title}`,2.4,`auction:${s.id}:${rv.id}`,{scriptId:s.id,outcome:'Rival win'})}
  addNews(state,`${rv.head.name}'s ${rv.name} acquired ${s.title} for roughly ${money(price)}${contested?`, beating ${state.studio.name} in the final bidding`:''}.`,'Script Market');
+ resolveScriptAuctionDeskItems(s,`${rv.name} acquired the screenplay and the auction is closed.`);
  if(contested)pushDeskItem({templateId:'script-auction-result',scriptId:s.id,subject:s.title,source:'Rights Desk',headline:`${s.title} goes to ${rv.name}`,body:`The screenplay closed at roughly ${money(price)}. ${state.studio.name}'s final offer was ${money(m.playerBid||0)}.`,read:false,expanded:true,resolved:true,requiresAction:false,type:'development',system:true,destination:{screen:'develop',detail:{type:'script',id:s.id}}});
  return true;
 }

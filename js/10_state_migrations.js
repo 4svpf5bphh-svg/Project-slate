@@ -1,6 +1,6 @@
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=407;
+const SAVE_SCHEMA_VERSION=408;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -290,6 +290,20 @@ function applySaveSchemaMigrations(x,fromVersion){
    if(f.lastHoldNewsWeek===undefined)f.lastHoldNewsWeek=0;
   });
   schema=407;
+ }
+
+ if(schema<408){
+  // v4.8 adds connected Lot Press cycles and repairs stale screenplay-auction Desk actions.
+  x.lot=x.lot||{};x.lot.pressCycles=Array.isArray(x.lot.pressCycles)?x.lot.pressCycles:[];x.lot.pressCycleSeq=x.lot.pressCycleSeq||0;
+  (x.lot.stories||[]).forEach(story=>{story.pressCycleIds=Array.isArray(story.pressCycleIds)?story.pressCycleIds:[]});
+  if(x.tradePress)x.tradePress.version=480;
+  const scriptMap408=new Map((x.scripts||[]).map(sc=>[sc.id,sc]));
+  (x.desk?.items||[]).forEach(item=>{
+   if(item?.templateId!=='script-auction'||item.resolved)return;
+   const sc=scriptMap408.get(item.scriptId),m=sc?.marketState||{},live=!!(sc&&sc.available!==false&&sc.status==='market'&&(m.playerBid||0)>0&&Number.isFinite(m.auctionClosesWeek)&&m.auctionClosesWeek>=(x.week||1));
+   if(!live){item.resolved=true;item.requiresAction=false;item.read=true;item.expanded=false;item.resolvedWeek=x.week||1;item.outcome='The screenplay auction had already closed.'}
+  });
+  schema=408;
  }
 
  x.saveSchema=schema;

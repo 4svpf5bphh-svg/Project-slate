@@ -125,7 +125,13 @@ function mirrorNotificationToDesk(n){
 function syncOperationalDeskItems(){
  const d=ensureDeskStateLite();
  d.items.forEach(item=>{
-  if(!item.system||item.resolved||!item.notificationKey)return;
+  if(!item.system||item.resolved)return;
+  if(item.templateId==='script-auction'){
+   const sc=item.scriptId?(typeof scriptById==='function'?scriptById(item.scriptId):(state.scripts||[]).find(x=>x.id===item.scriptId)):null,m=sc?.marketState||{};
+   const live=!!(sc&&sc.available!==false&&sc.status==='market'&&(m.playerBid||0)>0&&Number.isFinite(m.auctionClosesWeek)&&m.auctionClosesWeek>=state.week);
+   if(!live){item.resolved=true;item.requiresAction=false;item.read=true;item.expanded=false;item.resolvedWeek=state.week;item.outcome='The screenplay auction has already closed.';return}
+  }
+  if(!item.notificationKey)return;
   const key=item.notificationKey,f=item.filmId?filmById(item.filmId):null;
   let waiting=false;
   if(key.startsWith('prod:'))waiting=!!(f&&f.stage==='production'&&f.pendingEvent);

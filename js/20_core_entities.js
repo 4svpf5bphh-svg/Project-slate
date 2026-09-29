@@ -171,7 +171,7 @@ function exportRawRecoveryBackup(){
  const blob=new Blob([raw],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='project-slate-recovery.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);return true;
 }
 
-function addNews(st,text,kind='Industry'){const item=buildNewsItem(st,text,kind);applyJournalistCallback(st,item);recordJournalistCoverage(st,item);st.news.unshift(item);st.news=st.news.slice(0,140);if(typeof tradePressObserveNews==='function')tradePressObserveNews(st,item);return item}
+function addNews(st,text,kind='Industry',options={}){const item=buildNewsItem(st,text,kind);applyJournalistCallback(st,item);recordJournalistCoverage(st,item);st.news.unshift(item);st.news=st.news.slice(0,140);if(!options?.skipTradePress&&typeof tradePressObserveNews==='function')tradePressObserveNews(st,item);return item}
 function playerFilms(){return state.films.filter(f=>f.owner==='player')}
 function activePlayerFilms(){return playerFilms().filter(f=>!['complete','shelved'].includes(f.stage))}
 function filmById(id){return state.films.find(f=>f.id===id)}
