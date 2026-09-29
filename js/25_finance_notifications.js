@@ -186,6 +186,7 @@ function toggleProjectHold(f){
  }
  rebuildDecisions();save();render();
 }
+let renderedRouteKey=null,pendingScrollMode=null,pendingScrollRestore=0;
 function routeKey(){const d=state.detail||null,phase=d?.type==='film'?(state.films||[]).find(f=>f.id===d.id)?.stage||'':'';return `${state.screen}|${JSON.stringify(d)}|${phase}`}
 function requestScrollTop(){pendingScrollMode='top'}
 function requestScrollRestore(y){pendingScrollMode='restore';pendingScrollRestore=y||0}
