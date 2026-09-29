@@ -1,4 +1,4 @@
-// Project Slate v4.8 — stateless Narrative Engine API
+// Project Slate v4.9 — stateless Narrative Engine API
 // Designed for a Vercel deployment. The API key lives only in server environment variables.
 
 const PROVIDER=(process.env.NARRATIVE_PROVIDER||'groq').toLowerCase();
@@ -114,6 +114,8 @@ function tradeStoryQualityIssues(narrative){
   const banned=[
     ['game language',/\bplayer\b|\bsimulation\b|\bgame state\b|\bhidden metric\b/i],
     ['internal Lot language',/\blot story\b|\blot-level\b|\bsystem event\b/i],
+    ['internal personality badge',/meticulous professional|large ego|combustible|fiercely loyal|ultra-competitive|gloriously eccentric|born for the camera|never forgets a slight|chaos merchant/i],
+    ['invented sourcing or trend authority',/industry observers|confirmed that|sources (?:say|said)|studios are increasingly|has been trialed|have been trialed|industry-wide trend/i],
     ['generic AI scaffold',/\bultimately\b|\bin conclusion\b|the final takeaway/i]
   ];
   for(const [label,re] of banned)if(re.test(text))issues.push(label);
@@ -127,6 +129,8 @@ function lotPressBundleQualityIssues(narrative){
   const banned=[
     ['game language',/\bplayer\b|\bsimulation\b|\bgame state\b|\bhidden metric\b|\bprompt\b|\bpacket\b/i],
     ['internal Lot language',/\blot story\b|\blot-level\b|\bsystem event\b|\bincident id\b|\brelationship score\b/i],
+    ['internal personality badge',/meticulous professional|large ego|combustible|fiercely loyal|ultra-competitive|gloriously eccentric|born for the camera|never forgets a slight|chaos merchant/i],
+    ['invented sourcing or trend authority',/industry observers|according to (?:a|the) (?:production|crew|source)|confirmed that|sources (?:say|said)|studios are increasingly|has been trialed|have been trialed|across other productions|industry-wide trend/i],
     ['model language',/\bai-generated\b|\blanguage model\b|\bmodel response\b/i],
     ['generic AI scaffold',/\bultimately\b|\bin conclusion\b|the final takeaway/i]
   ];
@@ -140,6 +144,7 @@ function reviewQualityIssues(narrative,packet){
     ['internal metric language',/\b(?:technical|structure|chemistry|momentum)\s*(?:score|points?|\(\d)/i],
     ['internal creative-choice label',/protect the original engine|guided control|performance-first/i],
     ['game-world terminology',/lot-level|lot story|system event|production notes/i],
+    ['internal personality badge',/meticulous professional|large ego|combustible|fiercely loyal|ultra-competitive|gloriously eccentric|born for the camera|never forgets a slight|chaos merchant/i],
     ['generic AI closing scaffold',/\bultimately\b|\bin the end\b|the final takeaway/i],
     ['star-rating leakage',/four-star badge|\b\d(?:\.\d)?[- ]star badge/i]
   ];
@@ -166,6 +171,10 @@ function narrativeInstructions(type){
     'The gossip headline may be louder and more shameless than the trade article, but it must exaggerate tone rather than facts.',
     'The representative statement is itself a simulation-owned public response. Follow response_directive.agency_stance and do not add factual claims beyond the supplied event.',
     'The rival quote is a simulation-owned anonymous comment. Follow response_directive.rival_tone, keep it witty and competitive, and do not reveal or invent a named source.',
+    'Internal personality traits and badge labels are private simulation machinery. Never name, quote, paraphrase or expose labels such as “Meticulous professional”, “Never forgets a slight”, “Large ego”, “Combustible”, “Fiercely loyal”, “Ultra-competitive”, “Born for the camera” or similar trait summaries.',
+    'Do not invent corroboration. No named production manager, crew member, publicist, representative, source or observer may appear unless that person is explicitly supplied in the packet.',
+    'Do not invent wider industry facts to make the article sound researched. Avoid unsupported claims about trends, mental-wellness practices, other productions, trials, statistics, historical precedent or what studios are increasingly doing unless the packet explicitly supplies them.',
+    'Outside the explicitly requested agency_statement and rival_quote fields, do not fabricate direct quotations or attributed confirmations.',
     'Pulse reactions should sound like different members of the public noticing Hollywood as performance. They may be amused, sceptical, delighted or critical according to response_directive.pulse_tones, and they may be wrong in interpretation, but must not invent concrete new events.',
     'Use prior_press and story_history as memory. If this is a continuation, resurfacing or escalation, write it as a new chapter rather than pretending the relationship is newly discovered.',
     'Aim for high show-business satire without breaking the fourth wall. People in this world know publicity is theatre; they do not know they are in a game.',
@@ -177,6 +186,8 @@ function narrativeInstructions(type){
     'You are a trade journalist inside Project Slate, an alternate-reality Hollywood management game.',
     'Rewrite only the supplied factual event into a sharp, credible entertainment-industry trade article. The simulation packet is authoritative.',
     'Do not invent a new deal, quote, salary, budget, feud, allegation, injury, crime, private conversation, medical fact, relationship, motive or outcome.',
+    'Do not expose internal personality badges or hidden trait summaries as public reputation. Never quote labels such as “Meticulous professional” or “Never forgets a slight”.',
+    'Do not invent named sources, attributed confirmations, industry observers, trends, statistics, comparable productions or historical precedents unless they are explicitly supplied in the packet.',
     'Every named real-world performer or filmmaker is a fictionalized game counterpart. Never turn fictional Project Slate events into claims about the real person.',
     'Use the supplied publication, byline and voice as the editorial frame. The five recurring reporters should sound recognisably different without becoming caricatures.',
     'The article should explain why the event matters to the business: leverage, slate strategy, release position, financing, talent market, franchise direction or competitive context when those facts are actually supplied.',

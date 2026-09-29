@@ -222,30 +222,43 @@ const ROLE_ARCHETYPES={
   ['The Dissenter','A supporting role that must feel specific enough to challenge the dominant history.',24,60,.63,.20,.17]
  ]
 };
+function scriptLeadCharacter(s){
+ const p=s?.premiseDNA||{},gender=p.leadGender||((typeof premiseLeadGenderFromName==='function'&&p.name)?premiseLeadGenderFromName(p.name):'any');
+ return p.name?{name:p.name,gender:['male','female'].includes(gender)?gender:'any',role:p.role||null}:null;
+}
+function roleBillingLabel(role){
+ return role?.billing==='lead'?'Lead Actor':role?.billing==='supporting'?'Supporting Actor':role?.billing==='also-starring'?'Also Starring':role?.billing==='cameo'?'Cameo':'Cast';
+}
 function ensureFilmRoles(f){
  if(!f)return [];
- const templates=ROLE_ARCHETYPES[f.genre]||ROLE_ARCHETYPES['Prestige Drama'];
- if(!Array.isArray(f.roles)||f.roles.length<4){
-  const r=makeRng(hash(state.seed+'|roles|'+f.id+'|'+f.title+'|'+f.genre));
+ const templates=ROLE_ARCHETYPES[f.genre]||ROLE_ARCHETYPES['Prestige Drama'],script=typeof scriptById==='function'?scriptById(f.scriptId):null,leadCharacter=scriptLeadCharacter(script);
+ if(!Array.isArray(f.roles)||f.roles.length<5||!f.roles.some(r=>r.id==='cameo')||f.roles.some(r=>!r.billing)){
+  const r=makeRng(hash(state.seed+'|roles-v49|'+f.id+'|'+f.title+'|'+f.genre));
   f.roles=templates.map((x,i)=>{
    const [name,desc,min,max,craft,star,reliability]=x;
-   const shift=Math.floor((r()-.5)*6);
-   return {id:i<2?`lead${i+1}`:`support${i-1}`,index:i,type:i<2?'lead':'support',name,desc,ageMin:Math.max(18,min+shift),ageMax:max+shift,craft,star,reliability};
+   const shift=Math.floor((r()-.5)*6),id=i<2?`lead${i+1}`:`support${i-1}`,billing=i===0?'lead':i===1?'supporting':'also-starring';
+   return {id,index:i,type:i<2?'lead':'support',billing,name,desc,characterName:i===0?leadCharacter?.name||null:null,gender:i===0?leadCharacter?.gender||'any':'any',ageMin:Math.max(18,min+shift),ageMax:max+shift,craft,star,reliability};
   });
+  f.roles.push({id:'cameo',index:4,type:'cameo',billing:'cameo',name:'Special Appearance',desc:'A brief, memorable appearance designed to add flavour, surprise or campaign value without carrying the dramatic spine.',characterName:null,gender:'any',ageMin:18,ageMax:85,craft:.30,star:.52,reliability:.18});
+ }else{
+  const lead=f.roles.find(r=>r.id==='lead1');if(lead){lead.billing='lead';lead.characterName=leadCharacter?.name||lead.characterName||null;lead.gender=leadCharacter?.gender||lead.gender||'any'}
+  const second=f.roles.find(r=>r.id==='lead2');if(second)second.billing='supporting';
+  f.roles.filter(r=>r.id==='support1'||r.id==='support2').forEach(r=>r.billing='also-starring');
+  const cameo=f.roles.find(r=>r.id==='cameo');if(cameo)cameo.billing='cameo';
  }
  f.roleAssignments=f.roleAssignments||{};
  if(!f.roleAssignments.lead1&&f.cast?.[0])f.roleAssignments.lead1=f.cast[0];
  if(!f.roleAssignments.lead2&&f.cast?.[1])f.roleAssignments.lead2=f.cast[1];
  (f.supportingCastIds||[]).forEach((id,i)=>{if(i<2&&!f.roleAssignments[`support${i+1}`])f.roleAssignments[`support${i+1}`]=id});
- // One performer can only occupy one role in a film package. Heal legacy/edge-case duplicates
- // deterministically by keeping the first role in package order.
+ if(!f.roleAssignments.cameo&&f.cameoCastId)f.roleAssignments.cameo=f.cameoCastId;
  const seen=new Set();
- ['lead1','lead2','support1','support2'].forEach(k=>{const id=f.roleAssignments[k];if(!id)return;if(seen.has(id))delete f.roleAssignments[k];else seen.add(id)});
+ ['lead1','lead2','support1','support2','cameo'].forEach(k=>{const id=f.roleAssignments[k];if(!id)return;if(seen.has(id))delete f.roleAssignments[k];else seen.add(id)});
  const l1=f.roleAssignments.lead1||null,l2=f.roleAssignments.lead2||null;
  f.cast=[l1,l2].filter(Boolean);
  f.supportingCastIds=['support1','support2'].map(k=>f.roleAssignments[k]).filter(Boolean);
  f.supportingCastId=f.supportingCastIds[0]||null;
- f.castingTargetRole=f.castingTargetRole||'lead1';
+ f.cameoCastId=f.roleAssignments.cameo||null;
+ f.castingTargetRole=['lead1','lead2'].includes(f.castingTargetRole)?f.castingTargetRole:'lead1';
  return f.roles;
 }
 function roleById(f,id){return ensureFilmRoles(f).find(x=>x.id===id)||ensureFilmRoles(f)[0]}
@@ -258,6 +271,9 @@ function actorRoleFitBreakdown(t,f,roleRef=null){
  const base=actorProjectFitBreakdown(t,f),contributors=[...(base.contributors||[])];let score=base.base;
  contributors.forEach(x=>score+=x.delta);
  const add=(x)=>{score+=x.delta;contributors.push(x)};
+ if(role.id==='lead1'&&['male','female'].includes(role.gender)&&t.castingLane&&t.castingLane!==role.gender){
+  return {score:15,contributors:[fitContributor('leadGender',-80,'',`${role.characterName||'The lead character'} is written as ${role.gender}; this performer is outside that casting lane.`)],role};
+ }
  const hasAge=Number.isFinite(t.age),age=t.age;
  if(hasAge){
   const inside=age>=role.ageMin&&age<=role.ageMax;
@@ -271,8 +287,9 @@ function actorRoleFitBreakdown(t,f,roleRef=null){
  const craftDelta=craft*role.craft*.20;add(fitContributor('roleCraft',craftDelta,`${role.name} is performance-dependent and the actor’s craft supports the part.`,`${role.name} asks for more performance craft than the actor’s current evidence supports.`));
  const starDelta=star*role.star*.09;add(fitContributor('roleStar',starDelta,`${role.name} benefits from presence and campaign value that this actor can provide.`,`${role.name} wants more screen presence / campaign value than this actor currently brings.`));
  const relDelta=rel*role.reliability*.10;add(fitContributor('roleReliability',relDelta,`Reliability is particularly valuable in ${role.name} and supports the casting case.`,`Reliability is a concern for the demands of ${role.name}.`));
- if(role.type==='support'&&(t.star||0)>90)add(fitContributor('supportScale',-5,'','This star is unusually large for the supporting role and may distort the package.'));
- if(role.type==='support'&&(t.acting||0)>=90)add(fitContributor('supportCraft',2,`Exceptional craft creates scene-stealing upside in ${role.name}.`,''));
+ if(role.billing==='also-starring'&&(t.star||0)>94)add(fitContributor('supportScale',-3,'','This star is unusually large for an Also Starring role and may distort the package.'));
+ if(role.billing==='also-starring'&&(t.acting||0)>=90)add(fitContributor('supportCraft',2,`Exceptional craft creates scene-stealing upside in ${role.name}.`,''));
+ if(role.billing==='cameo'){add(fitContributor('cameoStar',Math.max(-2,((t.star||60)-70)*.07),'A recognisable performer can make the brief appearance register.','The cameo gains little from this performer’s current audience profile.'));score=score*.92+5}
  return {score:clamp(score,15,98),contributors,role};
 }
 function actorRoleFit(t,f,roleRef=null){return actorRoleFitBreakdown(t,f,roleRef).score}
@@ -301,6 +318,7 @@ function syncRoleAssignments(f){
  f.cast=[l1,l2].filter(Boolean);
  f.supportingCastIds=['support1','support2'].map(k=>f.roleAssignments[k]).filter(Boolean);
  f.supportingCastId=f.supportingCastIds[0]||null;
+ f.cameoCastId=f.roleAssignments.cameo||null;
 }
 function setCastingTargetRole(f,roleId){
  const role=roleById(f,roleId);if(!role||role.type!=='lead')return;
@@ -323,8 +341,9 @@ function talentProjectInterest(t,f,roleRef=null,mode='select'){
  score+=(f.creative?.positioning==='prestige'&&t.acting>=88)?5:0;
  score+=(f.creative?.positioning==='commercial'&&t.star>=85)?3:0;
  score+=(returning?9:0);
- score+=(role.type==='lead'?5:-2);
- score-=(t.momentum>=90&&role.type==='support'?9:0);
+ score+=(role.billing==='lead'?6:role.billing==='supporting'?3:role.billing==='also-starring'?-1:role.billing==='cameo'?5:-2);
+ score-=(t.momentum>=90&&role.billing==='also-starring'?6:0);
+ if(role.billing==='cameo'){score+=Math.min(14,Math.max(0,(t.star||60)-75)*.28);score+=4}
  score-=(t.star>=92&&f.budget<12?8:0);
  score-=(t.fee>Math.max(2,f.budget*.35)?4:0);
  if(mode==='audition'&&t.star>=88)score-=7; // major stars less willing to read unless project/role really fits
@@ -361,8 +380,8 @@ function assignLeadRole(f,roleId,tid){
  f.roleAssignments[role.id]=tid;syncRoleAssignments(f);
  const nextLead=ensureFilmRoles(f).find(r=>r.type==='lead'&&r.id!==role.id&&!f.roleAssignments[r.id]);
  f.castingTargetRole=nextLead?.id||role.id;
- f.history=f.history||[];f.history.push(`${typeof calendarDateLabel==='function'?calendarDateLabel():'Week '+state.week}: ${t.name} attached as ${role.name}.`);
- if(nextLead)showToast(`${t.name} is cast as ${role.name}. Now casting ${nextLead.name}.`);
+ f.history=f.history||[];f.history.push(`${typeof calendarDateLabel==='function'?calendarDateLabel():'Week '+state.week}: ${t.name} attached as ${roleBillingLabel(role)} (${role.name}).`);
+ if(nextLead)showToast(`${t.name} is cast as ${roleBillingLabel(role)}. Now casting ${roleBillingLabel(nextLead)}.`);
  return true;
 }
 function rolePackageSummary(f){
@@ -381,9 +400,9 @@ function greenlightReviewData(f){
  const strengths=[],risks=[];
  if(cov.readiness==='Packaging-ready')strengths.push('The screenplay is entering production from a strong development position.');
  else if(cov.readiness==='Needs development')risks.push('Coverage still sees unresolved screenplay risk going into production.');
- if(castingEvidence.cls==='good')strengths.push('Both principal roles produced strong screen-test evidence.');
+ if(castingEvidence.cls==='good')strengths.push('Both core roles produced strong screen-test evidence.');
  else if(untested.length)risks.push(untested.map(x=>x.role.name).join(' and ')+' '+(untested.length===1?'is':'are')+' cast without a screen test. You know the market reputation, but not the role-specific evidence.');
- else if(castingEvidence.cls==='warn'||castingEvidence.cls==='bad')risks.push('The principal cast produced mixed role-specific evidence before greenlight.');
+ else if(castingEvidence.cls==='warn'||castingEvidence.cls==='bad')risks.push('The core cast produced mixed role-specific evidence before greenlight.');
  if(ratio<.80)risks.push(`The production budget is materially below the screenplay's natural ${money(natural)} scale.`);
  else if(ratio>=.95&&ratio<=1.18)strengths.push('Production funding is close to the screenplay’s natural scale.');
  else if(ratio>1.35)risks.push('The film is funded well above its natural scale, increasing break-even pressure without equivalent creative upside.');
@@ -875,12 +894,10 @@ function updateAfterlifeRevenue(){
  const e=ensureEconomyState();e.lastCatalogueReceipts=weeklyTotal;return weeklyTotal;
 }
 function awardSupportingTalent(f){
- const ids=(f.supportingCastIds||[f.supportingCastId]).filter(Boolean),support=ids.map(talentById).filter(Boolean).sort((a,b)=>(b.acting||0)-(a.acting||0));
- if(support.length)return support[0];
- const leads=(f.cast||[]).map(talentById).filter(Boolean).sort((a,b)=>(a.star||0)-(b.star||0)||(b.acting||0)-(a.acting||0));
- return leads[0]||null;
+ ensureFilmRoles(f);const ids=[f.roleAssignments?.lead2,f.roleAssignments?.support1,f.roleAssignments?.support2].filter(Boolean),support=ids.map(talentById).filter(Boolean).sort((a,b)=>(b.acting||0)-(a.acting||0));
+ return support[0]||null;
 }
-function awardLeadTalent(f){return (f.cast||[]).map(talentById).filter(Boolean).sort((a,b)=>(b.acting||0)-(a.acting||0))[0]||null}
+function awardLeadTalent(f){ensureFilmRoles(f);return f.roleAssignments?.lead1?talentById(f.roleAssignments.lead1):null}
 function awardTalentId(f,cat){
  if(cat==='director')return f.directorId||null;
  if(cat==='lead')return awardLeadTalent(f)?.id||null;

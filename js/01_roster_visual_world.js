@@ -242,10 +242,23 @@ function privateRosterFee(seed,type){
  return +Math.max(1.0,raw*mult).toFixed(2);
 }
 
+const CASTING_FEMALE_LANE_NAMES=new Set([
+ 'Florence Pugh','Zendaya','Margot Robbie','Emma Stone','Lupita Nyong’o','Saoirse Ronan','Rebecca Ferguson','Anya Taylor-Joy','Jodie Comer','Mikey Madison',
+ 'Da’Vine Joy Randolph','Carey Mulligan','Tessa Thompson','Jessie Buckley','Cailee Spaeny','Ayo Edebiri','Viola Davis','Cate Blanchett','Letitia Wright','Jenna Ortega',
+ 'Greta Lee','Keke Palmer','Mia Goth','Nicole Kidman','Sydney Sweeney','Sophie Thatcher','Danielle Deadwyler','Rachel Sennott','Emily Blunt','Ana de Armas',
+ 'Ruby Rose','Samara Weaving','Maika Monroe','Betty Gilpin','Alison Brie','Megan Fox','Michelle Yeoh','Charlize Theron','Angelina Jolie','Scarlett Johansson',
+ 'Jennifer Lawrence','Amy Adams','Jessica Chastain','Anne Hathaway','Natalie Portman','Tilda Swinton','Regina King','Awkwafina','Zoe Saldaña'
+]);
+function actorCastingLane(name,avatarHint=null){
+ if(CASTING_FEMALE_LANE_NAMES.has(name))return 'female';
+ if(avatarHint==='femme')return 'female';
+ if(avatarHint==='masc')return 'male';
+ return 'male';
+}
 function rosterProfileFromSeed(seed,type,index){
  if(type==='Actor')return {
   id:'A'+(index+1),type:'Actor',name:seed[0],acting:seed[1],star:seed[2],momentum:seed[3],reliability:seed[4],fee:privateRosterFee(seed,'Actor'),genres:seed[6],tag:seed[7],
-  age:seed[8],realCredits:seed[9]||[],isRealPerson:true,busyUntil:0,retired:false,credits:[],relationship:0,
+  age:seed[8],realCredits:seed[9]||[],isRealPerson:true,castingLane:actorCastingLane(seed[0]),busyUntil:0,retired:false,credits:[],relationship:0,
   careerState:seed[2]>90?'Established Star':seed[3]>89?'Hot Streak':seed[2]<68?'Rising Talent':'Established Actor'
  };
  return {
@@ -257,7 +270,7 @@ function rosterProfileFromSeed(seed,type,index){
 function fictionalTalentProfileFromSeed(seed,type,index){
  if(type==='Actor')return {
   id:'FA'+(index+1),type:'Actor',name:seed[0],isRealPerson:false,realCredits:[],acting:seed[1],star:seed[2],momentum:seed[3],reliability:seed[4],fee:+Number(seed[5]).toFixed(2),genres:seed[6],tag:seed[7],
-  age:seed[8],busyUntil:0,retired:false,credits:[],relationship:0,careerState:seed[2]>=70?'Rising Name':'Working Actor',avatarHint:seed[9]||null,emerging:false,introducedWeek:1,discoveryWindowUntil:0,firstMajorBreakStudio:null
+  age:seed[8],castingLane:actorCastingLane(seed[0],seed[9]||null),busyUntil:0,retired:false,credits:[],relationship:0,careerState:seed[2]>=70?'Rising Name':'Working Actor',avatarHint:seed[9]||null,emerging:false,introducedWeek:1,discoveryWindowUntil:0,firstMajorBreakStudio:null
  };
  return {
   id:'FD'+(index+1),type:'Director',name:seed[0],isRealPerson:false,realCredits:[],craft:seed[1],commercial:seed[2],budgetControl:seed[3],actorDirection:seed[4],momentum:Math.round(clamp(52+(seed[1]-75)*.7+(seed[2]-60)*.25,48,88)),fee:+Number(seed[5]).toFixed(2),genres:seed[6],tag:seed[7],
@@ -2151,16 +2164,24 @@ const PREMISE_DNA_BANK={
   complications:['their family profits from the conflict','the enemy commander is someone they once loved','the rightful heir does not want the throne','the peace they can achieve would betray the people who followed them','history will remember the decision differently from the truth']
  }
 };
-const PREMISE_FIRST_NAMES=['Jack','Mara','Elena','Noah','Leah','Daniel','Nina','Elias','Maya','Theo','Rosa','Adrian','Lena','Jonah','Sofia','Marcus','Amira','Sam','Eva','Miles'];
+const PREMISE_MALE_FIRST_NAMES=['Jack','Noah','Daniel','Elias','Theo','Adrian','Jonah','Marcus','Miles','Luca','Owen','Rafael'];
+const PREMISE_FEMALE_FIRST_NAMES=['Mara','Elena','Leah','Nina','Maya','Rosa','Lena','Sofia','Amira','Eva','Celeste','Talia'];
+const PREMISE_FIRST_NAMES=[...PREMISE_MALE_FIRST_NAMES,...PREMISE_FEMALE_FIRST_NAMES];
 const PREMISE_LAST_NAMES=['Barry','Voss','Hart','Vale','Mercer','Quinn','Reed','Stone','Chen','Moreau','Shah','Cole','Brooks','North','Bell','Rao','Ward','Park','Okafor','Vega'];
+function premiseLeadGenderFromName(name=''){
+ const first=String(name||'').trim().split(/\s+/)[0];
+ if(PREMISE_MALE_FIRST_NAMES.includes(first))return 'male';
+ if(PREMISE_FEMALE_FIRST_NAMES.includes(first))return 'female';
+ return 'any';
+}
 function generatedPremise(st,r,genre){
- const bank=PREMISE_DNA_BANK[genre]||PREMISE_DNA_BANK['Prestige Drama'],name=`${pick(r,PREMISE_FIRST_NAMES)} ${pick(r,PREMISE_LAST_NAMES)}`,role=pick(r,bank.roles),setting=pick(r,bank.settings),goal=pick(r,bank.goals),pressure=pick(r,bank.pressures),complication=pick(r,bank.complications);
+ const bank=PREMISE_DNA_BANK[genre]||PREMISE_DNA_BANK['Prestige Drama'],leadGender=r()<.5?'female':'male',firstNames=leadGender==='female'?PREMISE_FEMALE_FIRST_NAMES:PREMISE_MALE_FIRST_NAMES,name=`${pick(r,firstNames)} ${pick(r,PREMISE_LAST_NAMES)}`,role=pick(r,bank.roles),setting=pick(r,bank.settings),goal=pick(r,bank.goals),pressure=pick(r,bank.pressures),complication=pick(r,bank.complications);
  const loglines=[
   `${capPhrase(role)} ${name} must ${goal} in ${setting} as ${pressure}, while ${complication}.`,
   `In ${setting}, ${role} ${name} must ${goal}; ${pressure}, and ${complication}.`,
   `${capPhrase(role)} ${name} enters ${setting} determined to ${goal}, only to discover that ${pressure} — and ${complication}.`
  ];
- const premiseDNA={version:3141,name,role,setting,goal,pressure,complication};
+ const premiseDNA={version:4900,name,leadGender,role,setting,goal,pressure,complication};
  return {title:uniqueScriptTitle(st,r,genre),logline:pick(r,loglines),shape:{protagonist:`${role} ${name}`,setting,engine:goal},premiseDNA};
 }
 function premiseReviewContext(s){
@@ -2232,49 +2253,88 @@ function ensureProductionDepth(f){
  if(!f)return f;
  f.supportingCastIds=Array.isArray(f.supportingCastIds)?f.supportingCastIds.filter(Boolean):(f.supportingCastId?[f.supportingCastId]:[]);
  f.supportingCastIds=[...new Set(f.supportingCastIds)].filter(id=>!(f.cast||[]).includes(id));
- f.supportingCastId=f.supportingCastIds[0]||null; // compatibility alias for older saves/systems
+ f.supportingCastId=f.supportingCastIds[0]||null; // compatibility alias: first "Also Starring" performer
+ f.cameoCastId=f.cameoCastId||f.roleAssignments?.cameo||null;
+ if(f.cameoCastId&&([...(f.cast||[]),...f.supportingCastIds].includes(f.cameoCastId)))f.cameoCastId=null;
  if(!f.producerStrategy)f.producerStrategy='lean';
  if(!f.effectsApproach)f.effectsApproach='hybrid';
  return f;
 }
-function requiredSupportingRoles(f){
- ensureProductionDepth(f);const b=+(f.budget||0);
- return b>=25?2:b>=12?1:0;
-}
-function maxSupportingRoles(f){return requiredSupportingRoles(f)>=2?2:1}
+function requiredSupportingRoles(){return 0}
+function maxSupportingRoles(){return 2}
 function supportingActors(f){ensureProductionDepth(f);return f.supportingCastIds.map(talentById).filter(Boolean)}
 function supportingActor(f){return supportingActors(f)[0]||null}
+function cameoActor(f){ensureProductionDepth(f);return f.cameoCastId?talentById(f.cameoCastId):null}
 function supportingCastRequirement(f){
- const required=requiredSupportingRoles(f),selected=supportingActors(f).length;
- return {required,selected,max:maxSupportingRoles(f),complete:selected>=required,label:required===0?'Optional ensemble':required===1?'Mid-scale ensemble':'Event-scale ensemble'};
+ const selected=supportingActors(f).length;
+ return {required:0,selected,max:2,complete:true,label:selected?'Optional ensemble attached':'Optional ensemble'};
 }
 function packageTalentIds(f){
- ensureProductionDepth(f);return [f.directorId,...(f.cast||[]),...f.supportingCastIds].filter(Boolean);
+ ensureProductionDepth(f);return [f.directorId,...(f.cast||[]),...f.supportingCastIds,f.cameoCastId].filter(Boolean);
 }
-function packageActors(f){return [...(f.cast||[]),...supportingActors(f).map(t=>t.id)].filter(Boolean).map(talentById).filter(Boolean)}
+function packageActors(f){return [...(f.cast||[]),...supportingActors(f).map(t=>t.id),f.cameoCastId].filter(Boolean).map(talentById).filter(Boolean)}
 function setSupportingCast(f,tid){
  ensureProductionDepth(f);ensureFilmRoles(f);const ids=f.supportingCastIds||[],idx=ids.indexOf(tid),t=talentById(tid);
  if(idx>=0){
   const roleId=Object.entries(f.roleAssignments||{}).find(([k,id])=>k.startsWith('support')&&id===tid)?.[0];
   if(roleId)delete f.roleAssignments[roleId];clearTalentContract(f,tid);syncRoleAssignments(f);save();render();return;
  }
- if(ids.length>=maxSupportingRoles(f))return showToast(`This production scale supports ${maxSupportingRoles(f)} supporting role${maxSupportingRoles(f)===1?'':'s'} in the principal package.`);
+ if(ids.length>=2)return showToast('Both Also Starring slots are already filled.');
  const roleId=!f.roleAssignments?.support1?'support1':'support2',role=roleById(f,roleId),decline=talentDeclineForRole(f,tid,roleId);
  if(decline)return showToast(`${t?.name||'That performer'} has already passed on ${role.name}.`);
  const interest=talentProjectInterest(t,f,role,'select');
  if(!interest.accept){markTalentDecline(f,t,roleId,interest.reason,'role');save();render();return}
  f.roleAssignments[roleId]=tid;syncRoleAssignments(f);
- f.history=f.history||[];f.history.push(`${typeof calendarDateLabel==='function'?calendarDateLabel():'Week '+state.week}: ${t.name} attached as ${role.name}.`);
+ f.history=f.history||[];f.history.push(`${typeof calendarDateLabel==='function'?calendarDateLabel():'Week '+state.week}: ${t.name} attached in an Also Starring role (${role.name}).`);
  save();render();
 }
 function clearSupportingCast(f){
  ensureProductionDepth(f);ensureFilmRoles(f);f.supportingCastIds.forEach(id=>clearTalentContract(f,id));delete f.roleAssignments.support1;delete f.roleAssignments.support2;syncRoleAssignments(f);save();render();
 }
+function setCameoCast(f,tid){
+ ensureProductionDepth(f);ensureFilmRoles(f);const t=talentById(tid);if(!t)return;
+ if(f.cameoCastId===tid){delete f.roleAssignments.cameo;f.cameoCastId=null;clearTalentContract(f,tid);syncRoleAssignments(f);save();render();return}
+ if(roleForTalent(f,tid))return showToast(`${t.name} is already attached elsewhere in the cast package.`);
+ const role=roleById(f,'cameo'),decline=talentDeclineForRole(f,tid,'cameo');
+ if(decline)return showToast(`${t.name} has already passed on the cameo.`);
+ const interest=talentProjectInterest(t,f,role,'select');
+ if(!interest.accept){markTalentDecline(f,t,'cameo',interest.reason,'role');save();render();return}
+ if(f.cameoCastId)clearTalentContract(f,f.cameoCastId);
+ f.roleAssignments.cameo=tid;f.cameoCastId=tid;syncRoleAssignments(f);
+ f.history=f.history||[];f.history.push(`${typeof calendarDateLabel==='function'?calendarDateLabel():'Week '+state.week}: ${t.name} attached for a cameo appearance.`);
+ save();render();
+}
+function clearCameoCast(f){ensureProductionDepth(f);if(f.cameoCastId)clearTalentContract(f,f.cameoCastId);f.cameoCastId=null;if(f.roleAssignments)delete f.roleAssignments.cameo;syncRoleAssignments(f);save();render()}
+function setAdditionalCastingTarget(f,roleId){
+ ensureFilmRoles(f);if(!['support1','support2','cameo'].includes(roleId))return;
+ f.additionalCastingTarget=roleId;save();render();
+}
+function additionalCastingTargetRole(f){
+ ensureFilmRoles(f);const current=f.additionalCastingTarget;
+ if(['support1','support2','cameo'].includes(current))return roleById(f,current);
+ const firstOpen=!f.roleAssignments?.support1?'support1':!f.roleAssignments?.support2?'support2':'cameo';
+ f.additionalCastingTarget=firstOpen;return roleById(f,firstOpen);
+}
+function setAdditionalCastRole(f,roleId,tid){
+ ensureProductionDepth(f);ensureFilmRoles(f);if(!['support1','support2','cameo'].includes(roleId))return false;
+ if(roleId==='cameo'){setCameoCast(f,tid);return true}
+ const t=talentById(tid),role=roleById(f,roleId);if(!t||!role)return false;
+ const current=f.roleAssignments?.[roleId]||null;
+ if(current===tid){delete f.roleAssignments[roleId];clearTalentContract(f,tid);syncRoleAssignments(f);save();render();return true}
+ const elsewhere=roleForTalent(f,tid);if(elsewhere&&elsewhere.id!==roleId)return showToast(`${t.name} is already attached as ${roleBillingLabel(elsewhere)}.`);
+ const decline=talentDeclineForRole(f,tid,roleId);if(decline)return showToast(`${t.name} has already passed on ${role.name}.`);
+ const interest=talentProjectInterest(t,f,role,'select');if(!interest.accept){markTalentDecline(f,t,roleId,interest.reason,'role');save();render();return false}
+ if(current)clearTalentContract(f,current);
+ f.roleAssignments[roleId]=tid;syncRoleAssignments(f);
+ f.history=f.history||[];f.history.push(`${typeof calendarDateLabel==='function'?calendarDateLabel():'Week '+state.week}: ${t.name} attached as Also Starring (${role.name}).`);
+ save();render();return true;
+}
+
 function ensembleCampaignStar(f){
- const principals=(f.cast||[]).map(talentById).filter(Boolean).map(t=>{ensureTalentMarketEconomy(t);return actorCommercialDraw(t)}).sort((a,b)=>b-a),support=supportingActors(f).map(t=>actorCommercialDraw(t)).sort((a,b)=>b-a);
- const base=principals.length===1?principals[0]:principals.length?principals[0]*.62+principals[1]*.38:0;
- const bonus=support.slice(0,2).reduce((a,v)=>a+Math.max(0,v-52)*.07,0);
- return clamp(base+Math.min(9,bonus),0,99);
+ const principals=(f.cast||[]).map(talentById).filter(Boolean).map(t=>{ensureTalentMarketEconomy(t);return actorCommercialDraw(t)}).sort((a,b)=>b-a),support=supportingActors(f).map(t=>actorCommercialDraw(t)).sort((a,b)=>b-a),cameo=cameoActor(f);
+ const base=principals.length===1?principals[0]:principals.length?principals[0]*.68+principals[1]*.32:0;
+ const bonus=support.slice(0,2).reduce((a,v)=>a+Math.max(0,v-52)*.055,0)+(cameo?Math.max(0,actorCommercialDraw(cameo)-65)*.055:0);
+ return clamp(base+Math.min(10,bonus),0,99);
 }
 function producerStrategy(f){ensureProductionDepth(f);return PRODUCER_STRATEGIES[f.producerStrategy]||PRODUCER_STRATEGIES.lean}
 function effectsApproach(f){ensureProductionDepth(f);return EFFECTS_APPROACHES[f.effectsApproach]||EFFECTS_APPROACHES.hybrid}

@@ -82,8 +82,7 @@ function ensureFilmNarrative(f){
 }
 function narrativeTalentSummary(id){
  const t=talentById(id);if(!t)return null;
- const p=typeof ensureLotProfile==='function'?ensureLotProfile(t):null;
- return {id:t.id,name:t.name,type:t.type,momentum:Math.round(t.momentum||0),studioRelationship:Math.round(t.relationship||0),lotPersona:p&&typeof lotPersonaLabels==='function'?lotPersonaLabels(t).slice(0,3):[]};
+ return {id:t.id,name:t.name,type:t.type,momentum:Math.round(t.momentum||0),studioRelationship:Math.round(t.relationship||0)};
 }
 function narrativeLotStoriesForFilm(f){
  if(typeof ensureLotState!=='function')return [];
@@ -131,12 +130,12 @@ function projectIntelligencePublicContext(s){
 }
 function projectIntelligenceCastContext(f){
  const s=f?scriptById(f.scriptId):null,ctx=projectIntelligencePublicContext(s);if(!ctx)return null;
- const attached=[talentById(f.directorId),...(f.cast||[]).map(talentById),...(f.supportingCastIds||[]).map(talentById)].filter(Boolean);
+ const attached=[talentById(f.directorId),...(f.cast||[]).map(talentById),...(f.supportingCastIds||[]).map(talentById),talentById(f.cameoCastId)].filter(Boolean);
  const legacyActors=(ctx.legacyTalent||[]).filter(x=>/lead|actor|cast|star|performer/i.test(x.association||''));
  const compare=legacyActors.length?legacyActors:(ctx.legacyTalent||[]);
  const key=n=>String(n||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
  const attachedMap=new Map(attached.map(t=>[key(t.name),t.name])),returning=compare.filter(x=>attachedMap.has(key(x.name))).map(x=>x.name);
- const missing=compare.filter(x=>!attachedMap.has(key(x.name))).map(x=>x.name),castAttached=(f.cast||[]).length+(f.supportingCastIds||[]).length;
+ const missing=compare.filter(x=>!attachedMap.has(key(x.name))).map(x=>x.name),castAttached=(f.cast||[]).length+(f.supportingCastIds||[]).length+(f.cameoCastId?1:0);
  const mode=!castAttached?'unresolved':returning.length===0&&compare.length?'full-recast':returning.length&&missing.length?'partial-return':returning.length?'legacy-return':'new-package';
  return {...ctx,returning,missing,mode};
 }
@@ -210,7 +209,7 @@ function narrativeReviewHistoryLine(text=''){
 function narrativeFilmReviewPacket(f){
  const sc=scriptById(f.scriptId),id=typeof ensureFilmIdentity==='function'?ensureFilmIdentity(f):{},critic=f.review?.critic||{},m=f.metrics||{},post=f.post||{},marketing=typeof ensureMarketingState==='function'?ensureMarketingState(f):f.marketingState||{},tracking=marketing.trackingHistory?.[0]||null;
  const support=typeof supportingActors==='function'?supportingActors(f):[];
- const director=narrativeTalentSummary(f.directorId),actors=[...(f.cast||[]),...support.map(x=>x.id)].map(narrativeTalentSummary).filter(Boolean);
+ const director=narrativeTalentSummary(f.directorId),actors=[...(f.cast||[]),...support.map(x=>x.id),f.cameoCastId].filter(Boolean).map(narrativeTalentSummary).filter(Boolean);
  const studioIdentity=typeof studioIdentityPrimary==='function'?studioIdentityPrimary():null;
  return {
   schemaVersion:NARRATIVE_SCHEMA_VERSION,

@@ -220,8 +220,8 @@ function lotPressResponseDirective(story){
 function lotPressPacket(cycle,item){
  const story=lotPressStoryForCycle(cycle),lot=typeof ensureLotState==='function'?ensureLotState():null,film=cycle?.filmId&&typeof filmById==='function'?filmById(cycle.filmId):null,names=lotPressParticipantNames(story);
  const participants=(story?.participants||[]).map(id=>{
-  const t=typeof talentById==='function'?talentById(id):null,p=t&&typeof ensureLotProfile==='function'?ensureLotProfile(t):null;
-  return t?{name:t.name,type:t.type,persona:p&&typeof lotPersonaLabels==='function'?lotPersonaLabels(t).slice(0,3):[]}:null;
+  const t=typeof talentById==='function'?talentById(id):null;
+  return t?{name:t.name,type:t.type}:null;
  }).filter(Boolean);
  return {
   contentType:'lot_press_bundle',

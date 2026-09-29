@@ -917,6 +917,10 @@ function contractDraftFor(f,tid){
  if(t.type!=='Actor'&&d.franchiseTerm!=='none')d.franchiseTerm='none';
  return d;
 }
+function billingRoleMultiplier(role){return role?.billing==='supporting'?.82:role?.billing==='also-starring'?.58:role?.billing==='cameo'?.25:1}
+function roleContractMultiplier(f,t){
+ if(!f||t?.type!=='Actor')return 1;return billingRoleMultiplier(roleForTalent(f,t.id));
+}
 function contractQuote(f,t,draft=contractDraftFor(f,t.id)){
  const set=contractOffers(f,t),current=f.contracts?.[t.id];
  if(set.heldGuarantee&&current)return current;
@@ -925,11 +929,11 @@ function contractQuote(f,t,draft=contractDraftFor(f,t.id)){
   const p=set.parentTerms||{},upfront=+(p.futureFee||set.flat).toFixed(2),backend=clamp(Number(p.futureBackend)||0,0,contractBackendMax(t));
   return {id:'exercise-option',label:'Exercise sequel option',upfront,backend,sequelOption:false,guaranteedReturn:false,franchiseTerm:'exercise-option',producerCredit:false,futureFee:null,futureBackend:0,desc:money(upfront)+' upfront'+(backend?' + '+backend+'% backend':'')+' under the option negotiated on the previous film.'};
  }
- const backend=clamp(Number(draft.backend)||0,0,contractBackendMax(t)),producerCredit=t.type==='Director'&&!!draft.producerCredit;
- let upfront=set.flat*(1-contractBackendDiscount(t,backend));
- let franchiseTerm=t.type==='Actor'?(draft.franchiseTerm||'none'):'none',futureFee=null,futureBackend=0,sequelOption=false,guaranteedReturn=false;
- if(franchiseTerm==='option'){upfront*=.95;futureFee=+(set.flat*1.25).toFixed(2);futureBackend=backend;sequelOption=true}
- else if(franchiseTerm==='guaranteed'){upfront*=.88;futureFee=+(set.flat*1.18).toFixed(2);futureBackend=backend;guaranteedReturn=true}
+ const backend=clamp(Number(draft.backend)||0,0,contractBackendMax(t)),producerCredit=t.type==='Director'&&!!draft.producerCredit,roleMultiplier=roleContractMultiplier(f,t),billing=t.type==='Actor'?roleForTalent(f,t.id)?.billing:null;
+ let upfront=set.flat*roleMultiplier*(1-contractBackendDiscount(t,backend));
+ let franchiseTerm=t.type==='Actor'&&billing!=='cameo'?(draft.franchiseTerm||'none'):'none',futureFee=null,futureBackend=0,sequelOption=false,guaranteedReturn=false;
+ if(franchiseTerm==='option'){upfront*=.95;futureFee=+(set.flat*roleMultiplier*1.25).toFixed(2);futureBackend=backend;sequelOption=true}
+ else if(franchiseTerm==='guaranteed'){upfront*=.88;futureFee=+(set.flat*roleMultiplier*1.18).toFixed(2);futureBackend=backend;guaranteedReturn=true}
  else franchiseTerm='none';
  if(producerCredit)upfront*=.90;
  upfront=+Math.max(.05,upfront).toFixed(2);
@@ -989,10 +993,10 @@ function knownCollaborators(t){
 function createPlayerFilmFromOwnedScript(s){
  ensureScriptEcosystem(s);
  const parent=s.ipParentFilmId?filmById(s.ipParentFilmId):null,carryContinuity=!!parent&&!['reboot','spinoff'].includes(s.franchiseMode||'sequel');
- const parentActors=parent?[...(parent.cast||[]),...(parent.supportingCastIds||[])].filter((id,i,a)=>id&&a.indexOf(id)===i):[];
+ const parentActors=parent?[...(parent.cast||[]),...(parent.supportingCastIds||[]),parent.cameoCastId].filter((id,i,a)=>id&&a.indexOf(id)===i):[];
  const sequelOptions=carryContinuity?parentActors.filter(id=>parent.contracts?.[id]?.sequelOption||parent.contracts?.[id]?.franchiseTerm==='option'):[],sequelGuarantees=carryContinuity?parentActors.filter(id=>parent.contracts?.[id]?.guaranteedReturn||parent.contracts?.[id]?.franchiseTerm==='guaranteed'):[];
  const f={id:uid('film',state),owner:'player',studio:state.studio.name,title:s.title,scriptId:s.id,genre:s.genre,stage:'development',paused:false,
-  directorId:null,cast:[],supportingCastId:null,supportingCastIds:[],producerStrategy:'lean',effectsApproach:'hybrid',contracts:{},contractDrafts:{},auditions:{},auditionRound:1,auditionSlotsUsed:0,extraAuditionRounds:0,backendPaid:0,ipParentId:s.ipParentFilmId||null,franchiseMode:s.franchiseMode||null,franchiseRootId:s.franchiseRootId||null,sequelInstallment:s.sequelInstallment||null,sequelOptions,sequelGuarantees,ipParticipationPct:s.ipParticipationPct||0,budget:s.naturalBudget,creative:s.creativeIntent?{...defaultCreative(),...s.creativeIntent}:defaultCreative(),marketing:0,campaign:null,marketingState:null,audienceSegments:null,marketRegisteredRelease:false,marketRegisteredOutcome:false,releaseWeek:null,releaseOps:0,createdWeek:state.week,
+  directorId:null,cast:[],supportingCastId:null,supportingCastIds:[],cameoCastId:null,producerStrategy:'lean',effectsApproach:'hybrid',contracts:{},contractDrafts:{},auditions:{},auditionRound:1,auditionSlotsUsed:0,extraAuditionRounds:0,backendPaid:0,ipParentId:s.ipParentFilmId||null,franchiseMode:s.franchiseMode||null,franchiseRootId:s.franchiseRootId||null,sequelInstallment:s.sequelInstallment||null,sequelOptions,sequelGuarantees,ipParticipationPct:s.ipParticipationPct||0,budget:s.naturalBudget,creative:s.creativeIntent?{...defaultCreative(),...s.creativeIntent}:defaultCreative(),marketing:0,campaign:null,marketingState:null,audienceSegments:null,marketRegisteredRelease:false,marketRegisteredOutcome:false,releaseWeek:null,releaseOps:0,createdWeek:state.week,
   productionStart:null,productionEnd:null,productionWeek:0,events:[],pendingEvent:null,productionState:null,metrics:null,rough:null,post:null,tested:null,testScore:null,
   review:null,cinemaWeek:0,weeklyPlan:[],weeklyResults:[],studioRevenue:0,investment:s.developmentSpend||0,finalGross:0,completeWeek:null,history:[],
   reputationDelta:{creative:0,commercial:0,talent:0}};
@@ -1047,12 +1051,11 @@ function greenlight(f){
  if(f.stage==='production')return true;
  if(f.stage!=='development'){showToast('This project is no longer awaiting a greenlight decision.');return false}
  ensurePackagingState(f);ensureFilmRoles(f);
- if(!f.directorId||f.cast.length<2){showToast('Attach a director and two principal actors first.');return false}
- ensureProductionDepth(f);const req=supportingCastRequirement(f);
- if(!req.complete){showToast(`${req.label} productions require ${req.required} supporting performer${req.required===1?'':'s'} before greenlight.`);return false}
+ if(!f.directorId||f.cast.length<2){showToast('Attach a director, Lead Actor and Supporting Actor first.');return false}
+ ensureProductionDepth(f);
  if(!allContractsAgreed(f)){showToast('Agree terms with every attached director and performer before greenlighting.');return false}
  if(playerFilms().filter(x=>x.stage==='production').length>=playerProductionCapacity()){showToast(`All ${playerProductionCapacity()} production slots are currently occupied.`);return false}
- const d=talentById(f.directorId),cast=f.cast.map(talentById),support=supportingActors(f),attached=[d,...cast,...support].filter(Boolean);
+ const d=talentById(f.directorId),cast=f.cast.map(talentById),support=supportingActors(f),cameo=cameoActor(f),attached=[d,...cast,...support,cameo].filter(Boolean);
  const unavailable=attached.filter(t=>talentUnavailableForFilm(t,f));
  if(unavailable.length){showToast(`${unavailable.map(t=>t.name).join(', ')} ${unavailable.length===1?'is':'are'} no longer available for this production.`);return false}
  const depthCost=productionDepthCost(f),cost=f.budget+agreedUpfront(f)+depthCost;
@@ -1087,7 +1090,7 @@ function greenlight(f){
  f.productionState={schedule:0,morale:clamp(66+(f.metrics.stability-65)*.30+(directorHistory+actorHistory)*.08+(lotImpact?.morale||0),35,92),extraSpend:0,cleanWeeks:0,notes:[]};
  recordProductionDaily(f);
  f.events=buildProductionEvents(f,r);ensureProductionCreativeFork(f);
- d.busyUntil=f.productionEnd+1;cast.forEach(a=>a.busyUntil=f.productionEnd+1);support.forEach(a=>a.busyUntil=f.productionEnd+1);
+ d.busyUntil=f.productionEnd+1;cast.forEach(a=>a.busyUntil=f.productionEnd+1);support.forEach(a=>a.busyUntil=f.productionEnd+1);if(cameo)cameo.busyUntil=Math.max(cameo.busyUntil||0,state.week+1);
  const band=fitBand(f.packageFit.average);
  addNews(state,`${f.title} entered production under ${d.name}. Internal packaging view: ${band.label.toLowerCase()}.`,'Your Studio');
 

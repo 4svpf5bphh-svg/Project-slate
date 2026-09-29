@@ -131,7 +131,10 @@ function bind(){
  document.querySelectorAll('[data-attach-director]').forEach(b=>b.onclick=e=>{e.stopPropagation();const f=filmById(currentFilmId);attachDirector(f,b.dataset.attachDirector)});
  document.querySelectorAll('[data-toggle-cast]').forEach(b=>b.onclick=e=>{e.stopPropagation();const f=filmById(currentFilmId);toggleCast(f,b.dataset.toggleCast)});
  document.querySelectorAll('[data-select-support]').forEach(b=>b.onclick=e=>{e.stopPropagation();setSupportingCast(filmById(currentFilmId),b.dataset.selectSupport)});
+ document.querySelectorAll('[data-additional-role-target]').forEach(b=>b.onclick=()=>setAdditionalCastingTarget(filmById(currentFilmId),b.dataset.additionalRoleTarget));
+ document.querySelectorAll('[data-additional-cast]').forEach(b=>b.onclick=e=>{e.stopPropagation();setAdditionalCastRole(filmById(currentFilmId),b.dataset.additionalRole,b.dataset.additionalCast)});
  const clearSupportingCastBtn=document.getElementById('clearSupportingCast');if(clearSupportingCastBtn)clearSupportingCastBtn.onclick=()=>clearSupportingCast(filmById(currentFilmId));
+ const clearCameoCastBtn=document.getElementById('clearCameoCast');if(clearCameoCastBtn)clearCameoCastBtn.onclick=()=>clearCameoCast(filmById(currentFilmId));
  const supportingContinue=document.getElementById('supportingContinue');if(supportingContinue)supportingContinue.onclick=()=>back();
  const reuniteReturningCast=document.getElementById('reuniteReturningCast');if(reuniteReturningCast)reuniteReturningCast.onclick=()=>{const f=filmById(currentFilmId),parent=filmById(f.ipParentId);if(!parent)return;ensureFilmRoles(f);(parent.cast||[]).map(talentById).filter(t=>t&&!talentUnavailableForFilm(t,f)).slice(0,2).forEach((t,i)=>{f.castingTargetRole=`lead${i+1}`;assignLeadRole(f,`lead${i+1}`,t.id)});save();render()};
  document.querySelectorAll('[data-audition]').forEach(b=>b.onclick=e=>{e.stopPropagation();auditionActor(filmById(currentFilmId),b.dataset.audition)});

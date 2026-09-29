@@ -303,8 +303,8 @@ function filmWrapStoryMoments(f){return [filmWrapProductionMoment(f),filmWrapCam
 function filmWrapTalentRole(f,t){
  if(t.type==='Director')return 'Director';
  const r=typeof roleForTalent==='function'?roleForTalent(f,t.id):null;
- if(r?.name)return r.name;
- return (f.supportingCastIds||[f.supportingCastId]).filter(Boolean).includes(t.id)?'Supporting cast':'Principal cast';
+ if(r?.name)return (typeof roleBillingLabel==='function'?roleBillingLabel(r):'Cast')+' · '+r.name;
+ return (f.supportingCastIds||[f.supportingCastId]).filter(Boolean).includes(t.id)?'Also Starring':'Core cast';
 }
 function filmWrapTalentStoryText(f,x,t){
  const prior=(t.credits||[]).filter(c=>typeof c==='object'&&c.title!==f.title),priorGross=prior.reduce((m,c)=>Math.max(m,c.gross||0),0),careerHigh=(f.finalGross||0)>priorGross&&f.finalGross>=70;

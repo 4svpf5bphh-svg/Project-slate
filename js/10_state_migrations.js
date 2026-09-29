@@ -1,6 +1,6 @@
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=408;
+const SAVE_SCHEMA_VERSION=409;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -304,6 +304,20 @@ function applySaveSchemaMigrations(x,fromVersion){
    if(!live){item.resolved=true;item.requiresAction=false;item.read=true;item.expanded=false;item.resolvedWeek=x.week||1;item.outcome='The screenplay auction had already closed.'}
   });
   schema=408;
+ }
+
+ if(schema<409){
+  // v4.9 adds screenplay-defined lead casting, film-style billing tiers and narrative privacy hardening.
+  (x.scripts||[]).forEach(sc=>{
+   if(sc?.premiseDNA?.name&&!sc.premiseDNA.leadGender&&typeof premiseLeadGenderFromName==='function')sc.premiseDNA.leadGender=premiseLeadGenderFromName(sc.premiseDNA.name);
+  });
+  (x.talent||[]).forEach(t=>{if(t?.type==='Actor'&&!t.castingLane&&typeof actorCastingLane==='function')t.castingLane=actorCastingLane(t.name,t.avatarHint||null)});
+  (x.films||[]).forEach(f=>{
+   if(f.owner!=='player')return;
+   f.cameoCastId=f.cameoCastId||f.roleAssignments?.cameo||null;
+   f.additionalCastingTarget=['support1','support2','cameo'].includes(f.additionalCastingTarget)?f.additionalCastingTarget:null;
+  });
+  schema=409;
  }
 
  x.saveSchema=schema;
