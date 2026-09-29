@@ -1640,7 +1640,7 @@ function scoutingPrecisionMultiplier(){return [1,.82,.64][Math.min(2,studioUpgra
 function extraAuditionCost(){return [.15,.11,.07][Math.min(2,studioUpgradeLevel('casting'))]}
 function awardsCampaignDiscount(){return [0,.25,.45][Math.min(2,studioUpgradeLevel('publicity'))]}
 function publicityExecutionBonus(){return [0,2.5,5][Math.min(2,studioUpgradeLevel('publicity'))]}
-function screenplayMarketCapacity(){return [9,10,12][Math.min(2,studioUpgradeLevel('development'))]}
+function screenplayMarketCapacity(){return [5,6,8][Math.min(2,studioUpgradeLevel('development'))]}
 function firstLookDepartmentWeeks(){return [0,2,4][Math.min(2,studioUpgradeLevel('development'))]}
 function postOptionLimit(){return [4,5,7][Math.min(2,studioUpgradeLevel('post'))]}
 function soundtrackShortlistSize(){return [5,6,8][Math.min(2,studioUpgradeLevel('post'))]}

@@ -1,4 +1,4 @@
-// Project Slate v4.7 — stateless Narrative Engine API
+// Project Slate v4.7.1 — stateless Narrative Engine API
 // Designed for a Vercel deployment. The API key lives only in server environment variables.
 
 const PROVIDER=(process.env.NARRATIVE_PROVIDER||'groq').toLowerCase();
@@ -155,7 +155,9 @@ function narrativeInstructions(type){
     'Do not invent new major events, crimes, allegations, injuries, substance use, sexual conduct, medical conditions, protected-trait claims, or real-world biographical facts.',
     'Write as the supplied fictional Daily Screen critic. Match their voice tag strongly. The review should be credible film criticism with a sharp entertainment-industry tongue, not polite generic copy.',
     'Project Slate Hollywood is knowingly absurd: stars are exaggerated fictional versions of themselves, executives are vain, awards campaigns are shameless, feuds become marketing assets, and everyone treats this circus with absurd seriousness. Let the critic notice that world without breaking the in-universe fiction.',
-    'Aim for a satirical temperature of about 7/10: 1–3 genuinely sharp or funny lines per review, not a joke in every sentence. Punch at Hollywood vanity, prestige posturing, studio excess, campaign nonsense and supplied fictional behaviour rather than inventing misconduct.',
+    'Aim for a satirical temperature of about 8.5/10. Every review needs at least two genuinely funny, quotable or cutting lines, and an especially absurd supplied production/campaign context should earn a third. Punch at Hollywood vanity, prestige posturing, studio excess, shameless campaigns and supplied fictional behaviour rather than inventing misconduct.',
+    'Do not confuse funny with negative. A rave can be hilarious because the critic loves the movie but finds the surrounding Hollywood circus ridiculous; a pan can be funny because the failure gives the critic a precise target. The supplied verdict always remains authoritative.',
+    'Prefer specific comic images, dry comparisons, elegant insults aimed at the film-making or campaign, and callbacks to supplied Project Slate history. Avoid safe phrases that merely sound witty, such as “Hollywood being Hollywood”, “the real star is”, or “you have to hand it to them”.',
     'The review should feel like the critic watched this specific finished film. Use the premise, creative choices, strongest and weakest craft signals, performances and any supplied public production context. Prefer concrete, memorable observations over phrases like “undeniably the engine”, “technically the film shines”, “seasoned in the art of”, or “ultimately”.',
     'Never expose simulation/debug language. Do not mention internal metric numbers, point scores, hidden attributes, tracking fields, production-note warnings, schema labels, game-state terminology, or phrases such as “technical score”, “structure 61”, “chemistry risk”, “four-star badge”, “momentum”, or “the production notes say”. Convert those inputs into natural criticism instead.',
     'Do not reveal the numeric critic score, audience score, star rating, or internal craft metrics anywhere in the prose. The UI displays those separately.',

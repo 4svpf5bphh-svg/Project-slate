@@ -115,10 +115,18 @@ function castingTalentEvidenceHTML(f,row,data){
  if(intro){const ally=talentById(intro.allyId);pills.push(`<span class="pill">INTRODUCED BY ${ally?.name||'COLLABORATOR'}</span>`)}
  return `<div class="casting-ready-person">${portraitHTML(t,'xs')}<div><strong>${t.name}</strong><span>${row.role.name}</span><div class="casting-ready-pills">${pills.join('')}</div></div></div>`;
 }
-function castingReadinessHTML(f){
- const d=castingReadinessData(f),leadCount=d.assigned.length,contractsExpected=Math.max(d.ids.length,3+d.support.required),lotLabel=d.hostile?'HOSTILE':typeof lotActiveStoriesForFilm==='function'&&lotActiveStoriesForFilm(f).length?'ACTIVE':'CLEAR';
- return `<div class="card casting-readiness ${d.hostile?'dangerline':d.tested<leadCount?'attention':leadCount===2?'goodline':''}"><div class="casting-readiness-head"><div><div class="badge">CASTING READINESS</div><strong>${leadCount===2?'Principal package attached':'Principal casting still open'}</strong><div class="small">Screen tests are optional, but they are the only role-specific evidence you get before greenlight.</div></div><button class="btn primary" id="openCastingReadiness">Open casting</button></div><div class="casting-readiness-grid"><div><span>Leads</span><b>${leadCount}/2</b></div><div><span>Screen tested</span><b class="${leadCount&&d.tested<leadCount?'warntext':''}">${d.tested}/${leadCount||2}</b></div><div><span>Supporting</span><b>${d.support.selected}/${d.support.required||0}</b></div><div><span>Contracts</span><b>${d.agreed}/${contractsExpected}</b></div><div><span>Lot risk</span><b class="${d.hostile?'badtext':''}">${lotLabel}</b></div></div>${d.assigned.length?`<div class="casting-ready-people">${d.assigned.map(row=>castingTalentEvidenceHTML(f,row,d)).join('')}</div>`:'<div class="small casting-ready-empty">No principal performer is attached yet. Open casting to shortlist, screen test and make offers by role.</div>'}${d.hostile?`<div class="casting-readiness-risk"><strong>Hostile package:</strong> ${d.hostile.a.name} × ${d.hostile.b.name}. This will follow the package into greenlight and production.</div>`:''}</div>`;
+function castingDealsHTML(f){
+ const d=castingReadinessData(f),director=f.directorId?talentById(f.directorId):null,leadRows=d.roles.map(role=>{const id=castingRoleAssignment(f,role.id),talent=id?talentById(id):null,audition=talent?auditionForRole(f,talent.id,role.id):null;return {role,talent,audition}}),support=supportingActors(f),contractsExpected=Math.max(d.ids.length,3+d.support.required),lotLabel=d.hostile?'HOSTILE':typeof lotActiveStoriesForFilm==='function'&&lotActiveStoriesForFilm(f).length?'ACTIVE':'CLEAR';
+ const contractPill=t=>t?(f.contracts?.[t.id]?'<span class="pill good">TERMS AGREED</span>':'<span class="pill warn">TERMS OPEN</span>'):'';
+ const leadHTML=leadRows.map(row=>{const t=row.talent,a=row.audition,term=t?.id&&f.contracts?.[t.id]?.preAgreed?'GUARANTEED RETURN':f.sequelGuarantees?.includes(t?.id)?'GUARANTEED RETURN':f.sequelOptions?.includes(t?.id)?'SEQUEL OPTION':null;return '<div class="casting-deal-row"><div class="casting-deal-role"><span>'+row.role.name+'</span><small>Principal</small></div>'+(t?portraitHTML(t,'xs'):'<div class="casting-deal-open">OPEN</div>')+'<div class="casting-deal-person"><strong>'+(t?t.name:'Not cast')+'</strong><div class="casting-ready-pills">'+(a?'<span class="pill '+(['Outstanding','Strong'].includes(a.grade)?'good':'blue')+'">Screen test '+a.grade+'</span>':'<span class="pill warn">UNTESTED</span>')+(term?'<span class="pill blue">'+term+'</span>':'')+contractPill(t)+'</div></div></div>'}).join('');
+ return '<div class="card casting-readiness '+(d.hostile?'dangerline':d.assigned.length===2?'goodline':'')+'"><div class="casting-readiness-head"><div><div class="badge">CASTING & DEALS</div><strong>'+(d.assigned.length===2&&director?'Package assembled':'Build the package')+'</strong><div class="small">Choose the team here. Screen tests reveal role-specific evidence; contracts decide how much risk stays upfront, on the backend and in future sequels.</div></div><span class="pill '+(d.hostile?'bad':'blue')+'">'+lotLabel+' LOT RISK</span></div>'+
+ '<div class="casting-readiness-grid"><div><span>Director</span><b>'+(director?'1/1':'0/1')+'</b></div><div><span>Leads</span><b>'+d.assigned.length+'/2</b></div><div><span>Screen tested</span><b>'+d.tested+'/'+(d.assigned.length||2)+'</b></div><div><span>Supporting</span><b>'+d.support.selected+'/'+(d.support.required||0)+'</b></div><div><span>Contracts</span><b>'+d.agreed+'/'+contractsExpected+'</b></div></div>'+
+ '<div class="casting-deal-list"><div class="casting-deal-row"><div class="casting-deal-role"><span>Director</span><small>Creative lead</small></div>'+(director?portraitHTML(director,'xs'):'<div class="casting-deal-open">OPEN</div>')+'<div class="casting-deal-person"><strong>'+(director?director.name:'Not attached')+'</strong><div class="casting-ready-pills">'+contractPill(director)+'</div></div></div>'+leadHTML+
+ '<div class="casting-deal-row"><div class="casting-deal-role"><span>Supporting</span><small>'+d.support.label+'</small></div><div class="casting-deal-open">'+support.length+'/'+d.support.required+'</div><div class="casting-deal-person"><strong>'+(support.length?support.map(x=>x.name).join(' · '):d.support.required?'Still open':'Optional')+'</strong><div class="small">'+(d.support.complete?'Ensemble requirement satisfied':'More supporting casting required before greenlight')+'</div></div></div></div>'+
+ (d.hostile?'<div class="casting-readiness-risk"><strong>Hostile package:</strong> '+d.hostile.a.name+' × '+d.hostile.b.name+'. This risk follows the package into production unless you mediate or recast.</div>':'')+
+ '<div class="grid cols4 casting-deal-actions"><button id="chooseDirector" class="btn">'+(director?'Change director':'Choose director')+'</button><button id="chooseCast" class="btn">Cast leads ('+f.cast.length+'/2)</button><button id="chooseSupportingCast" class="btn '+(!d.support.complete?'attention':'')+'">Supporting ('+support.length+'/'+d.support.max+')</button><button id="reviewContracts" class="btn '+(d.ids.length&&!allContractsAgreed(f)?'attention':'')+'" '+(!director||f.cast.length<2?'disabled':'')+'>Contracts '+d.agreed+'/'+contractsExpected+'</button></div></div>';
 }
+function castingReadinessHTML(f){return castingDealsHTML(f)}
 function developmentUI(f,s){
  ensurePackagingState(f);ensureProductionDepth(f);
  const d=f.directorId?talentById(f.directorId):null,cast=f.cast.map(talentById),support=supportingActors(f),supportReq=supportingCastRequirement(f),range=naturalRange(s),c=f.creative||defaultCreative(),fit=packageFitSummary(f);
@@ -128,16 +136,14 @@ function developmentUI(f,s){
  const returningBusy=returningTalentToWatch(f),watch=availabilityWatchForFilm(f);
  if(f.paused){
   return `<div class="hero"><div class="badge">Development on hold</div><div class="quote" style="margin-top:8px">${s.logline}</div><div class="body" style="margin-top:10px">The project stays on your slate without generating packaging decisions. Carrying cost: <strong>${heldProjectCostLabel()}</strong> until development resumes.</div></div>
-  ${castingReadinessHTML(f)}<div class="section-title"><h2>Current package</h2></div><div class="card"><div class="listrow"><span>Director</span><strong>${d?d.name:'Not attached'}</strong></div><div class="listrow"><span>Principal cast</span><strong>${cast.length?cast.map(x=>x.name).join(', '):'Not cast'}</strong></div><div class="listrow"><span>Supporting cast</span><strong>${support.length?support.map(x=>x.name).join(', '):supportReq.required?'Not fully cast':'Optional · not cast'}</strong></div><div class="listrow"><span>Planned budget</span><strong>${money(f.budget)}</strong></div></div>
+  ${castingDealsHTML(f)}
   ${returningBusy.length?`<div class="card attention" style="margin-top:12px"><strong>Returning cast unavailable</strong><div class="body" style="margin-top:6px">${returningBusy.map(t=>`${t.name} · busy through W${t.busyUntil}`).join('<br>')}</div>${watch?`<div class="row" style="margin-top:10px"><span class="pill good">Availability watch active</span><button id="cancelAvailabilityWatch" class="btn">Cancel watch</button></div>`:`<button id="watchReturningAvailability" class="btn primary block" style="margin-top:10px">Notify me when returning cast are available</button>`}</div>`:''}
   <button id="toggleHold" class="btn primary block" style="margin-top:14px">Resume Development</button>`;
  }
  const cov=scriptCoverage(s),writer=writerById(s.writerId),producer=producerStrategy(f),effects=effectsApproach(f);
  return `<div class="hero"><div class="quote">${s.logline}</div><div style="margin-top:8px"><span class="pill">Recommended production ${money(range[0])}–${money(range[1])}</span><span class="pill">${writer?.name||'Unknown writer'}</span><span class="pill ${cov.readiness==='Packaging-ready'?'good':'blue'}">${cov.readiness}</span></div></div>
- ${castingReadinessHTML(f)}
- <div class="section-title"><h2>Package</h2><button id="toggleHold" class="btn ghost">Hold project</button></div><div class="card"><div class="listrow"><span>Director</span><strong>${d?d.name:'Not attached'}</strong></div><div class="listrow"><span>Ensemble requirement</span><strong id="supportRequirement"><span class="pill ${supportReq.complete?'good':'warn'}">${supportReq.label} · ${supportReq.selected}/${supportReq.required||'optional'}</span></strong></div><div class="listrow"><span>Terms agreed</span><strong>${agreed}/${expectedTerms}</strong></div>${fit?`<div class="listrow"><span>Internal package view</span><strong><span class="pill ${fitBand(fit.average).cls}">${fitBand(fit.average).label}</span></strong></div>`:''}</div>
- ${fit&&fit.average<60?`<div class="card dangerline" style="margin-top:10px"><div class="body"><strong>Packaging warning:</strong> the current combination contains meaningful project-fit risk. Raw reputation does not guarantee this team will realise this screenplay well.</div></div>`:''}
- <div class="grid cols4" style="margin-top:12px"><button id="chooseDirector" class="btn">${d?'Change director':'Choose director'}</button><button id="chooseCast" class="btn">Cast leads (${f.cast.length}/2)</button><button id="chooseSupportingCast" class="btn ${!supportReq.complete?'attention':''}">Supporting cast (${support.length}/${supportReq.max})</button><button id="reviewContracts" class="btn" ${!d||f.cast.length<2?'disabled':''}>Contracts ${agreed}/${expectedTerms}</button></div>
+ ${castingDealsHTML(f)}
+ <div class="row" style="margin-top:10px;justify-content:flex-end"><button id="toggleHold" class="btn ghost">Hold project</button></div>
  <div class="section-title"><h2>Production budget</h2><span class="small">Recommended ${money(range[0])}–${money(range[1])}</span></div>
  <div class="card"><div class="row"><span>Committed production spend</span><strong id="budgetRead">${money(f.budget)}</strong></div><input id="budgetSlider" class="range" type="range" min="${min}" max="${max}" step="0.5" value="${f.budget}" style="margin-top:14px"><div class="range-labels"><span>${money(min)}</span><span>${money(max)}</span></div><div id="budgetAdvice" class="body" style="margin-top:10px">${budgetAdvice(f.budget,s)}</div><div class="cast-scale-note"><strong>${supportReq.label}</strong><span>${supportReq.required===0?'At this scale a third performer is optional.':supportReq.required===1?'This scale requires one supporting performer in addition to the two leads.':'At event scale the film must carry four principal performers: two leads and two supporting roles.'}</span></div><div id="cashAfter" class="small" style="margin-top:8px">Estimated cash after package + production: ${money(cashAfter)}</div></div>
  <div class="section-title"><h2>Production leadership</h2><span class="small">One producer strategy · explicit trade-off</span></div><div class="grid cols3">${Object.entries(PRODUCER_STRATEGIES).map(([id,p])=>{const selected=f.producerStrategy===id;return `<button class="card selection-card ${selected?'selected-choice':''}" data-producer-strategy="${id}" aria-pressed="${selected?'true':'false'}">${selected?'<div class="selected-choice-badge">✓ Selected</div>':''}<div class="row"><strong>${p.name}</strong><span class="pill">${money(p.cost)}</span></div><div class="small" style="margin-top:7px">${p.desc}</div></button>`}).join('')}</div>
@@ -151,23 +157,28 @@ function developmentUI(f,s){
  <div class="card" style="margin-top:12px"><div class="body">Putting a film on hold now costs ${heldProjectCostLabel()}. This keeps waiting for talent or cash meaningful without forcing you to abandon a project.</div></div>
  <button id="greenlight" class="btn primary block" style="margin-top:14px" ${!d||cast.length<2||!supportReq.complete||!allContractsAgreed(f)?'disabled':''}>${!supportReq.complete?`Cast ${supportReq.required-supportReq.selected} more supporting performer${supportReq.required-supportReq.selected===1?'':'s'} before greenlight`:d&&cast.length===2&&!allContractsAgreed(f)?'Agree all talent terms before greenlight':'Review Greenlight'}</button>`;
 }
+function talentFeeRange(t){
+ ensureTalentMarketEconomy(t);const heat=(t.momentum||60)>=86?1.12:(t.momentum||60)>=74?1.05:(t.momentum||60)<48?.92:1,mid=(t.fee||.5)*heat,step=mid>=10?2:mid>=4?1:.5;
+ const round=v=>Math.max(.1,Math.round(v/step)*step),lo=round(mid*.84),hi=Math.max(lo+step,round(mid*1.18));
+ return [lo,hi];
+}
+function directorScoutingView(t,f){
+ const trueFit=directorProjectFit(t,f),confidence=scoutingConfidence(t),spread=(confidence==='High'?7:confidence==='Moderate'?12:19)*scoutingPrecisionMultiplier(),r=makeRng(hash(state.seed+'|director-scout|'+f.id+'|'+t.id)),estimate=clamp(trueFit+(r()-.5)*2*spread,20,96);
+ return {estimate,confidence,source:'Scouting'};
+}
+function castingScoutSignal(t,f,roleId=null){
+ const v=t.type==='Director'?directorScoutingView(t,f):actorScoutingView(t,f,roleId),tested=t.type==='Actor'?auditionForRole(f,t.id,roleId||castingTargetRole(f).id):null,score=v.estimate;
+ const label=tested?tested.grade+' screen test':score>=80?'Promising scout read':score>=66?'Plausible scout read':score>=52?'Uncertain scout read':'Stretch on paper';
+ const cls=tested&&['Outstanding','Strong'].includes(tested.grade)?'good':tested&&tested.grade==='Poor'?'bad':score>=80?'good':score<52?'warn':'blue';
+ return {label,cls,confidence:v.confidence,source:tested?'Screen test':'Scouting'};
+}
 function pickerList(type,f,roleId=null){
- const sort=state.uiPickerSort||(type==='Actor'?'market':'fit'),availableOnly=!!state.uiPickerAvailable,maxFee=Number(state.uiPickerMaxFee)||0,minMomentum=Number(state.uiPickerMinMomentum)||0,minFit=Number(state.uiPickerMinFit)||0;
+ const sort=state.uiPickerSort||'market',availableOnly=!!state.uiPickerAvailable,maxFee=Number(state.uiPickerMaxFee)||0;
  let list=state.talent.filter(t=>t.type===type&&!t.retired);list.forEach(ensureTalentMarketEconomy);
  if(availableOnly)list=list.filter(t=>!talentUnavailableForFilm(t,f));
- if(maxFee>0)list=list.filter(t=>(t.fee||0)<=maxFee);
- if(minMomentum>0)list=list.filter(t=>(t.momentum||0)>=minMomentum);
- if(minFit>0)list=list.filter(t=>{
-  const fit=type==='Director'?directorProjectFit(t,f):actorRoleFit(t,f,roleId||castingTargetRole(f).id);
-  return fit>=minFit;
- });
+ if(maxFee>0)list=list.filter(t=>talentFeeRange(t)[0]<=maxFee);
  list.sort((a,b)=>{
-  if(sort==='fit')return type==='Director'?directorProjectFit(b,f)-directorProjectFit(a,f):actorRoleFit(b,f,roleId||castingTargetRole(f).id)-actorRoleFit(a,f,roleId||castingTargetRole(f).id);
-  if(sort==='market')return type==='Actor'?actorIndustryShortlistScore(b)-actorIndustryShortlistScore(a):(b.momentum||0)-(a.momentum||0);
-  if(sort==='fee')return (a.fee||0)-(b.fee||0);
-  if(sort==='feeHigh')return (b.fee||0)-(a.fee||0);
-  if(sort==='ability')return type==='Director'?(b.craft-a.craft):(b.acting-a.acting);
-  if(sort==='commercial')return type==='Director'?(b.commercial-a.commercial):(actorCommercialDraw(b)-actorCommercialDraw(a));
+  if(sort==='market')return type==='Actor'?actorIndustryShortlistScore(b)-actorIndustryShortlistScore(a):((b.momentum||0)*.45+(b.craft||0)*.35+(b.commercial||0)*.20)-((a.momentum||0)*.45+(a.craft||0)*.35+(a.commercial||0)*.20);
   if(sort==='momentum')return (b.momentum||0)-(a.momentum||0);
   if(sort==='name')return a.name.localeCompare(b.name);
   return 0;
@@ -175,59 +186,35 @@ function pickerList(type,f,roleId=null){
  return list;
 }
 function pickerControls(type){
- const sort=state.uiPickerSort||(type==='Actor'?'market':'fit'),fee=Number(state.uiPickerMaxFee)||0,momentum=Number(state.uiPickerMinMomentum)||0,fit=Number(state.uiPickerMinFit)||0;
- return `<div class="talent-filter-panel"><div class="talent-filter-grid">
- <label><span>Sort</span><select id="pickerSort" class="select">
-  <option value="${type==='Actor'?'market':'fit'}" ${sort===(type==='Actor'?'market':'fit')?'selected':''}>${type==='Actor'?'Industry shortlist':'Project fit'}</option>
-  <option value="fee" ${sort==='fee'?'selected':''}>Fee · low → high</option>
-  <option value="feeHigh" ${sort==='feeHigh'?'selected':''}>Fee · high → low</option>
-  <option value="momentum" ${sort==='momentum'?'selected':''}>Momentum · high → low</option>
-  <option value="ability" ${sort==='ability'?'selected':''}>${type==='Director'?'Craft':'Acting'} · high → low</option>
-  <option value="commercial" ${sort==='commercial'?'selected':''}>${type==='Director'?'Commercial instinct':'Commercial draw'} · high → low</option>
-  ${type==='Actor'?`<option value="fit" ${sort==='fit'?'selected':''}>Role fit · high → low</option>`:''}
-  <option value="name" ${sort==='name'?'selected':''}>Name · A → Z</option>
- </select></label>
- <label><span>Maximum fee</span><select id="pickerFee" class="select">
-  <option value="0" ${fee===0?'selected':''}>Any fee</option>
-  <option value="1" ${fee===1?'selected':''}>Up to $1m</option>
-  <option value="3" ${fee===3?'selected':''}>Up to $3m</option>
-  <option value="5" ${fee===5?'selected':''}>Up to $5m</option>
-  <option value="10" ${fee===10?'selected':''}>Up to $10m</option>
-  <option value="20" ${fee===20?'selected':''}>Up to $20m</option>
- </select></label>
- <label><span>Momentum</span><select id="pickerMomentum" class="select">
-  <option value="0" ${momentum===0?'selected':''}>Any momentum</option>
-  <option value="60" ${momentum===60?'selected':''}>60+</option>
-  <option value="70" ${momentum===70?'selected':''}>70+</option>
-  <option value="80" ${momentum===80?'selected':''}>80+</option>
-  <option value="90" ${momentum===90?'selected':''}>90+</option>
- </select></label>
- <label><span>${type==='Director'?'Project':'Role'} fit</span><select id="pickerFit" class="select">
-  <option value="0" ${fit===0?'selected':''}>Any fit</option>
-  <option value="60" ${fit===60?'selected':''}>60+</option>
-  <option value="70" ${fit===70?'selected':''}>70+</option>
-  <option value="80" ${fit===80?'selected':''}>80+</option>
- </select></label>
- </div><div class="talent-filter-foot"><label class="talent-available-toggle"><input id="pickerAvailable" type="checkbox" ${state.uiPickerAvailable?'checked':''}> Available only</label><button class="btn ghost" id="pickerResetFilters">Reset filters</button></div></div>`;
+ const sort=state.uiPickerSort||'market',fee=Number(state.uiPickerMaxFee)||0;
+ return '<div class="talent-filter-panel"><div class="talent-filter-grid compact">'+
+ '<label><span>Sort</span><select id="pickerSort" class="select"><option value="market" '+(sort==='market'?'selected':'')+'>Industry shortlist</option><option value="momentum" '+(sort==='momentum'?'selected':'')+'>Career heat</option><option value="name" '+(sort==='name'?'selected':'')+'>Name · A → Z</option></select></label>'+
+ '<label><span>Budget range</span><select id="pickerFee" class="select"><option value="0" '+(fee===0?'selected':'')+'>Any likely fee</option><option value="1" '+(fee===1?'selected':'')+'>Likely from $1m or less</option><option value="3" '+(fee===3?'selected':'')+'>Likely from $3m or less</option><option value="5" '+(fee===5?'selected':'')+'>Likely from $5m or less</option><option value="10" '+(fee===10?'selected':'')+'>Likely from $10m or less</option><option value="20" '+(fee===20?'selected':'')+'>Likely from $20m or less</option></select></label>'+
+ '</div><div class="talent-filter-foot"><label class="talent-available-toggle"><input id="pickerAvailable" type="checkbox" '+(state.uiPickerAvailable?'checked':'')+'> Available only</label><span class="small">Fit is deliberately not sortable. Screen tests turn scouting uncertainty into evidence.</span><button class="btn ghost" id="pickerResetFilters">Reset filters</button></div></div>';
 }
 function directorPicker(f){
  const available=pickerList('Director',f),selected=f.directorId?talentById(f.directorId):null;
- return topbar('Choose Director',f.title)+`<main class="screen pickerpad">${backHead('Director Shortlist','Filter and rank the market by what matters for this project')}
- ${pickerControls('Director')}
- <div class="grid">${available.map(t=>{ensureTalentCareer(t);const score=directorProjectFit(t,f),band=fitBand(score),ev=directorFitEvidence(t,f),lotSignal=typeof lotCandidateCastingSignal==='function'?lotCandidateCastingSignal(t,f):null;return `<div class="card"><div class="talenthead"><div class="talentidentity">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${t.tag} · ${t.careerState}</div><button class="talent-profile-link" data-talent="${t.id}">View full profile · Lot history →</button></div></div><strong>${money(t.fee)}</strong></div><div style="margin-top:8px"><span class="pill ${band.cls}">${band.label}</span><span class="pill">Craft ${t.craft}</span><span class="pill">Commercial ${t.commercial}</span><span class="pill">Momentum ${momentumIndicator(t)}</span>${talentUnavailableForFilm(t,f)?'<span class="pill bad">Unavailable</span>':''}</div>${lotSignal?`<div class="lot-casting-signal ${lotSignal.tone}"><strong>${lotSignal.label}</strong><span>${lotSignal.text}</span></div>`:''}<div class="body" style="margin-top:8px">${directorBio(t)}</div><div class="hr"></div>${ev.map(x=>`<div class="small" style="margin-top:6px">• ${x}</div>`).join('')}<button class="btn block ${f.directorId===t.id?'primary':''}" style="margin-top:10px" data-attach-director="${t.id}" ${talentUnavailableForFilm(t,f)?'disabled':''}>${f.directorId===t.id?'Attached':'Attach'}</button></div>`}).join('')}</div>
- </main><div class="pickerbar"><div class="pickerbar-inner"><div><strong>${selected?selected.name:'No director selected'}</strong><div class="small">${selected?'Attached to '+f.title:'Choose one director, then continue.'}</div></div><button id="pickerContinue" class="btn primary" ${selected?'':'disabled'}>Continue</button></div></div>${nav()}`;
+ return topbar('Choose Director',f.title)+'<main class="screen pickerpad">'+backHead('Director Shortlist','Market knowledge first · exact project fit remains an executive judgement')+
+ pickerControls('Director')+
+ '<div class="grid">'+available.map(t=>{ensureTalentCareer(t);const scout=castingScoutSignal(t,f),range=talentFeeRange(t),lotSignal=typeof lotCandidateCastingSignal==='function'?lotCandidateCastingSignal(t,f):null;return '<div class="card"><div class="talenthead"><div class="talentidentity">'+portraitHTML(t,'sm')+'<div><strong>'+t.name+'</strong><div class="small">'+t.tag+' · '+t.careerState+'</div><button class="talent-profile-link" data-talent="'+t.id+'">View full profile · Lot history →</button></div></div><div style="text-align:right"><strong>'+money(range[0])+'–'+money(range[1])+'</strong><div class="small">expected negotiation</div></div></div><div style="margin-top:8px"><span class="pill '+scout.cls+'">'+scout.label+'</span><span class="pill">'+scout.confidence+' scouting confidence</span><span class="pill">Career heat '+momentumIndicator(t)+'</span>'+(talentUnavailableForFilm(t,f)?'<span class="pill bad">Unavailable</span>':'')+'</div>'+(lotSignal?'<div class="lot-casting-signal '+lotSignal.tone+'"><strong>'+lotSignal.label+'</strong><span>'+lotSignal.text+'</span></div>':'')+'<div class="body" style="margin-top:8px">'+directorBio(t)+'</div><button class="btn block '+(f.directorId===t.id?'primary':'')+'" style="margin-top:10px" data-attach-director="'+t.id+'" '+(talentUnavailableForFilm(t,f)?'disabled':'')+'>'+(f.directorId===t.id?'Attached':'Attach')+'</button></div>'}).join('')+'</div>'+
+ '</main><div class="pickerbar"><div class="pickerbar-inner"><div><strong>'+(selected?selected.name:'No director selected')+'</strong><div class="small">'+(selected?'Attached to '+f.title:'Choose one director, then continue.')+'</div></div><button id="pickerContinue" class="btn primary" '+(selected?'':'disabled')+'>Continue</button></div></div>'+nav();
 }
 function contractsScreen(f){
- ensurePackagingState(f);
- const ids=packageTalentIds(f),agreed=ids.filter(id=>f.contracts[id]).length;
- return topbar('Contracts',f.title)+`<main class="screen pickerpad">${backHead('Talent Terms',`${agreed}/${ids.length} agreements complete`)}
- <div class="card"><div class="body">Negotiations stay deliberately quick. Every option below is acceptable to the talent; you are choosing the risk structure, not haggling through ten counters.</div></div>
- ${supportingCastRequirement(f).complete?'':`<div class="card attention" style="margin-top:12px"><strong>Cast package incomplete</strong><div class="body" style="margin-top:6px">${supportingCastRequirement(f).label} requires ${supportingCastRequirement(f).required} supporting performer${supportingCastRequirement(f).required===1?'':'s'}. You can agree the current terms now, but greenlight stays locked until the ensemble is complete.</div></div>`}
- <div class="grid" style="margin-top:12px">${ids.map(id=>{
-  const t=talentById(id),set=contractOffers(f,t),current=f.contracts[id],rel=relationshipLabel(t.relationship||0);
-  return `<div class="card ${current?'goodline':''}"><div class="talenthead"><div class="talentidentity">${portraitHTML(t,'sm')}<div><strong>${t.name}</strong><div class="small">${t.type} · ${rel}</div></div></div><strong>${current?'Terms agreed':money(t.fee)+' market fee'}</strong></div><div class="body" style="margin-top:8px">${set.note}</div>
-  <div class="grid cols3" style="margin-top:12px">${set.options.map(o=>{const selected=current?.id===o.id;return `<button class="card selection-card contract-choice ${selected?'selected-choice':''}" data-contract-talent="${t.id}" data-contract-offer="${o.id}" aria-pressed="${selected?'true':'false'}">${selected?'<div class="selected-choice-badge">✓ Selected terms</div>':''}<strong>${o.label}</strong><div class="small" style="margin-top:6px">${o.desc}</div></button>`}).join('')}</div></div>`}).join('')}</div>
- </main><div class="pickerbar"><div class="pickerbar-inner"><div><strong>${agreed}/${ids.length} agreements</strong><div class="small">Upfront talent commitment: ${money(agreedUpfront(f))} · backend exposure ${contractBackendPct(f)}%</div></div><button id="contractsContinue" class="btn primary" ${agreed===ids.length?'':'disabled'}>Return to film</button></div></div>${nav()}`;
+ ensurePackagingState(f);const ids=packageTalentIds(f),agreed=ids.filter(id=>f.contracts[id]).length;
+ return topbar('Contracts',f.title)+'<main class="screen pickerpad">'+backHead('Talent Terms',agreed+'/'+ids.length+' agreements complete')+
+ '<div class="card"><div class="body"><strong>Build the deal rather than choose a preset.</strong> More backend lowers the guaranteed upfront fee, with diminishing returns. Actor franchise terms are separate: an option buys flexibility; a guaranteed return binds the performer to the next sequel if you make one.</div></div>'+
+ (supportingCastRequirement(f).complete?'':'<div class="card attention" style="margin-top:12px"><strong>Cast package incomplete</strong><div class="body" style="margin-top:6px">You can negotiate attached talent now, but greenlight stays locked until the ensemble requirement is complete.</div></div>')+
+ '<div class="grid contract-negotiation-grid" style="margin-top:12px">'+ids.map(id=>{const t=talentById(id),set=contractOffers(f,t),draft=contractDraftFor(f,id),quote=contractQuote(f,t,draft),current=f.contracts[id],range=talentFeeRange(t),locked=!!draft.locked||!!current?.preAgreed,maxBackend=contractBackendMax(t),future=quote.futureFee?money(quote.futureFee)+(quote.futureBackend?' + '+quote.futureBackend+'% backend':''):quote.franchiseTerm==='exercise-option'?'Pre-agreed on previous film':quote.sequelOption||quote.franchiseTerm==='option'?'Sequel option · legacy return terms':'No future commitment';
+  let franchise='';
+  if(t.type==='Actor'&&!set.heldSequelOption&&!set.heldGuarantee)franchise='<label class="contract-field"><span>Next-sequel term</span><select class="select" data-contract-franchise="'+id+'"><option value="none" '+(draft.franchiseTerm==='none'?'selected':'')+'>No future term</option><option value="option" '+(draft.franchiseTerm==='option'?'selected':'')+'>Studio sequel option</option><option value="guaranteed" '+(draft.franchiseTerm==='guaranteed'?'selected':'')+'>Guaranteed return</option></select></label>';
+  else if(set.heldSequelOption)franchise='<div class="contract-field"><span>Current franchise term</span><strong>Exercising held sequel option</strong></div>';
+  else if(set.heldGuarantee)franchise='<div class="contract-field"><span>Current franchise term</span><strong>Guaranteed return · already attached</strong></div>';
+  const credit=t.type==='Director'?'<label class="contract-credit"><input type="checkbox" data-contract-credit="'+id+'" '+(draft.producerCredit?'checked':'')+' '+(locked?'disabled':'')+'> Producer credit · reduces upfront, grants extra creative authority</label>':'';
+  return '<div class="card contract-negotiation '+(current?'goodline':'')+'"><div class="talenthead"><div class="talentidentity">'+portraitHTML(t,'sm')+'<div><strong>'+t.name+'</strong><div class="small">'+t.type+' · '+relationshipLabel(t.relationship||0)+'</div></div></div><div style="text-align:right"><strong>'+money(range[0])+'–'+money(range[1])+'</strong><div class="small">pre-negotiation range</div></div></div><div class="body" style="margin-top:8px">'+set.note+'</div>'+
+  '<div class="contract-builder"><label class="contract-field"><span>Backend · <b id="contractBackendRead-'+id+'">'+quote.backend+'%</b></span><input class="range" type="range" min="0" max="'+maxBackend+'" step="0.5" value="'+draft.backend+'" data-contract-backend="'+id+'" '+(set.heldSequelOption||locked?'disabled':'')+'><small>Higher participation reduces the cash guarantee now, but costs more if the film succeeds.</small></label>'+franchise+credit+'</div>'+
+  '<div class="contract-quote"><div><span>Upfront guarantee</span><strong id="contractUpfront-'+id+'">'+money(quote.upfront)+'</strong></div><div><span>Backend</span><strong id="contractBackendQuote-'+id+'">'+quote.backend+'%</strong></div><div><span>Future sequel</span><strong id="contractFuture-'+id+'">'+future+'</strong></div></div>'+
+  (locked?'<div class="small contract-locked">These terms were guaranteed on the previous film and are already binding.</div>':'<button class="btn primary block" data-contract-accept="'+id+'" style="margin-top:10px">'+(current?'Update agreement':'Agree terms')+'</button>')+'</div>';
+ }).join('')+'</div></main><div class="pickerbar"><div class="pickerbar-inner"><div><strong>'+agreed+'/'+ids.length+' agreements</strong><div class="small">Upfront talent commitment: '+money(agreedUpfront(f))+' · backend exposure '+contractBackendPct(f)+'%</div></div><button id="contractsContinue" class="btn primary" '+(agreed===ids.length?'':'disabled')+'>Return to film</button></div></div>'+nav();
 }
 function productionPulseLabel(f){
  const ps=f.productionState||{schedule:0,morale:65};

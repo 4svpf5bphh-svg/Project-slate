@@ -454,6 +454,10 @@ function generateStudioDeskWeek(){
 }
 function expireDeskItems(){const d=ensureDesk();d.items.forEach(x=>{if(!x.resolved&&x.expiresWeek&&state.week>x.expiresWeek){x.resolved=true;x.expired=true;x.expanded=false;x.outcome='The window closed without a studio response.'}})}
 function nextUrgentDeskItem(){expireDeskItems();return ensureDesk().items.find(x=>!x.resolved&&x.requiresAction&&x.urgency==='urgent')||null}
+function nextInteractiveDeskItem(){
+ expireDeskItems();
+ return ensureDesk().items.filter(x=>!x.resolved&&x.requiresAction).sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(a.expiresWeek||9999)-(b.expiresWeek||9999)||(a.week||0)-(b.week||0))[0]||null;
+}
 function deskFilmForItem(item){return item?.filmId?filmById(item.filmId):(item?.subject?playerFilms().find(x=>x.title===item.subject):null)||deskFilm()}
 function deskImpactSnapshot(item){
  const f=deskFilmForItem(item),m=f?ensureMarketingState(f):null,p=f?ensureFilmSocial(f):null,ids=[item?.talentId,f?.directorId,...(f?.cast||[])].filter(Boolean),rels=ids.map(id=>talentById(id)?.relationship||0);
@@ -687,8 +691,8 @@ function pulseDetailScreen(id){
  </main>${nav()}`;
 }
 function deskSubnav(){
- const tab=state.uiDeskTab||'briefing',d=ensureDesk(),open=d.items.filter(x=>!x.resolved&&x.requiresAction).length,threads=ensureCareerThreads().active.length,pulse=studioPulseRows().length,briefs=d.items.filter(x=>!x.read&&deskSignalScore(x)<62&&!(!x.resolved&&x.requiresAction)).length;
- return sectionTabs([['briefing',open?`Briefing · ${open}`:'Briefing'],['threads',threads?`Threads · ${threads}`:'Threads'],['pulse',pulse?`Pulse · ${pulse}`:'Pulse'],['digest',briefs?`Digest · ${briefs}`:'Digest']],tab,'data-desk-tab');
+ const tab=state.uiDeskTab||'briefing',d=ensureDesk(),open=d.items.filter(x=>!x.resolved&&x.requiresAction).length,threads=ensureCareerThreads().active.length,pulse=studioPulseRows().length,briefs=d.items.filter(x=>!x.read&&!(!x.resolved&&x.requiresAction)).length;
+ return sectionTabs([['briefing',open?`Desk · ${open}`:briefs?`Desk · ${briefs}`:'Desk'],['threads',threads?`Threads · ${threads}`:'Threads'],['pulse',pulse?`Pulse · ${pulse}`:'Pulse']],tab,'data-desk-tab');
 }
 function executiveFilmIntelRows(limit=6){
  const rows=[],desk=ensureDesk();
@@ -736,13 +740,14 @@ function deskScriptMarketPressureHTML(){
 }
 function deskBriefingBody(){
  const d=ensureDesk();expireDeskItems();syncOperationalDeskItems();
- const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0)),open=ranked.filter(x=>!x.resolved&&x.requiresAction),allSignals=ranked.filter(x=>!open.includes(x)&&deskSignalScore(x)>=62),signals=allSignals.filter(x=>x.type!=='intel'),unread=d.items.filter(x=>!x.read),archivable=d.items.filter(x=>x.read&&x.resolved).length,upcoming=studioUpcomingEvents(4,35);
- return `${deskStudioStatusStrip()}<div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} response${open.length===1?'':'s'} waiting`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'These are the decisions currently waiting on you. Background information will not block the calendar.':'No player response is currently required. You can move the calendar without clearing routine traffic.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid"><div><span>Needs response</span><strong>${open.length}</strong></div><div><span>Noteworthy</span><strong>${allSignals.filter(x=>!x.read).length}</strong></div><div><span>Unread total</span><strong>${unread.length}</strong></div></div>${unread.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark all as read</button>`:''}${archivable?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
- <div class="section-title executive-intel-title"><h2>Film intelligence</h2><span class="small">Tracking, reviews and box office stay visible even after you advance time</span></div>${executiveFilmIntelHTML()}
+ const ranked=d.items.slice().sort((a,b)=>deskSignalScore(b)-deskSignalScore(a)||(b.week||0)-(a.week||0));
+ const open=ranked.filter(x=>!x.resolved&&x.requiresAction),briefing=ranked.filter(x=>!open.includes(x)&&!x.read),readResolved=ranked.filter(x=>x.read&&x.resolved),upcoming=studioUpcomingEvents(4,35);
+ return `${deskStudioStatusStrip()}<div class="desk-hero desk-briefing-command"><div class="hero"><div class="badge">THE STUDIO DESK</div><div class="kpi" style="margin-top:5px">${open.length?`${open.length} item${open.length===1?'':'s'} need attention`:briefing.length?`${briefing.length} unread briefing${briefing.length===1?'':'s'}`:'Desk clear'}</div><div class="body" style="margin-top:8px">${open.length?'Continue will stop here until interactive items are dealt with.':briefing.length?'These are informational. Read them when useful; they never block time.':'Nothing needs you right now. Continue can move the calendar.'}</div></div><div class="card desk-command-card"><div class="desk-command-grid desk-command-grid-two"><div><span>Needs attention</span><strong>${open.length}</strong></div><div><span>Unread briefing</span><strong>${briefing.length}</strong></div></div>${briefing.length?`<button class="btn block" id="deskMarkAllRead" style="margin-top:10px">Mark briefing read</button>`:''}${readResolved.length?`<button class="btn ghost block" id="deskArchiveRead" style="margin-top:8px">Archive read items</button>`:''}</div></div>
+ <div class="section-title executive-intel-title"><h2>Film intelligence</h2><span class="small">Tracking, reviews and box office remain visible without becoming inbox clutter</span></div>${executiveFilmIntelHTML()}
  ${deskScriptMarketPressureHTML()}
- <div class="section-title"><h2>Up next</h2><span class="small">Major studio checkpoints · next five weeks</span></div>${deskUpcomingHTML(upcoming)}
- <div class="section-title"><h2>Needs a response</h2><span class="small">Urgent crises and lifecycle blockers interrupt Continue; optional calls wait here</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>No response is waiting.</strong><div class="small" style="margin-top:5px">Keep building, releasing or advancing time.</div></div>`}</div>
- <div class="section-title desk-section"><h2>Signals worth knowing</h2><span class="small">Higher-consequence information only</span></div><div class="desk-stack">${signals.length?signals.slice(0,8).map(deskItemHTML).join(''):`<div class="card body">No major signal is competing for your attention right now.</div>`}</div>`;
+ <div class="section-title"><h2>Up next</h2><span class="small">Known studio checkpoints · next five weeks</span></div>${deskUpcomingHTML(upcoming)}
+ <div class="section-title"><h2>Needs attention</h2><span class="small">Interactive items · Continue stops for these</span></div><div class="desk-stack">${open.length?open.map(deskItemHTML).join(''):`<div class="card goodline desk-empty"><strong>Nothing is waiting on you.</strong><div class="small" style="margin-top:5px">Interactive press calls, auctions and production decisions will appear here when they matter.</div></div>`}</div>
+ <div class="section-title desk-section"><h2>Briefing</h2><span class="small">Unread information · never blocks Continue</span></div><div class="desk-stack">${briefing.length?briefing.slice(0,12).map(deskItemHTML).join(''):`<div class="card body">No unread briefing is waiting. Read items can be archived from their cards or with the control above.</div>`}</div>`;
 }
 function deskThreadsBody(){
  const box=ensureCareerThreads(),active=activeCareerThreads(6),recent=(box.history||[]).slice(0,12);
@@ -761,8 +766,8 @@ function deskDigestBody(){
  <div class="desk-digest-actions">${unread.length?`<button class="btn" id="deskMarkAllRead2">Mark all read</button>`:''}${archivable?`<button class="btn ghost" id="deskArchiveRead2">Archive read</button>`:''}</div>${deskDigestHTML(background)}`;
 }
 function studioDeskBody(){
- const tab=state.uiDeskTab||'briefing';
- const body=tab==='threads'?deskThreadsBody():tab==='pulse'?deskPulseBody():tab==='digest'?deskDigestBody():deskBriefingBody();
+ let tab=state.uiDeskTab||'briefing';if(tab==='digest')tab=state.uiDeskTab='briefing';
+ const body=tab==='threads'?deskThreadsBody():tab==='pulse'?deskPulseBody():deskBriefingBody();
  return `${deskSubnav()}${body}`;
 }
 function legendCardHTML(entry){

@@ -12,14 +12,14 @@ function ensureScriptMarketState(s){
  if(!s)return null;ensureScriptEcosystem(s);
  if(!s.marketState){
   const r=makeRng(hash((state.seed||1)+'|market-state|'+s.id));
-  s.marketState={listedWeek:s.turnaround?.listedWeek||s.createdWeek||state.week,lastInterestWeek:0,interested:[],rivalBids:{},playerBid:0,playerBidWeek:null,auctionClosesWeek:null,status:'open',lastOutbidNotice:0,announcedAuction:false,marketAgeLimit:10+Math.floor(r()*5)};
+  s.marketState={listedWeek:s.turnaround?.listedWeek||s.createdWeek||state.week,lastInterestWeek:0,interested:[],rivalBids:{},playerBid:0,playerBidWeek:null,auctionClosesWeek:null,status:'open',lastOutbidNotice:0,announcedAuction:false,marketAgeLimit:7+Math.floor(r()*4)};
  }
- const m=s.marketState;m.interested=Array.isArray(m.interested)?m.interested:[];m.rivalBids=m.rivalBids||{};m.playerBid=Number(m.playerBid)||0;m.marketAgeLimit=m.marketAgeLimit||12;return m;
+ const m=s.marketState;m.interested=Array.isArray(m.interested)?m.interested:[];m.rivalBids=m.rivalBids||{};m.playerBid=Number(m.playerBid)||0;m.marketAgeLimit=m.marketAgeLimit||9;return m;
 }
 function screenplayRivalInterest(s,rv){
  const health=aiFinancialHealth(rv),treasury=aiTreasurySnapshot(rv);if(health==='Financial distress'||treasury.available<(s.price||.4)+2)return null;
  const rr=makeRng(hash((state.seed||1)+'|script-interest|'+s.id+'|'+rv.id+'|'+(s.marketState?.listedWeek||s.createdWeek||1)));
- const score=aiScriptScore(rv,s)+(rr()-.5)*5,threshold=health==='Under pressure'?76:health==='Leveraged'?73:70;
+ const score=aiScriptScore(rv,s)+(rr()-.5)*5,threshold=health==='Under pressure'?74:health==='Leveraged'?70:67;
  if(score<threshold)return null;
  const mult=clamp((1.03+Math.max(0,score-threshold)*.018+(rv.profile?.risk||.5)*.12+rr()*.06)*rivalryBidPressure(rv),1.03,1.92);
  const ceiling=+((s.price||.4)*mult).toFixed(2),intent=score>=86||mult>=1.58?'Aggressive':score>=77||mult>=1.34?'Serious':'Watching';
@@ -190,7 +190,7 @@ function maybeListTurnaround(s,rv,reason='The package could not be financed on a
  // v4.0a.5: turnaround is an opportunity created by a prior studio exiting the project.
  // Rights should normally be cheaper relative to the film's natural production scale than a fresh market acquisition.
  const ask=+clamp(Math.min(prior*transferDiscount,budgetAnchor),.12,askCap).toFixed(2);
- s.turnaround={priorStudioId:rv.id,priorStudioName:rv.name,reason,listedWeek:state.week,priorDevelopmentValue:prior};s.source='Turnaround';s.owner=null;s.status='market';s.available=true;s.shelved=false;s.deferredUntil=null;s.price=ask;s.bids=0;s.marketState=null;s.firstLookUntil=null;s.firstLookReason=null;if(!state.market.includes(s.id))state.market.unshift(s.id);
+ s.turnaround={priorStudioId:rv.id,priorStudioName:rv.name,reason,listedWeek:state.week,priorDevelopmentValue:prior,naturalBudgetAtExit:natural};s.source='Turnaround';s.owner=null;s.status='market';s.available=true;s.shelved=false;s.deferredUntil=null;s.price=ask;s.bids=0;s.marketState=null;s.firstLookUntil=null;s.firstLookReason=null;if(!state.market.includes(s.id))state.market.unshift(s.id);
  econ.turnarounds++;econ.lastTurnaroundWeek=state.week;ensureScriptMarketState(s);refreshScriptMarketInterest(s,false);
  addNews(state,`${rv.name} has put ${s.title} into turnaround after ${reason.toLowerCase()}. The developed screenplay is now available at ${money(ask)}.`,'Script Market');return true;
 }
@@ -200,13 +200,27 @@ function processScreenplayMarketWeek(){
 }
 // Override the old four-week market rotation without throwing away live player bids or auctions.
 function rotateMarket(){
- if(state.week-state.lastRotation<4)return;
- state.lastRotation=state.week;const r=makeRng(hash(state.seed+'|market-v38|'+state.week));
- const visible=state.market.map(scriptById).filter(Boolean);
- const cap=typeof screenplayMarketCapacity==='function'?screenplayMarketCapacity():9;
+ if(state.week-state.lastRotation<3)return;
+ state.lastRotation=state.week;const r=makeRng(hash(state.seed+'|market-v471|'+state.week));
+ const cap=typeof screenplayMarketCapacity==='function'?screenplayMarketCapacity():5;
+ let visible=state.market.map(scriptById).filter(Boolean);
+
+ // Quiet material no longer sits on the shelf indefinitely. Active player bids,
+ // live auctions and First Looks are protected until their own lifecycle resolves.
+ visible.forEach(sc=>{
+  const m=ensureScriptMarketState(sc),age=state.week-(m.listedWeek||state.week),protectedListing=scriptFirstLookActive(sc)||!!m.playerBid||!!m.auctionClosesWeek;
+  const turnaroundProtected=sc.turnaround&&age<8;
+  if(sc.available&&!protectedListing&&!turnaroundProtected&&age>=m.marketAgeLimit){
+   sc.available=false;m.status='withdrawn';state.market=state.market.filter(id=>id!==sc.id);
+   addNews(state,sc.turnaround?sc.title+"'s turnaround window closed without a deal.":sc.title+' was withdrawn after failing to find a buyer.','Script Market');
+  }
+ });
+ visible=state.market.map(scriptById).filter(Boolean);
+
  if(visible.length>cap){
   const removable=visible.filter(x=>{const m=ensureScriptMarketState(x),age=state.week-(m.listedWeek||state.week);return x.available&&!scriptFirstLookActive(x)&&!m.playerBid&&!m.auctionClosesWeek&&(!x.turnaround||age>=8)}).sort((a,b)=>(ensureScriptMarketState(a).listedWeek||0)-(ensureScriptMarketState(b).listedWeek||0));
-  let excess=Math.max(1,visible.length-cap);while(excess>0&&removable.length){const remove=removable.shift();remove.available=false;remove.marketState.status='withdrawn';state.market=state.market.filter(id=>id!==remove.id);addNews(state,remove.turnaround?`${remove.title}'s turnaround window closed without a deal.`:`${remove.title} was withdrawn after failing to find a buyer.`,'Script Market');excess--}
+  let excess=visible.length-cap;while(excess>0&&removable.length){const remove=removable.shift();remove.available=false;remove.marketState.status='withdrawn';state.market=state.market.filter(id=>id!==remove.id);addNews(state,remove.turnaround?remove.title+"'s turnaround window closed without a deal.":remove.title+' was withdrawn after failing to find a buyer.','Script Market');excess--}
  }
- const n=1+(r()<.38?1:0);for(let i=0;i<n;i++){const s=generateScript(state,state.week,true);s.marketState=null;ensureScriptMarketState(s);const first=maybeGrantFirstLook(s);refreshScriptMarketInterest(s,false,true);addNews(state,first?`${s.title} is being shown to ${state.studio.name} on an exclusive first-look basis.`:`New screenplay ${s.title} entered the market.`,'Development')}
+ const current=state.market.map(scriptById).filter(Boolean).length,slots=Math.max(0,cap-current),n=Math.min(slots,1+(r()<.22?1:0));
+ for(let i=0;i<n;i++){const sc=generateScript(state,state.week,true);sc.marketState=null;ensureScriptMarketState(sc);const first=maybeGrantFirstLook(sc);refreshScriptMarketInterest(sc,false,true);addNews(state,first?sc.title+' is being shown to '+state.studio.name+' on an exclusive first-look basis.':'New screenplay '+sc.title+' entered the market.','Development')}
 }

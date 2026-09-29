@@ -75,7 +75,7 @@ function bind(){
  document.querySelectorAll('[data-slate-tab]').forEach(b=>b.onclick=()=>{state.uiSlateTab=b.dataset.slateTab;save();render()});
  document.querySelectorAll('[data-release-tab]').forEach(b=>b.onclick=()=>{state.uiReleaseTab=b.dataset.releaseTab;save();render()});
  document.querySelectorAll('[data-theatrical-move]').forEach(b=>b.onclick=e=>{e.stopPropagation();applyTheatricalMove(filmById(b.dataset.filmId),b.dataset.theatricalMove)});
- document.querySelectorAll('[data-talent]').forEach(b=>b.onclick=e=>{if(e.target.closest('[data-attach-director]')||e.target.closest('[data-toggle-cast]')||e.target.closest('[data-select-support]')||e.target.closest('[data-audition]')||e.target.closest('[data-contract-talent]'))return;push(state.screen,{type:'talent',id:b.dataset.talent})});
+ document.querySelectorAll('[data-talent]').forEach(b=>b.onclick=e=>{if(e.target.closest('[data-attach-director]')||e.target.closest('[data-toggle-cast]')||e.target.closest('[data-select-support]')||e.target.closest('[data-audition]')||e.target.closest('[data-contract-accept]')||e.target.closest('[data-contract-backend]')||e.target.closest('[data-contract-franchise]')||e.target.closest('[data-contract-credit]'))return;push(state.screen,{type:'talent',id:b.dataset.talent})});
  document.querySelectorAll('[data-lot-influence-talent]').forEach(b=>b.onclick=e=>{e.stopPropagation();useLotInfluenceApproach(talentById(b.dataset.lotInfluenceTalent),filmById(b.dataset.lotInfluenceFilm),b.dataset.lotInfluenceRole)});
  document.querySelectorAll('[data-agency-influence-talent]').forEach(b=>b.onclick=e=>{e.stopPropagation();useAgencyInfluence(talentById(b.dataset.agencyInfluenceTalent),filmById(b.dataset.agencyInfluenceFilm))});
  document.querySelectorAll('[data-rival-detente]').forEach(b=>b.onclick=e=>{e.stopPropagation();attemptRivalDetente(rivalById(b.dataset.rivalDetente))});
@@ -123,10 +123,10 @@ function bind(){
  const cc=document.getElementById('commitConcept');if(cc)cc.onclick=()=>{const d=drafts.concept;createOriginalConcept(d.title,d.genre,d.logline,d.synopsis,d.audience,d.writerId,d.scale,d.positioning,d.tone,d.rating,d.emphasis);drafts.concept={title:'',genre:d.genre,logline:'',synopsis:'',audience:d.audience,scale:d.scale,positioning:d.positioning,tone:d.tone,rating:d.rating,emphasis:d.emphasis,writerId:null};save()};
  const commitCommission=document.getElementById('commitCommission');if(commitCommission)commitCommission.onclick=()=>{const d=drafts.commission;commissionScript(d.genre,d.brief,d.scale,d.audience,d.writerId);drafts.commission={...d,writerId:null};save()};
  const currentFilmId=state.detail&&typeof state.detail==='object'?state.detail.id:state.detail;
- const sd=document.getElementById('chooseDirector');if(sd)sd.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='fit';push(state.screen,{type:'directorPicker',id:currentFilmId})};
- const sc=document.getElementById('chooseCast');if(sc)sc.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='fit';push(state.screen,{type:'castingPicker',id:currentFilmId})};
- const openCastingReadiness=document.getElementById('openCastingReadiness');if(openCastingReadiness)openCastingReadiness.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='fit';push(state.screen,{type:'castingPicker',id:currentFilmId})};
- const ss=document.getElementById('chooseSupportingCast');if(ss)ss.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='fit';push(state.screen,{type:'supportingPicker',id:currentFilmId})};
+ const sd=document.getElementById('chooseDirector');if(sd)sd.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='market';push(state.screen,{type:'directorPicker',id:currentFilmId})};
+ const sc=document.getElementById('chooseCast');if(sc)sc.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='market';push(state.screen,{type:'castingPicker',id:currentFilmId})};
+ const openCastingReadiness=document.getElementById('openCastingReadiness');if(openCastingReadiness)openCastingReadiness.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='market';push(state.screen,{type:'castingPicker',id:currentFilmId})};
+ const ss=document.getElementById('chooseSupportingCast');if(ss)ss.onclick=()=>{state.uiPickerSearch='';state.uiPickerSort='market';push(state.screen,{type:'supportingPicker',id:currentFilmId})};
  const reviewContracts=document.getElementById('reviewContracts');if(reviewContracts)reviewContracts.onclick=()=>push(state.screen,{type:'contracts',id:currentFilmId});
  document.querySelectorAll('[data-attach-director]').forEach(b=>b.onclick=e=>{e.stopPropagation();const f=filmById(currentFilmId);attachDirector(f,b.dataset.attachDirector)});
  document.querySelectorAll('[data-toggle-cast]').forEach(b=>b.onclick=e=>{e.stopPropagation();const f=filmById(currentFilmId);toggleCast(f,b.dataset.toggleCast)});
@@ -136,12 +136,20 @@ function bind(){
  const reuniteReturningCast=document.getElementById('reuniteReturningCast');if(reuniteReturningCast)reuniteReturningCast.onclick=()=>{const f=filmById(currentFilmId),parent=filmById(f.ipParentId);if(!parent)return;ensureFilmRoles(f);(parent.cast||[]).map(talentById).filter(t=>t&&!talentUnavailableForFilm(t,f)).slice(0,2).forEach((t,i)=>{f.castingTargetRole=`lead${i+1}`;assignLeadRole(f,`lead${i+1}`,t.id)});save();render()};
  document.querySelectorAll('[data-audition]').forEach(b=>b.onclick=e=>{e.stopPropagation();auditionActor(filmById(currentFilmId),b.dataset.audition)});
  const extraAuditions=document.getElementById('extraAuditions');if(extraAuditions)extraAuditions.onclick=()=>extraAuditionRound(filmById(currentFilmId));
- document.querySelectorAll('[data-contract-talent]').forEach(b=>b.onclick=()=>acceptContract(filmById(currentFilmId),b.dataset.contractTalent,b.dataset.contractOffer));
+ const refreshContractQuote=(tid)=>{
+  const f=filmById(currentFilmId),t=talentById(tid);if(!f||!t)return;
+  const q=contractQuote(f,t,contractDraftFor(f,tid)),read=document.getElementById('contractBackendRead-'+tid),up=document.getElementById('contractUpfront-'+tid),back=document.getElementById('contractBackendQuote-'+tid),future=document.getElementById('contractFuture-'+tid);
+  if(read)read.textContent=q.backend+'%';if(up)up.textContent=money(q.upfront);if(back)back.textContent=q.backend+'%';
+  if(future)future.textContent=q.futureFee?money(q.futureFee)+(q.futureBackend?' + '+q.futureBackend+'% backend':''):q.franchiseTerm==='exercise-option'?'Pre-agreed on previous film':'No future commitment';
+ };
+ document.querySelectorAll('[data-contract-backend]').forEach(el=>el.oninput=()=>{const f=filmById(currentFilmId),tid=el.dataset.contractBackend,d=contractDraftFor(f,tid);d.backend=+el.value;d.dirty=true;refreshContractQuote(tid);scheduleDraftSave()});
+ document.querySelectorAll('[data-contract-backend]').forEach(el=>el.onchange=()=>{const f=filmById(currentFilmId),tid=el.dataset.contractBackend,d=contractDraftFor(f,tid);d.backend=+el.value;d.dirty=true;save();refreshContractQuote(tid)});
+ document.querySelectorAll('[data-contract-franchise]').forEach(el=>el.onchange=()=>{const f=filmById(currentFilmId),tid=el.dataset.contractFranchise,d=contractDraftFor(f,tid);d.franchiseTerm=el.value;d.dirty=true;save();render()});
+ document.querySelectorAll('[data-contract-credit]').forEach(el=>el.onchange=()=>{const f=filmById(currentFilmId),tid=el.dataset.contractCredit,d=contractDraftFor(f,tid);d.producerCredit=el.checked;d.dirty=true;save();render()});
+ document.querySelectorAll('[data-contract-accept]').forEach(b=>b.onclick=()=>acceptContract(filmById(currentFilmId),b.dataset.contractAccept));
  const contractsContinue=document.getElementById('contractsContinue');if(contractsContinue)contractsContinue.onclick=()=>{state.history=[];state.screen='slate';state.detail={type:'film',id:currentFilmId};save();render()};
  const pickerSort=document.getElementById('pickerSort');if(pickerSort)pickerSort.onchange=()=>{state.uiPickerSort=pickerSort.value;save();render()};
  const pickerFee=document.getElementById('pickerFee');if(pickerFee)pickerFee.onchange=()=>{state.uiPickerMaxFee=+pickerFee.value;save();render()};
- const pickerMomentum=document.getElementById('pickerMomentum');if(pickerMomentum)pickerMomentum.onchange=()=>{state.uiPickerMinMomentum=+pickerMomentum.value;save();render()};
- const pickerFit=document.getElementById('pickerFit');if(pickerFit)pickerFit.onchange=()=>{state.uiPickerMinFit=+pickerFit.value;save();render()};
  const pickerAvailable=document.getElementById('pickerAvailable');if(pickerAvailable)pickerAvailable.onchange=()=>{state.uiPickerAvailable=pickerAvailable.checked;save();render()};
  const pickerResetFilters=document.getElementById('pickerResetFilters');if(pickerResetFilters)pickerResetFilters.onclick=()=>{state.uiPickerSort=null;state.uiPickerMaxFee=0;state.uiPickerMinMomentum=0;state.uiPickerMinFit=0;state.uiPickerAvailable=false;save();render()};
  const pickerContinue=document.getElementById('pickerContinue');if(pickerContinue)pickerContinue.onclick=()=>{state.history=[];state.screen='slate';state.detail={type:'film',id:currentFilmId};save();render()};

@@ -2,12 +2,12 @@
 
 function topAdvanceControl(){
  if(!state.studio)return '';ensureCalendarState();
- const blocker=typeof calendarHardBlocker==='function'?calendarHardBlocker():(rebuildDecisions(),state.decisions.find(x=>x.type==='production'||x.type==='post'||x.type==='marketing')),f=blocker?filmById(blocker.filmId):null,checkpoint=nextCalendarCheckpoint();
+ const blocker=typeof calendarHardBlocker==='function'?calendarHardBlocker():(rebuildDecisions(),state.decisions.find(x=>x.type==='production'||x.type==='post'||x.type==='marketing'));
+ const deskStop=typeof nextInteractiveDeskItem==='function'?nextInteractiveDeskItem():null,f=blocker?filmById(blocker.filmId):null,checkpoint=nextCalendarCheckpoint();
  const days=checkpoint?Math.max(0,checkpoint.day-state.calendarDay):0;
- const blockText=blocker?.type==='marketing'?`${f?.title||'Film'} needs a release plan`:blocker?.type==='post'?`${f?.title||'Film'} rough cut is waiting`:`${f?.title||'Production'} needs a decision`;
- const nextText=blocker?blockText:checkpoint?.kind==='quiet'?checkpoint.label:checkpoint&&checkpoint.day>state.calendarDay?`Next: ${checkpoint.label} · ${days===1?'tomorrow':days+' days'} · ${calendarShortDate(checkpoint.day)}`:`${state.decisions.length} decision${state.decisions.length===1?'':'s'} waiting`;
- const button=blocker?.type==='marketing'?'Plan release':blocker?.type==='post'?'Review rough cut':blocker?'Resolve blocker':'Continue →';
- return `<div class="topadvance"><div><strong>${calendarDateLabel()}</strong><span class="small next-event-line" style="margin-left:8px">W${state.week} · ${nextText}</span></div><div class="topadvance-actions">${blocker?'':`<button id="globalAdvanceNextEvent" class="btn ghost" title="Advance to the next campaign, release, box-office or signature event">Event »</button><button id="globalAdvanceNextDecision" class="btn ghost" title="Skip routine signals and advance until the next player decision or signature moment">Decision »</button>`}<button id="globalAdvanceWeek" class="btn ${blocker?'danger':'primary'}">${button}</button></div></div>`;
+ const blockText=blocker?.type==='marketing'?`${f?.title||'Film'} needs a release plan`:blocker?.type==='post'?`${f?.title||'Film'} rough cut is waiting`:blocker?`${f?.title||'Production'} needs a decision`:deskStop?`${deskStop.source||'Studio Desk'} needs your response`:null;
+ const nextText=blockText?blockText:checkpoint?.kind==='quiet'?checkpoint.label:checkpoint&&checkpoint.day>state.calendarDay?`Next: ${checkpoint.label} · ${days===1?'tomorrow':days+' days'} · ${calendarShortDate(checkpoint.day)}`:'Continue when you are ready';
+ return `<div class="topadvance"><div><strong>${calendarDateLabel()}</strong><span class="small next-event-line" style="margin-left:8px">W${state.week} · ${nextText}</span></div><div class="topadvance-actions"><button id="globalAdvanceWeek" class="btn ${blocker?'danger':'primary'}">Continue →</button></div></div>`;
 }
 function topbar(title,subtitle=''){
  if(state.studio&&typeof syncOperationalDeskItems==='function')syncOperationalDeskItems();

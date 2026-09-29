@@ -1,6 +1,6 @@
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=405;
+const SAVE_SCHEMA_VERSION=406;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -244,6 +244,41 @@ function applySaveSchemaMigrations(x,fromVersion){
   (x.news||[]).forEach(n=>{if(n.tradePress?.feature){n.tradePress.version=470;n.tradePress.local=n.tradePress.local||{headline:n.headline,deck:n.deck,body:(n.body||[n.text]).slice()}}});
   schema=405;
  }
+ if(schema<406){
+  // v4.7.1 restores uncertainty to casting, adds negotiable deal structures and repairs
+  // old turnaround material that inherited the temporary rival recovery-budget floor.
+  if(['fit','fee','feeHigh','ability','commercial'].includes(x.uiPickerSort))x.uiPickerSort='market';
+  x.uiPickerMinFit=0;x.uiPickerMinMomentum=0;
+  (x.films||[]).forEach(f=>{
+   if(f.owner!=='player')return;
+   f.contractDrafts=f.contractDrafts||{};f.sequelOptions=Array.isArray(f.sequelOptions)?f.sequelOptions:[];f.sequelGuarantees=Array.isArray(f.sequelGuarantees)?f.sequelGuarantees:[];
+   Object.values(f.contracts||{}).forEach(c=>{if(c&&c.franchiseTerm===undefined)c.franchiseTerm=c.sequelOption?'option':'none'});
+  });
+  const turnaroundFloor={
+   'Psychological Horror':6,'Supernatural Horror':7,'Prestige Drama':8,'Romantic Comedy':9,'Comedy':9,'Sports Drama':10,
+   'Mystery Thriller':10,'Crime Thriller':11,'Action Comedy':15,'Family Adventure':16,'Adventure':18,'Action Thriller':18,
+   'Science Fiction':22,'Historical Epic':24,'Fantasy':22,'Superhero':28
+  };
+  (x.scripts||[]).forEach(sc=>{
+   if(!sc?.turnaround)return;const floor=turnaroundFloor[sc.genre]||8;
+   if((sc.naturalBudget||0)<floor){sc.turnaround.repairedNaturalBudgetFrom=sc.naturalBudget||0;sc.naturalBudget=floor}
+   if(sc.turnaround.naturalBudgetAtExit===undefined)sc.turnaround.naturalBudgetAtExit=sc.naturalBudget;
+  });
+  const devLevel=Math.min(2,x.studioGrowth?.upgrades?.development||0),marketCap=[5,6,8][devLevel],scriptMap=new Map((x.scripts||[]).map(sc=>[sc.id,sc]));
+  const live=(x.market||[]).map(id=>scriptMap.get(id)).filter(sc=>sc&&sc.available!==false&&sc.status==='market');
+  if(live.length>marketCap){
+   const protectedRows=live.filter(sc=>{const m=sc.marketState||{};return (m.playerBid||0)>0||!!m.auctionClosesWeek||(sc.firstLookUntil||0)>=(x.week||1)});
+   const protectedIds=new Set(protectedRows.map(sc=>sc.id)),room=Math.max(0,marketCap-protectedRows.length);
+   const candidates=live.filter(sc=>!protectedIds.has(sc.id)).sort((a,b)=>{
+    const at=a.turnaround&&((x.week||1)-(a.turnaround.listedWeek||0)<8)?1:0,bt=b.turnaround&&((x.week||1)-(b.turnaround.listedWeek||0)<8)?1:0;
+    return bt-at||(b.marketState?.listedWeek||b.createdWeek||0)-(a.marketState?.listedWeek||a.createdWeek||0);
+   });
+   const keep=new Set([...protectedIds,...candidates.slice(0,room).map(sc=>sc.id)]);
+   live.filter(sc=>!keep.has(sc.id)).forEach(sc=>{sc.available=false;if(sc.marketState)sc.marketState.status='withdrawn'});
+   x.market=(x.market||[]).filter(id=>keep.has(id)||!live.some(sc=>sc.id===id));
+  }
+  schema=406;
+ }
 
  x.saveSchema=schema;
  return x;
@@ -255,7 +290,7 @@ function migrateState(x){
  x.version=VERSION;
  x.difficulty=x.difficulty||'normal';x.uiDifficultyDraft=x.uiDifficultyDraft||x.difficulty||'normal';x.developmentUnlocks=x.developmentUnlocks||{commissionNotified:false,originalNotified:false};x.screenplayEconomy=x.screenplayEconomy||{history:[],lastWeek:0,turnarounds:0,lastTurnaroundWeek:0};x.challengerState=x.challengerState||{launched:false,launchWeek:null,triggerYear:null,triggerRank:null,triggerRecognition:null};x.industryOpportunities=x.industryOpportunities||{lastOfferWeek:0,history:[],accepted:0};x.emergingTalentState=x.emergingTalentState||{lastIntroductionWeek:0,history:[]};x.corporateState=x.corporateState||{status:'private',founderOwnership:100,investorConfidence:62,ipoDeclinedUntil:0,ipoWeek:null,ipoProceeds:0,lastReviewWeek:0,lastOfferWeek:0,lastFundamental:null,lastMarketCap:null,lastSharePrice:null,history:[],quarterly:[],boardPressure:false};
  x.calendarDay=Number.isFinite(x.calendarDay)?x.calendarDay:Math.max(1,((x.week||1)-1)*7+1);x.lastWeeklyHeartbeatWeek=x.lastWeeklyHeartbeatWeek||x.week||1;x.simulationAudit=x.simulationAudit||{schema:2,enabled:true,firstWeek:null,lastWeek:0,weekly:[],quarterly:[],flags:[],captures:0,benchmarks:[]};x.simulationAudit.benchmarks=Array.isArray(x.simulationAudit.benchmarks)?x.simulationAudit.benchmarks:[];
- x.agencyWindows=x.agencyWindows||{};x.collaborations=x.collaborations||{};x.careerThreads=x.careerThreads||{active:[],history:[],nextId:1,lastUpdatedWeek:0};x.careerCycle=x.careerCycle||{phase:'building',startedWeek:x.week||1,lastEvaluatedWeek:0,lastTransitionWeek:x.week||1,history:[],lastPlanEndWeek:0,lastRecoveryWeek:0,peakRecognition:x.studioGrowth?.recognition||12};x.pressMemory=x.pressMemory||{};x.tradePress=x.tradePress||{version:470,recent:[],aiUsage:{week:0,count:0},lastFeatureWeek:0};x.executivePersona=x.executivePersona||{history:[],lastPrimary:null,lastEvaluatedWeek:0};x.industryMood=x.industryMood||{history:[],lastQuarter:0};x.reputation=x.reputation||{};if(x.reputation.press===undefined)x.reputation.press=50;x.fastForward=x.fastForward||{uses:0,lastFromDay:null,lastToDay:null};x.legends=x.legends||{unlocked:{},history:[],pending:[],initialized:false};x.legends.unlocked=x.legends.unlocked||{};x.legends.history=x.legends.history||[];x.legends.pending=x.legends.pending||[];x.activeLegendUnlockId=x.activeLegendUnlockId||null;syncPrivateRealRoster(x);ensureBaseFictionalRoster(x);ensureAudienceMarket(x);x.lastAwardsSeasonResolved=x.lastAwardsSeasonResolved||0;x.portraitCache=x.portraitCache||{};Object.keys(x.portraitCache).forEach(k=>{const v=x.portraitCache[k];if(v==='__none__')delete x.portraitCache[k];else if(typeof v==='string')x.portraitCache[k]=normalizePortraitSource(v)||v});x.talentWatchlist=x.talentWatchlist||[];x.yearbooks=x.yearbooks||[];x.awardsArchive=x.awardsArchive||[];x.awardsNominationsArchive=x.awardsNominationsArchive||[];x.pendingAwardsNominations=x.pendingAwardsNominations||null;x.awardsCeremonyStep=Number.isFinite(x.awardsCeremonyStep)?x.awardsCeremonyStep:0;x.pendingCeremony=x.pendingCeremony||null;x.availabilityWatches=x.availabilityWatches||[];x.studioIdentity=x.studioIdentity||{history:[],lastPrimary:null,lastEvaluatedWeek:0};ensureStudioIdentity(x);x.pendingFilmWraps=x.pendingFilmWraps||[];x.activeFilmWrapId=x.activeFilmWrapId||null;x.uiFilmWrapStep=Number.isFinite(x.uiFilmWrapStep)?clamp(x.uiFilmWrapStep,0,4):0;x.studioMomentQueue=x.studioMomentQueue||[];x.activeStudioMoment=x.activeStudioMoment||null;x.boxOfficeMemory=x.boxOfficeMemory||{leaderId:null,streak:0,lastWeek:0};ensureEconomyState(x);(x.films||[]).forEach(f=>{
+ x.agencyWindows=x.agencyWindows||{};x.collaborations=x.collaborations||{};x.careerThreads=x.careerThreads||{active:[],history:[],nextId:1,lastUpdatedWeek:0};x.careerCycle=x.careerCycle||{phase:'building',startedWeek:x.week||1,lastEvaluatedWeek:0,lastTransitionWeek:x.week||1,history:[],lastPlanEndWeek:0,lastRecoveryWeek:0,peakRecognition:x.studioGrowth?.recognition||12};x.pressMemory=x.pressMemory||{};x.tradePress=x.tradePress||{version:470,recent:[],aiUsage:{week:0,count:0},lastFeatureWeek:0};if(['fit','fee','feeHigh','ability','commercial'].includes(x.uiPickerSort))x.uiPickerSort='market';x.executivePersona=x.executivePersona||{history:[],lastPrimary:null,lastEvaluatedWeek:0};x.industryMood=x.industryMood||{history:[],lastQuarter:0};x.reputation=x.reputation||{};if(x.reputation.press===undefined)x.reputation.press=50;x.fastForward=x.fastForward||{uses:0,lastFromDay:null,lastToDay:null};x.legends=x.legends||{unlocked:{},history:[],pending:[],initialized:false};x.legends.unlocked=x.legends.unlocked||{};x.legends.history=x.legends.history||[];x.legends.pending=x.legends.pending||[];x.activeLegendUnlockId=x.activeLegendUnlockId||null;syncPrivateRealRoster(x);ensureBaseFictionalRoster(x);ensureAudienceMarket(x);x.lastAwardsSeasonResolved=x.lastAwardsSeasonResolved||0;x.portraitCache=x.portraitCache||{};Object.keys(x.portraitCache).forEach(k=>{const v=x.portraitCache[k];if(v==='__none__')delete x.portraitCache[k];else if(typeof v==='string')x.portraitCache[k]=normalizePortraitSource(v)||v});x.talentWatchlist=x.talentWatchlist||[];x.yearbooks=x.yearbooks||[];x.awardsArchive=x.awardsArchive||[];x.awardsNominationsArchive=x.awardsNominationsArchive||[];x.pendingAwardsNominations=x.pendingAwardsNominations||null;x.awardsCeremonyStep=Number.isFinite(x.awardsCeremonyStep)?x.awardsCeremonyStep:0;x.pendingCeremony=x.pendingCeremony||null;x.availabilityWatches=x.availabilityWatches||[];x.studioIdentity=x.studioIdentity||{history:[],lastPrimary:null,lastEvaluatedWeek:0};ensureStudioIdentity(x);x.pendingFilmWraps=x.pendingFilmWraps||[];x.activeFilmWrapId=x.activeFilmWrapId||null;x.uiFilmWrapStep=Number.isFinite(x.uiFilmWrapStep)?clamp(x.uiFilmWrapStep,0,4):0;x.studioMomentQueue=x.studioMomentQueue||[];x.activeStudioMoment=x.activeStudioMoment||null;x.boxOfficeMemory=x.boxOfficeMemory||{leaderId:null,streak:0,lastWeek:0};ensureEconomyState(x);(x.films||[]).forEach(f=>{
   ensureProductionDepth(f);ensureDistributionState(f);
   const fs=(x.scripts||[]).find(s=>s.id===f.scriptId);
   if(fs?.ipParentFilmId&&!f.ipParentId)f.ipParentId=fs.ipParentFilmId;

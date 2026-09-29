@@ -907,3 +907,32 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
  .trade-press-status{align-items:flex-start;flex-direction:column}
  .newslead .row>div:last-child{justify-content:flex-start}
 }
+
+
+/* v4.7.1 — Friction & Flow */
+.casting-deal-list{display:grid;gap:8px;margin-top:12px}
+.casting-deal-row{display:grid;grid-template-columns:minmax(92px,.55fr) 42px minmax(0,1.45fr);gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--hairline)}
+.casting-deal-row:first-child{border-top:0}
+.casting-deal-role span,.casting-deal-role small,.casting-deal-person strong,.casting-deal-person .small{display:block}
+.casting-deal-role span{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.casting-deal-role small{font-size:9px;color:var(--muted);margin-top:2px}
+.casting-deal-open{width:38px;height:38px;border:1px dashed var(--border);border-radius:10px;display:grid;place-items:center;font-size:9px;color:var(--muted);font-weight:900}
+.casting-deal-person{min-width:0}.casting-deal-person strong{font-size:13px;overflow-wrap:anywhere}
+.casting-deal-actions{margin-top:12px}
+.contract-negotiation-grid{grid-template-columns:1fr}
+.contract-negotiation{overflow:hidden}
+.contract-builder{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(180px,.8fr);gap:12px;margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.018)}
+.contract-field{display:grid;gap:7px;min-width:0}.contract-field>span{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.contract-field small{font-size:10px;color:var(--muted);line-height:1.4}
+.contract-credit{grid-column:1/-1;display:flex;align-items:flex-start;gap:8px;font-size:11px;color:#cbd1dc;line-height:1.4}
+.contract-quote{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.contract-quote>div{padding:10px;border:1px solid var(--hairline);border-radius:12px;background:rgba(255,255,255,.016);min-width:0}
+.contract-quote span,.contract-quote strong{display:block}.contract-quote span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.contract-quote strong{font-size:12px;margin-top:4px;overflow-wrap:anywhere}
+.contract-locked{margin-top:10px;padding:9px 10px;border:1px solid var(--hairline);border-radius:10px}
+.desk-command-grid-two{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:680px){
+ .casting-deal-row{grid-template-columns:minmax(82px,.7fr) 38px minmax(0,1.3fr);gap:8px}
+ .casting-deal-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .contract-builder{grid-template-columns:1fr}
+ .contract-quote{grid-template-columns:1fr}
+ .contract-credit{grid-column:auto}
+}

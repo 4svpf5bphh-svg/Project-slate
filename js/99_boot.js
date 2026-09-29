@@ -238,7 +238,7 @@ function projectSlateSmokeChecks(){
   if(!studioGrowthUI.toString().includes('careerArcCard'))failures.push('v4.6.4 Career Form missing from Growth');
   if(deskBriefingBody.toString().includes('careerArcCard'))failures.push('v4.6.4 Career Form still occupies Desk briefing');
   if(!deskBriefingBody.toString().includes('deskStudioStatusStrip')||!deskBriefingBody.toString().includes('deskScriptMarketPressureHTML'))failures.push('v4.6.4 compact Desk intelligence missing');
-  if(!developmentUI.toString().includes('castingReadinessHTML'))failures.push('v4.6.4 Casting Readiness missing from film page');
+  if(!developmentUI.toString().includes('castingDealsHTML'))failures.push('v4.6.4 Casting / package status missing from film page');
   if(!recordProductionDaily.toString().includes('castingGamble'))failures.push('v4.6.4 untested casting callback missing');
   if(!soundtrackPostUI.toString().includes('There is no single correct music plan'))failures.push('v4.6.4 music trade-off explainer missing');
   if(soundtrackPostUI.toString().includes('Creative fit '))failures.push('v4.6.4 raw music fit grading still exposed');
@@ -262,6 +262,22 @@ function projectSlateSmokeChecks(){
   if(!lotCampaignAngleCost.toString().includes('lotCampaignAngleTransaction')||!lotApplyCampaignAngle.toString().includes('lotCampaignAngleTransaction'))failures.push('v4.7 Lot campaign transaction still split across unrelated logic');
   if(TRADE_PRESS_AI_THRESHOLD<72||TRADE_PRESS_AI_THRESHOLD>90)failures.push('v4.7 Trade Press AI threshold outside intended editorial range');
  }catch(e){failures.push('v4.7 Trade Press smoke failed'+(e?.message?': '+e.message:''))}
+
+ try{
+  if(SAVE_SCHEMA_VERSION<406)failures.push('v4.7.1 save migration missing');
+  if(typeof castingDealsHTML!=='function'||!developmentUI.toString().includes('castingDealsHTML'))failures.push('v4.7.1 consolidated Casting & Deals missing');
+  if(pickerControls.toString().includes('pickerFit')||pickerList.toString().includes("sort==='fit'")||pickerList.toString().includes("sort==='fee'"))failures.push('v4.7.1 casting still exposes solved-fit / cheapest-first sorting');
+  if(typeof talentFeeRange!=='function'||typeof castingScoutSignal!=='function')failures.push('v4.7.1 uncertain scouting layer missing');
+  if(typeof contractBackendDiscount!=='function'||typeof contractQuote!=='function'||!contractsScreen.toString().includes('data-contract-backend')||!contractsScreen.toString().includes('Guaranteed return'))failures.push('v4.7.1 negotiated contract builder incomplete');
+  if(!createPlayerFilmFromOwnedScript.toString().includes('sequelGuarantees')||!createPlayerFilmFromOwnedScript.toString().includes('guaranteed-return'))failures.push('v4.7.1 guaranteed sequel return inheritance missing');
+  if(topAdvanceControl.toString().includes('globalAdvanceNextEvent')||topAdvanceControl.toString().includes('globalAdvanceNextDecision')||!topAdvanceControl.toString().includes('globalAdvanceWeek'))failures.push('v4.7.1 single Continue control missing');
+  if(typeof surfaceInteractiveDeskInterrupt!=='function'||!continueTime.toString().includes('surfaceInteractiveDeskInterrupt'))failures.push('v4.7.1 Continue does not stop for interactive Desk items');
+  if(!deskSubnav.toString().includes("'briefing'")||deskSubnav.toString().includes("'digest'"))failures.push('v4.7.1 Desk still exposes duplicate Digest');
+  if(!deskBriefingBody.toString().includes('Needs attention')||!deskBriefingBody.toString().includes('Briefing'))failures.push('v4.7.1 unified Desk inbox missing');
+  if(!screenplayMarketCapacity.toString().includes('[5,6,8]'))failures.push('v4.7.1 screenplay market capacity not tightened');
+  if(!rotateMarket.toString().includes('lastRotation<3')||!ensureScriptMarketState.toString().includes('7+Math.floor(r()*4)'))failures.push('v4.7.1 screenplay market cadence not tightened');
+  if(aiStartProjects.toString().includes('2.6+r()*1.5')||aiStartProjects.toString().includes('Math.min(budget,4.0)'))failures.push('v4.7.1 cheap turnaround production-scale bug remains');
+ }catch(e){failures.push('v4.7.1 Friction & Flow smoke failed'+(e?.message?': '+e.message:''))}
 
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
