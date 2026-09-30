@@ -1642,10 +1642,10 @@ function criticCraftParagraph(f,tier,critic){
  let line=variationPick(f,'critic-strength-'+critic.id+'-'+strong,strongPools[strong]||strongPools.direction);
  if(!good&&risk&&risk!==strong)line+=` ${variationPick(f,'critic-risk-'+critic.id+'-'+risk,riskPools[risk]||riskPools.pacing)}`;
  else if(good&&risk&&risk!==strong&&tier!=='rave')line+=` The weak spot is ${risk}: ${variationPick(f,'critic-risk-soft-'+critic.id+'-'+risk,riskPools[risk]||riskPools.pacing).replace(/^The /,'the ')}`;
- const choice=filmChoiceCallback(f);if(choice)line+=' '+choice;return line;
+ return line;
 }
 function criticClosingParagraph(f,tier,critic,critics,audience){
- const sc=scriptById(f.scriptId),id=ensureFilmIdentity(f),dir=f.creativeDirection?.label||null,music=f.soundtrack?.committed?soundtrackSummary(f):null;
+ const sc=scriptById(f.scriptId),id=ensureFilmIdentity(f),music=f.soundtrack?.committed?soundtrackSummary(f):null;
  const gap=audience-critics;
  const pools={
   rave:[`${sc.title} is not merely good at what it does; it knows what it is doing. That distinction sounds small until you see how many films never make it.`,`If ${sc.title} has a flaw, it is the deeply inconvenient one of making several safer films look cowardly by comparison.`,`A ${id.texture} film, a clear point of view and no detectable interest in apologising for either. More, please.`],
@@ -1656,9 +1656,7 @@ function criticClosingParagraph(f,tier,critic,critics,audience){
   disaster:[`One star would be cruel. Two would be dishonest. Fortunately, half-stars exist.`,`There will be worse films made accidentally. ${sc.title} has the unnerving confidence of one that kept making choices.`,`The most suspenseful question is whether the studio will mention this one in next year's retrospective.`]
  };
  let line=variationPick(f,'critic-close-'+critic.id+'-'+tier,pools[tier]);
- if(dir&&['rave','great','good'].includes(tier))line+=` The production decision to “${dir}” is exactly the sort of choice that gives a film fingerprints.`;
- else if(dir&&['poor','disaster'].includes(tier))line+=` The decision to “${dir}” is certainly visible; whether it should have been is another matter.`;
- else if(music&&critic.voice==='crowd')line+=` ${music} at least knows when to turn up and improve the room.`;
+ if(music&&critic.voice==='crowd')line+=` ${music} at least knows when to turn up and improve the room.`;
  if(Math.abs(gap)>=18)line+=gap>0?` Audiences are likely to be kinder than critics, and for once they may have the more enjoyable argument.`:` Critics may admire this more than ordinary viewers enjoy it — a distinction the box office is under no obligation to respect.`;
  return line;
 }
@@ -2913,14 +2911,20 @@ function nextCalendarCheckpoint(){
 function ensureCareerThreads(st=state){
  st.careerThreads=st.careerThreads||{active:[],history:[],nextId:1,lastUpdatedWeek:0};st.careerThreads.active=st.careerThreads.active||[];st.careerThreads.history=st.careerThreads.history||[];st.careerThreads.nextId=st.careerThreads.nextId||1;return st.careerThreads;
 }
+function careerThreadUpdateStamp(x){return Number(x?.lastUpdatedDay)||((Number(x?.lastUpdatedWeek)||0)*7)}
 function careerThread(key){return ensureCareerThreads().active.find(x=>x.key===key)||null}
 function upsertCareerThread(spec){
- const box=ensureCareerThreads(),existing=box.active.find(x=>x.key===spec.key);
- if(existing){Object.assign(existing,spec,{id:existing.id,key:existing.key,startedWeek:existing.startedWeek,lastUpdatedWeek:state.week});return existing}
- const item={id:'THREAD'+box.nextId++,startedWeek:state.week,lastUpdatedWeek:state.week,tone:'neutral',priority:50,...spec};box.active.unshift(item);box.active.sort((a,b)=>(b.priority||0)-(a.priority||0)||(b.lastUpdatedWeek||0)-(a.lastUpdatedWeek||0));box.active=box.active.slice(0,6);return item;
+ const box=ensureCareerThreads(),existing=box.active.find(x=>x.key===spec.key),day=Number(state.calendarDay)||state.week*7;
+ if(existing){
+  const meaningful=['type','tone','title','summary','detail','filmId','rivalId','talentId'].some(k=>spec[k]!==undefined&&spec[k]!==existing[k]);
+  Object.assign(existing,spec,{id:existing.id,key:existing.key,startedWeek:existing.startedWeek,startedDay:existing.startedDay||existing.startedWeek*7});
+  if(meaningful){existing.lastUpdatedWeek=state.week;existing.lastUpdatedDay=day}
+  return existing;
+ }
+ const item={id:'THREAD'+box.nextId++,startedWeek:state.week,startedDay:day,lastUpdatedWeek:state.week,lastUpdatedDay:day,tone:'neutral',priority:50,...spec};box.active.unshift(item);box.active.sort((a,b)=>careerThreadUpdateStamp(b)-careerThreadUpdateStamp(a)||(b.priority||0)-(a.priority||0));box.active=box.active.slice(0,6);return item;
 }
 function resolveCareerThread(key,resolution){
- const box=ensureCareerThreads(),i=box.active.findIndex(x=>x.key===key);if(i<0)return;const [item]=box.active.splice(i,1);item.resolvedWeek=state.week;item.resolution=resolution||'The story moved on.';box.history.unshift(item);box.history=box.history.slice(0,40);
+ const box=ensureCareerThreads(),i=box.active.findIndex(x=>x.key===key);if(i<0)return;const [item]=box.active.splice(i,1);item.resolvedWeek=state.week;item.resolvedDay=Number(state.calendarDay)||state.week*7;item.resolution=resolution||'The story moved on.';box.history.unshift(item);box.history=box.history.slice(0,40);
 }
 function rivalReleaseClashes(){
  const out=[];playerFilms().filter(f=>f.releaseWeek&&['scheduled','cinema'].includes(f.stage)&&f.releaseWeek>=state.week-1).forEach(p=>{
@@ -2980,7 +2984,7 @@ function updateCareerThreads(){
  [...box.active].forEach(t=>{if(t.key.startsWith('rival-date:')&&!seen.has(t.key))resolveCareerThread(t.key,'The shared release corridor has passed and the rivalry moves into the record.');if(t.key.startsWith('collaborator:')&&!seen.has(t.key))resolveCareerThread(t.key,'The working relationship cooled or stopped being active enough to define the current studio story.');if(t.key==='studio-era'&&!seen.has(t.key))resolveCareerThread(t.key,'The studio’s recent slate no longer supports one dominant trade label.')});
  box.lastUpdatedWeek=state.week;
 }
-function activeCareerThreads(limit=4){return ensureCareerThreads().active.slice().sort((a,b)=>(b.priority||0)-(a.priority||0)||(b.lastUpdatedWeek||0)-(a.lastUpdatedWeek||0)).slice(0,limit)}
+function activeCareerThreads(limit=4){return ensureCareerThreads().active.slice().sort((a,b)=>careerThreadUpdateStamp(b)-careerThreadUpdateStamp(a)||(b.priority||0)-(a.priority||0)).slice(0,limit)}
 function nextMeaningfulCalendarEventLimit(){
  ensureCalendarState();const horizon=state.calendarDay+84,candidates=[];const c=nextPlayerCampaignEvent(state.calendarDay,horizon);if(c)candidates.push(c.day);const r=nextPlayerReleaseDay(state.calendarDay,horizon);if(r)candidates.push(r);const w=nextPlayerWeekendDay(state.calendarDay,horizon);if(w)candidates.push(w);playerFilms().filter(f=>f.stage==='production').forEach(f=>{(f.events||[]).filter(e=>!e.resolved).forEach(e=>{const week=(f.productionStart||state.week)+(e.week||1)-1,day=weekStartDay(week);if(day>state.calendarDay&&day<=horizon)candidates.push(day)});if(f.productionEnd){const d=weekStartDay(f.productionEnd);if(d>state.calendarDay&&d<=horizon)candidates.push(d)}});playerFilms().filter(f=>f.stage==='post'&&!f.calendarPostStopSeen).forEach(()=>candidates.push(state.calendarDay+1));return candidates.length?Math.min(...candidates):horizon;
 }
