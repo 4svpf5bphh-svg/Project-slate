@@ -1,4 +1,4 @@
-// Project Slate v4.10 — Narrative Engine facts-first review context + connected press ecosystem
+// Project Slate v4.10.2 — Narrative Engine for Project Intelligence + connected press ecosystem
 // Gameplay remains authoritative. AI prose is automatic enhancement with resilient local fallback.
 
 const NARRATIVE_SCHEMA_VERSION=2;
@@ -41,16 +41,15 @@ async function testNarrativeConnection(){
 }
 function narrativeSettingsHTML(){
  const status=narrativeRuntime.connection;
- const hasFallback=(state.films||[]).some(f=>f.owner==='player'&&f.review&&['retry_wait','degraded'].includes(f.aiNarrative?.review?.status));
  const statusHTML=status?.ok&&status.configured
-  ?'<div class="narrative-connection ready"><span class="pill good">AUTOMATIC</span><div><strong>'+narrativeEscapeHTML(status.provider)+' · '+narrativeEscapeHTML(status.model)+'</strong><span>Project Slate connects automatically. Reviews, Trade Press, Lot Press and Project Intelligence are generated without player setup.</span></div></div>'
-  :hasFallback||status
-   ?'<div class="narrative-connection warn"><span class="pill warn">RECOVERING</span><div><strong>Local fallback is active</strong><span>Gameplay continues normally while Project Slate retries the Narrative Engine automatically.</span></div></div>'
-   :'<div class="narrative-connection"><span class="pill blue">AUTOMATIC</span><div><strong>Narrative Engine is managed by Project Slate</strong><span>Connection health is checked silently and temporary failures fall back to local writing across reviews, Trade Press and Lot Press.</span></div></div>';
+  ?'<div class="narrative-connection ready"><span class="pill good">AUTOMATIC</span><div><strong>'+narrativeEscapeHTML(status.provider)+' · '+narrativeEscapeHTML(status.model)+'</strong><span>Project Slate connects automatically for Project Intelligence, Trade Press and Lot Press.</span></div></div>'
+  :status
+   ?'<div class="narrative-connection warn"><span class="pill warn">RECOVERING</span><div><strong>Local fallback is active</strong><span>Gameplay continues normally while Project Slate retries the Narrative Engine for connected world copy.</span></div></div>'
+   :'<div class="narrative-connection"><span class="pill blue">AUTOMATIC</span><div><strong>Narrative Engine is managed by Project Slate</strong><span>Connection health is checked silently and temporary failures fall back to local writing for Trade Press and Lot Press.</span></div></div>';
  const diagnostics=(typeof simulationAuditAccess==='function'&&simulationAuditAccess())
   ?'<div class="small" style="margin-top:10px"><strong>Diagnostics:</strong> '+narrativeEscapeHTML(narrativeEndpoint())+' · '+narrativeEscapeHTML(narrativeRuntime.lastError||'no current error')+'</div><button class="btn ghost" id="testNarrativeEndpoint" style="margin-top:8px">Run health check</button>'
   :'';
- return '<div class="section-title"><h2>Narrative Engine</h2><span class="small">Automatic AI enhancement · simulation-safe fallback</span></div><div class="card narrative-settings">'+statusHTML+'<div class="small" style="margin-top:10px">The simulation never waits for AI. Review reveals always fire from the game result; AI prose replaces local copy automatically when available.</div>'+diagnostics+'</div>';
+ return '<div class="section-title"><h2>Narrative Engine</h2><span class="small">Automatic AI world-building · simulation-safe fallback</span></div><div class="card narrative-settings">'+statusHTML+'<div class="small" style="margin-top:10px">Film reviews now stay with the deterministic Daily Screen critic system. AI remains reserved for Project Intelligence and connected industry/press writing.</div>'+diagnostics+'</div>';
 }
 function narrativeSleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function narrativeRetryDelayMs(count){return [20000,90000,300000,1200000][Math.max(0,Math.min(3,(count||1)-1))]}
@@ -290,8 +289,7 @@ async function requestNarrative(type,packet){
 function aiReviewContent(f){const x=ensureFilmNarrative(f)?.review;return x?.status==='ready'&&validAIReview(x.narrative)?x:null}
 function narrativeEscapeHTML(value){return String(value??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]))}
 function reviewDisplayContent(f){
- const ai=aiReviewContent(f),local=f.review||{};
- if(ai)return {headline:narrativeEscapeHTML(ai.narrative.headline),quote:narrativeEscapeHTML(ai.narrative.pull_quote),paragraphs:ai.narrative.paragraphs.map(narrativeEscapeHTML),ai};
+ const local=f.review||{};
  return {headline:local.headline,quote:local.quote,paragraphs:local.paragraphs||[],ai:null};
 }
 function narrativeRetryEtaLabel(ts){
@@ -302,12 +300,7 @@ function narrativeRetryEtaLabel(ts){
  const minutes=Math.max(1,Math.round(seconds/60));return 'in ~'+minutes+'m';
 }
 function narrativeReviewStatusHTML(f){
- const x=ensureFilmNarrative(f)?.review;
- if(x?.status==='ready')return '<div class="narrative-status ready"><span class="pill good">NARRATIVE ENGINE</span><span>AI-authored review prose · scores and outcomes remain simulation-owned.</span></div>';
- if(x?.status==='pending')return '<div class="narrative-status pending"><span class="pill blue">NARRATIVE ENGINE</span><span>AI version is being written. The local Daily Screen review remains fully available meanwhile.</span></div>';
- if(x?.status==='retry_wait')return '<div class="narrative-status failed"><span class="pill warn">LOCAL COPY</span><span>AI version pending · automatic retry '+narrativeRetryEtaLabel(x.nextRetryAt)+'.</span></div>';
- if(x?.status==='degraded')return '<div class="narrative-status"><span class="pill">LOCAL COPY</span><span>The simulation review is complete. AI will retry when the connection or app session recovers.</span></div>';
- if(f?.review)return '<div class="narrative-status"><span class="pill blue">LOCAL COPY</span><span>Project Slate is preparing the AI-written version automatically.</span></div>';
+ if(f?.review)return '<div class="narrative-status"><span class="pill blue">DAILY SCREEN</span><span>Critic copy is generated from the finished-film simulation. There is no AI review layer.</span></div>';
  return '';
 }
 function ensureReviewRevealState(){
@@ -369,9 +362,8 @@ function surfacePendingReviewReveal(){
  while(q.length){
   const item=q.shift(),f=filmById(item.filmId);
   if(!f?.review)continue;
-  item.openedAt=Date.now();item.displayMode=aiReviewContent(f)?'ai':'waiting';item.resolvedAt=item.displayMode==='ai'?Date.now():null;
+  item.openedAt=Date.now();item.displayMode='local';item.resolvedAt=Date.now();
   state.activeReviewReveal=item;state.screen='reviewReveal';state.detail=null;state.history=[];if(typeof requestScrollTop==='function')requestScrollTop();
-  if(item.displayMode==='waiting')armReviewRevealDeadline(item);
   return true;
  }
  return false;
@@ -390,14 +382,8 @@ function reviewRevealWaitingScreen(f,item){
 function reviewRevealScreen(){
  const item=state.activeReviewReveal,f=item?.filmId?filmById(item.filmId):null;
  if(!f||!f.review)return typeof releaseScreen==='function'?releaseScreen():studioScreen();
- if(!item.displayMode)item.displayMode=aiReviewContent(f)?'ai':'waiting';
- if(item.displayMode==='waiting'){
-  const elapsed=Date.now()-(item.openedAt||Date.now());
-  if(aiReviewContent(f)&&elapsed>=REVIEW_REVEAL_MIN_WAIT_MS){item.displayMode='ai';item.resolvedAt=Date.now();clearReviewRevealTimer(item)}
-  else if(elapsed>=REVIEW_REVEAL_AI_GRACE_MS){item.displayMode='local';item.resolvedAt=Date.now();clearReviewRevealTimer(item)}
-  else return reviewRevealWaitingScreen(f,item);
- }
- const d=item.displayMode==='ai'&&aiReviewContent(f)?reviewDisplayContent(f):reviewRevealLocalContent(f),critic=f.review.critic||{},score=f.review.critics||0,tone=score>=80?'great':score<55?'bad':score<70?'warn':'neutral';
+ item.displayMode='local';item.resolvedAt=item.resolvedAt||Date.now();clearReviewRevealTimer(item);
+ const d=reviewRevealLocalContent(f),critic=f.review.critic||{},score=f.review.critics||0,tone=score>=80?'great':score<55?'bad':score<70?'warn':'neutral';
  return '<div class="review-reveal review-reveal-'+tone+' review-reveal-resolved"><div class="review-reveal-inner">'+
   '<div class="review-reveal-mast"><div><span>THE</span><strong>DAILY SCREEN</strong></div><small>REVIEW DROP · '+narrativeEscapeHTML(typeof calendarDateLabel==='function'?calendarDateLabel(state.calendarDay):'WEEK '+state.week)+'</small></div>'+
   '<div class="review-reveal-grid"><div class="review-reveal-art">'+filmKeyArtHTML(f,'hero')+'</div><div class="review-reveal-copy"><div class="event-super">THE REVIEWS ARE IN</div><div class="review-reveal-film">'+narrativeEscapeHTML(f.title)+'</div><h1>'+(d.headline||'The Daily Screen review')+'</h1>'+
@@ -405,7 +391,7 @@ function reviewRevealScreen(){
   '<blockquote>“'+(d.quote||narrativeEscapeHTML(f.review.quote||''))+'”</blockquote>'+
   '<div class="review-reveal-byline">By <strong>'+narrativeEscapeHTML(critic.name||'Staff Critic')+'</strong> · '+narrativeEscapeHTML(critic.title||'Film Critic')+'</div>'+
   '<div class="review-reveal-actions"><button class="btn primary" id="reviewRevealRead">Read the full review</button><button class="btn ghost" id="reviewRevealContinue">Back to release</button></div></div></div>'+
-  '<div class="review-reveal-foot">'+(d.ai?'Narrative Engine copy · ':'Local Daily Screen copy · ')+ 'Project Slate’s simulation owns the verdict.</div></div></div>';
+  '<div class="review-reveal-foot">Daily Screen critic copy · Project Slate’s simulation owns the verdict.</div></div></div>';
 }
 function closeReviewReveal(readFull=false){
  const item=state.activeReviewReveal,f=item?.filmId?filmById(item.filmId):null;
@@ -417,47 +403,20 @@ function closeReviewReveal(readFull=false){
 }
 function queueAIReview(f,{force=false,automatic=false}={}){
  if(!f?.review||f.owner!=='player')return Promise.resolve(null);
- if(typeof simulationBenchmarkActive!=='undefined'&&simulationBenchmarkActive)return Promise.resolve(null);
- if(!narrativeEndpoint())return Promise.resolve(null);
- const store=ensureFilmNarrative(f),packet=narrativeFilmReviewPacket(f),fingerprint=narrativeFingerprint(packet),existing=store.review,retryCount=automatic?(existing?.retryCount||0):(force?existing?.retryCount||0:0);
- if(!force&&existing?.status==='ready'&&existing.fingerprint===fingerprint)return Promise.resolve(existing);
- const key='film_review:'+f.id;if(narrativeRuntime.pending.has(key))return narrativeRuntime.pending.get(key);
- clearNarrativeRetry('film_review',f.id);
- store.review={status:'pending',fingerprint,requestedWeek:state.week,lastError:null,retryCount};
- try{save()}catch{}
- const task=requestNarrative('film_review',packet).then(data=>{
-  if(!validAIReview(data.narrative)){const e=new Error('invalid_review_shape');e.code='invalid_review_shape';throw e}
-  store.review={status:'ready',fingerprint,narrative:data.narrative,provider:data.meta?.provider||null,model:data.meta?.model||null,responseId:data.meta?.responseId||null,generatedWeek:state.week,qualityRetry:!!data.meta?.qualityRetry,retryCount:0};
-  clearNarrativeRetry('film_review',f.id);narrativeRuntime.lastError=null;try{save()}catch{}
-  if(state.activeReviewReveal?.filmId===f.id)reviewRevealResolveAI(f);
-  else if(typeof render==='function'&&state.detail?.type==='review'&&state.detail?.id===f.id)render();
-  return store.review;
- }).catch(err=>{
-  const nextCount=(retryCount||0)+1,canRetry=narrativeErrorRetryable(err)&&nextCount<=NARRATIVE_AUTO_RETRY_LIMIT,nextRetryAt=canRetry?scheduleNarrativeRetry('film_review',f.id,nextCount):Date.now()+1800000;
-  store.review={status:canRetry?'retry_wait':'degraded',fingerprint,lastError:String(err?.message||err),failedWeek:state.week,retryCount:nextCount,nextRetryAt};
-  narrativeRuntime.lastError=store.review.lastError;try{save()}catch{}
-  if(state.activeReviewReveal?.filmId===f.id)reviewRevealResolveLocal(f);
-  else if(typeof render==='function'&&state.detail?.type==='review'&&state.detail?.id===f.id)render();
-  return null;
- }).finally(()=>narrativeRuntime.pending.delete(key));
- narrativeRuntime.pending.set(key,task);return task;
+ const store=ensureFilmNarrative(f);clearNarrativeRetry('film_review',f.id);
+ store.review={status:'disabled',disabledReason:'daily_screen_local',generatedWeek:state.week};
+ return Promise.resolve(null);
 }
-function retryAIReview(f){if(!f)return;queueAIReview(f,{force:true});render()}
+function retryAIReview(f){if(!f)return;queueAIReview(f,{force:true});if(typeof render==='function')render()}
 function resumeNarrativeWork({force=false}={}){
  if(!state?.studio)return;
  const now=Date.now();
- (state.films||[]).filter(f=>f.owner==='player'&&f.review).forEach(f=>{
-  const x=f.aiNarrative?.review,activeRelease=f.stage==='cinema'&&(f.cinemaWeek||0)<=1;
-  if(x?.status==='ready')return;
-  if(x?.status==='pending'&&!narrativeRuntime.pending.has('film_review:'+f.id)){x.status='retry_wait';x.nextRetryAt=now}
-  const due=force||!x||!x.nextRetryAt||x.nextRetryAt<=now;
-  if(due&&(activeRelease||x?.status==='retry_wait'||x?.status==='degraded'))void queueAIReview(f,{force:true,automatic:true});
- });
  (state.scripts||[]).filter(s=>s.source==='Original Concept'&&s.projectIntelligence).forEach(s=>{
   const x=s.projectIntelligence;if(x.status==='ready')return;
   if(x.status==='pending'&&!narrativeRuntime.pending.has('project_intelligence:'+s.id)){x.status='retry_wait';x.nextRetryAt=now;x.lastError=x.lastError||'Context check was interrupted before completion.'}
   if((force||!x.nextRetryAt||x.nextRetryAt<=now)&&['retry_wait','degraded'].includes(x.status))void queueProjectIntelligence(s,{force:true,automatic:true});
  });
+}
 }
 function bindNarrativeLifecycle(){
  if(narrativeRuntime.lifecycleBound)return;narrativeRuntime.lifecycleBound=true;
@@ -468,7 +427,7 @@ function bootstrapNarrativeEngine(){
  ensureReviewRevealState();bindNarrativeLifecycle();void testNarrativeConnection();
  const now=Date.now();
  (state.films||[]).forEach(f=>{
-  const x=f.aiNarrative?.review;if(x?.status==='pending'){x.status='retry_wait';x.nextRetryAt=now;x.lastError=x.lastError||'AI review request was interrupted before completion.'}
+  const x=f.aiNarrative?.review;if(x&&x.status!=='disabled')f.aiNarrative.review={status:'disabled',disabledReason:'daily_screen_local',generatedWeek:state.week};
   if(f.review&&x?.lastRevealToken&&!f.review.lastRevealToken){
    const token=f.review.revealToken||(f.review.revealToken='review:'+f.id+':'+(f.releaseWeek||state.week)+':'+(f.review.critics||0)+':'+(f.review.audience||0));f.review.lastRevealToken=token;
   }
@@ -477,9 +436,8 @@ function bootstrapNarrativeEngine(){
  (state.scripts||[]).forEach(s=>{const x=s.projectIntelligence;if(x?.status==='pending'){x.status='retry_wait';x.nextRetryAt=now;x.lastError='Context check was interrupted before completion.'}});
  if(state.activeReviewReveal&&!filmById(state.activeReviewReveal.filmId))state.activeReviewReveal=null;
  if(state.activeReviewReveal){
-  const f=filmById(state.activeReviewReveal.filmId),item=state.activeReviewReveal;
-  item.openedAt=item.openedAt||Date.now();item.displayMode=item.displayMode||((f&&aiReviewContent(f))?'ai':'waiting');
-  if(item.displayMode==='waiting')armReviewRevealDeadline(item);
+  const item=state.activeReviewReveal;
+  item.openedAt=item.openedAt||Date.now();item.displayMode='local';item.resolvedAt=item.resolvedAt||Date.now();clearReviewRevealTimer(item);
  }
  resumeNarrativeWork();
 }
