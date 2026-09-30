@@ -1,6 +1,6 @@
 // Persistent save normalization and schema migrations
 
-const SAVE_SCHEMA_VERSION=409;
+const SAVE_SCHEMA_VERSION=410;
 const DIFFICULTY_OPTIONS={
  easy:{id:'easy',label:'Easy',flavour:'Backed',cash:80,desc:'More room to learn the business, recover from misses and finance ambitious packages early.'},
  normal:{id:'normal',label:'Normal',flavour:'Independent',cash:40,desc:'The intended Project Slate balance: enough capital to build, not enough to ignore consequences.'},
@@ -318,6 +318,23 @@ function applySaveSchemaMigrations(x,fromVersion){
    f.additionalCastingTarget=['support1','support2','cameo'].includes(f.additionalCastingTarget)?f.additionalCastingTarget:null;
   });
   schema=409;
+ }
+
+ if(schema<410){
+  // v4.10 consolidates studio operations, promotes Pulse to the live-story hub,
+  // stores AI-safe narrative facts, and gives rival studios durable strategy state.
+  if(x.uiBusinessTab==='finance'||x.uiBusinessTab==='growth'||!x.uiBusinessTab)x.uiBusinessTab='operations';
+  if(x.uiDeskTab==='threads')x.uiDeskTab='pulse';
+  x.lastIndustryRecapitalizationWeek=x.lastIndustryRecapitalizationWeek||0;
+  (x.films||[]).forEach(f=>{
+   if(f.owner==='player')f.narrativeFacts=Array.isArray(f.narrativeFacts)?f.narrativeFacts:[];
+  });
+  (x.rivals||[]).forEach(rv=>{
+   rv.strategyState=rv.strategyState||{mode:'normal',sinceWeek:x.week||1,lastAnnouncementWeek:0,lastAnnouncementMode:null};
+   rv.lastFinanceDeferralNewsWeek=rv.lastFinanceDeferralNewsWeek||0;
+   rv.lastRecapitalizationWeek=rv.lastRecapitalizationWeek||0;
+  });
+  schema=410;
  }
 
  x.saveSchema=schema;

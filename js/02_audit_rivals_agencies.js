@@ -384,7 +384,8 @@ function rivalHeadProfile(name){return deep(RIVAL_HEADS[name]||{name:'Studio lea
 function ensureRivalCharacter(rv){
  if(!rv)return null;rv.head=rv.head||rivalHeadProfile(rv.name);rv.relationship=Number.isFinite(rv.relationship)?rv.relationship:0;rv.relationshipHistory=rv.relationshipHistory||[];
  rv.scriptWinsAgainstPlayer=rv.scriptWinsAgainstPlayer||0;rv.playerScriptWinsAgainstRival=rv.playerScriptWinsAgainstRival||0;rv.lastScriptWinAgainstPlayerWeek=rv.lastScriptWinAgainstPlayerWeek||0;rv.lastPlayerClashWeek=rv.lastPlayerClashWeek||0;
- rv.competitiveHistory=rv.competitiveHistory||[];rv.rivalrySinceWeek=rv.rivalrySinceWeek||null;rv.lastRivalryEventWeek=rv.lastRivalryEventWeek||0;rv.lastRivalryLabel=rv.lastRivalryLabel||'Normal competition';return rv;
+ rv.competitiveHistory=rv.competitiveHistory||[];rv.rivalrySinceWeek=rv.rivalrySinceWeek||null;rv.lastRivalryEventWeek=rv.lastRivalryEventWeek||0;rv.lastRivalryLabel=rv.lastRivalryLabel||'Normal competition';
+ rv.strategyState=rv.strategyState||{mode:'normal',sinceWeek:state.week||1,lastAnnouncementWeek:0,lastAnnouncementMode:null};return rv;
 }
 function rivalDisposition(rv){ensureRivalCharacter(rv);const v=rv.relationship||0;return v>=18?'Warm respect':v>=7?'Respectful':v<=-18?'Hostile':v<=-7?'Frosty':'Competitive'}
 function adjustRivalRelationship(rv,delta,reason='Industry interaction'){if(!rv||!delta)return;ensureRivalCharacter(rv);const before=rv.relationship||0;rv.relationship=clamp(before+delta,-40,40);rv.relationshipHistory.unshift({week:state.week,from:before,to:rv.relationship,delta,reason});rv.relationshipHistory=rv.relationshipHistory.slice(0,16)}
@@ -423,20 +424,28 @@ function rivalrySnapshot(rv){
  if((rv.relationship||0)<=-7)reasons.push(`a ${rivalDisposition(rv).toLowerCase()} executive relationship`);
  return {rank,label,tone,desc,reasons,events:recent,lane,rankGap,score};
 }
+function rivalStyleIntent(rv,leveraged=false){
+ const map={
+  'Blockbusters':['Pick the next event','Waiting for a large package worth putting the whole machine behind.'],
+  'Broad Commercial':['Keep the slate moving','Looking for accessible material that can travel without forcing the studio into one oversized bet.'],
+  'Genre Specialist':['Own a genre lane','Contained genre material remains the studio’s preferred way to keep volume and upside in balance.'],
+  'Prestige':['Protect prestige','Prioritising filmmaker-led, performance-heavy material while keeping enough runway for awards-season patience.'],
+  'Franchise Builder':['Find scalable IP','Looking for concepts with sequel value, audience familiarity and repeatable talent relationships.'],
+  'Indie / Prestige':['Stay selective','Keeping budgets contained and waiting for material where the creative case is stronger than the market heat.'],
+  'Aggressive Capital':['Use the balance sheet','Prepared to deploy capital quickly when a premium package can buy scale or market position.']
+ },row=map[rv.style]||map['Broad Commercial'];
+ return {label:leveraged?row[0]+' carefully':row[0],short:row[1]+(leveraged?' Debt is elevated, so the studio is using co-financing and tighter package discipline rather than shutting the pipeline.':'')};
+}
 function rivalCurrentIntent(rv){
  ensureRivalCharacter(rv);rv.profile=rv.profile||aiStudioProfile(rv.style);
  const health=aiFinancialHealth(rv),treasury=aiTreasurySnapshot(rv),pipeline=state.films.filter(f=>f.owner===rv.id&&!['complete','shelved'].includes(f.stage));
  const production=pipeline.filter(f=>f.stage==='production').length,rivalry=rivalrySnapshot(rv),idleWeeks=state.week-(rv.lastGreenlightWeek||1);
  let label='Build the slate',tone='blue',short='Looking for the next package that fits the studio model without disturbing its reserve.';
- if(health==='Financial distress'){label='Protect liquidity';tone='bad';short='Avoiding large commitments and trying to restore enough liquidity to keep the pipeline alive.'}
- else if(health==='Under pressure'||health==='Leveraged'){label='Reset with discipline';tone='warn';short='Biasing toward smaller or cheaper packages until the balance sheet has more room.'}
- else if(production===0&&idleWeeks>=5){label='Restart the pipeline';tone='warn';short='Actively looking for a makeable project after an extended gap between greenlights.'}
- else if(treasury.production>=rv.capacity){label='Protect the current slate';tone='good';short='Production capacity is full, so the studio is more likely to defend existing releases than add another film immediately.'}
- else if(rv.style==='Aggressive Capital'||rv.style==='Blockbusters'){label='Chase scale';tone='warn';short='Prepared to spend heavily on premium scripts, stars and event-sized packages when the creative case is strong.'}
- else if(rv.style==='Prestige'||rv.style==='Indie / Prestige'){label='Protect prestige';tone='blue';short='Prioritising filmmaker-led, performance-heavy material while keeping meaningful cash in reserve.'}
- else if(rv.style==='Genre Specialist'){label='Own a genre lane';tone='blue';short='Looking for contained genre material that can be repeated without betting the studio on one film.'}
- else if(rv.style==='Franchise Builder'){label='Find scalable IP';tone='blue';short='Looking for concepts that can support sequels, audience familiarity and repeatable event releases.'}
- else if(rv.style==='Broad Commercial'){label='Stay accessible';tone='blue';short='Preferring broad concepts, reliable talent and packages with manageable downside.'}
+ if(health==='Financial distress'){label='Protect liquidity';tone='bad';short='The balance sheet is now constraining ordinary production decisions. The studio is protecting cash while it restructures or waits for revenue.'}
+ else if(health==='Under pressure'){label='Rebuild selectively';tone='warn';short='The studio is still making films, but new packages need smaller downside or outside financing until liquidity improves.'}
+ else if(production===0&&idleWeeks>=7){label='Restart the pipeline';tone='warn';short='The studio has gone too long without a live production and is actively looking for something it can get moving.'}
+ else{const style=rivalStyleIntent(rv,health==='Leveraged');label=style.label;tone=health==='Leveraged'?'warn':'blue';short=style.short}
+ if(treasury.production>=rv.capacity){label='Protect the current slate';tone='good';short='Production capacity is full, so the studio is more likely to defend existing releases than add another film immediately.'}
  if(rivalry.rank>=2&&(rv.relationship||0)<=-7)short+=' The rivalry with '+state.studio.name+' is active, so contested screenplay bids against you carry slightly more pressure than an ordinary deal.';
  else if(rivalry.rank>=2)short+=' Repeated competition with '+state.studio.name+' is now part of how this studio evaluates crowded opportunities.';
  return {label,tone,short,health,production,capacity:rv.capacity,rivalry:rivalry.label};
@@ -527,20 +536,20 @@ function aiTreasurySnapshot(rv){
  const active=state.films.filter(f=>f.owner===rv.id&&!['complete','shelved'].includes(f.stage));
  const avgCompleted=state.films.filter(f=>f.owner===rv.id&&f.stage==='complete').slice(-6);
  const avgInvestment=avgCompleted.length?avgCompleted.reduce((a,f)=>a+(f.investment||0),0)/avgCompleted.length:18;
- const plannedFilm=Math.max(10,avgInvestment);
- const reserve=Math.max(7,plannedFilm*rv.profile.reserveFilms+aiStudioOverhead(rv)*10);
- const available=Math.max(0,rv.cash-reserve);
- const debtRatio=(rv.debt||0)/Math.max(8,rv.cash);
- const nearRelease=active.filter(f=>['scheduled','cinema'].includes(f.stage)).length;
- const production=active.filter(f=>f.stage==='production').length;
+ const plannedFilm=Math.max(10,avgInvestment),capacity=Math.max(1,rv.capacity||1),overhead=aiStudioOverhead(rv);
+ // A studio's reserve protects operations; it should not force a capacity-2 company to behave like it can only finance one film at a time.
+ const reserveFactor=capacity>=3?.58:capacity===2?.68:.82;
+ const reserve=Math.max(5,plannedFilm*rv.profile.reserveFilms*reserveFactor+overhead*8);
+ const available=Math.max(0,rv.cash-reserve),debtRatio=(rv.debt||0)/Math.max(8,rv.cash);
+ const nearRelease=active.filter(f=>['scheduled','cinema'].includes(f.stage)).length,production=active.filter(f=>f.stage==='production').length;
  const recent=rv.commercialHistory?.slice(0,3).reduce((a,x)=>a+(x.profit||0),0)||0;
  return {active,plannedFilm,reserve,available,debtRatio,nearRelease,production,recent};
 }
 function aiFinancialHealth(rv){
- const t=aiTreasurySnapshot(rv),cash=rv.cash||0,debt=rv.debt||0;
- if((cash<4&&debt>20)||(t.debtRatio>2.2&&t.recent<-10))return 'Financial distress';
- if(cash<8||(t.debtRatio>1.25&&t.recent<0)||debt>(rv.profile.maxDebt||20)*1.15)return 'Under pressure';
- if(debt>7||t.debtRatio>.45)return 'Leveraged';
+ const t=aiTreasurySnapshot(rv),cash=rv.cash||0,debt=rv.debt||0,maxDebt=rv.profile?.maxDebt||20;
+ if((cash<2.5&&debt>25)||(t.debtRatio>2.8&&t.recent<-12)||debt>maxDebt*1.55)return 'Financial distress';
+ if(cash<5||(t.debtRatio>1.6&&t.recent<-4)||debt>maxDebt*1.25)return 'Under pressure';
+ if(debt>12||t.debtRatio>.75)return 'Leveraged';
  if(cash>85&&debt<4)return 'Cash-rich';
  if(cash>48&&debt<8)return 'Financially strong';
  return 'Stable';
@@ -551,34 +560,46 @@ function aiProjectConfidence(rv,s,d,a1,a2,preview){
  const affinity=genreProfileAffinity(rv.profile.genres,s.genre),genre=affinity>=.92?5:affinity>=.60?2:-3;
  return clamp(script*.48+fit*.42+rv.skill*.10+genre,25,96);
 }
-function aiFinanceProject(rv,total,confidence){
- const p=rv.profile||aiStudioProfile(rv.style),t=aiTreasurySnapshot(rv),status=aiFinancialHealth(rv);
- if(status==='Financial distress')return false;
-
- const liquid=Math.max(1,rv.cash);
- const exposure=total/liquid;
- const maxExposure=p.maxExposure*(status==='Under pressure'?.72:status==='Leveraged'?.88:1);
- const reserve=t.reserve*(status==='Under pressure'?1.15:1);
-
- // Normal greenlight: project fits within both liquidity exposure and post-deal reserve.
- if(exposure<=maxExposure && rv.cash-total>=reserve){
-  rv.cash-=total;return true;
+function aiIndustrySupplyPressure(){
+ const rivals=(state.rivals||[]).length,horizon=16;
+ const upcoming=state.films.filter(f=>f.owner!=='player'&&f.releaseWeek&&f.releaseWeek>=state.week&&f.releaseWeek<=state.week+horizon&&!['complete','shelved'].includes(f.stage)).length;
+ const production=state.films.filter(f=>f.owner!=='player'&&f.stage==='production').length,cinema=state.films.filter(f=>f.owner!=='player'&&f.stage==='cinema').length;
+ const target=Math.max(4,Math.round(rivals*1.15)),effective=upcoming+production*.65+cinema*.30,pressure=clamp((target-effective)/Math.max(1,target),0,1);
+ return {rivals,horizon,upcoming,production,cinema,target,effective,pressure,thin:pressure>=.35,critical:pressure>=.65};
+}
+function rivalStrategyShift(rv,mode,context={}){
+ ensureRivalCharacter(rv);const st=rv.strategyState,changed=st.mode!==mode;if(changed){st.mode=mode;st.sinceWeek=state.week}
+ if(mode==='recovery'&&(changed||state.week-(st.lastAnnouncementWeek||0)>=32)){
+  const genre=context.genre?context.genre.toLowerCase():'lower-cost material',head=rv.head?.name||rv.name;
+  const copy=rv.style==='Genre Specialist'?head+' is leaning harder into contained '+genre+' while '+rv.name+' rebuilds release volume.'
+   :rv.style==='Prestige'||rv.style==='Indie / Prestige'?head+' is narrowing '+rv.name+"'s slate to smaller filmmaker-led projects while the company rebuilds liquidity."
+   :rv.style==='Blockbusters'||rv.style==='Franchise Builder'?rv.name+' is adding a smaller '+genre+' picture to keep the pipeline moving between larger bets.'
+   :rv.name+' is temporarily favouring lower-risk '+genre+' packages to rebuild release cadence without abandoning its wider strategy.';
+  addNews(state,copy,'Trade Report');st.lastAnnouncementWeek=state.week;st.lastAnnouncementMode=mode;
  }
+ if(mode==='normal'&&changed)st.lastRecoveredWeek=state.week;
+ return st;
+}
 
- // Exceptionally strong packages may use limited debt, but not repeatedly.
- const canBorrow=confidence>=p.borrowQuality && status!=='Under pressure' && (rv.debt||0)<p.maxDebt;
+function aiFinanceProject(rv,total,confidence){
+ const p=rv.profile||aiStudioProfile(rv.style),t=aiTreasurySnapshot(rv),status=aiFinancialHealth(rv),supply=aiIndustrySupplyPressure();
+ if(status==='Financial distress')return false;
+ const liquid=Math.max(1,rv.cash),exposure=total/liquid;
+ const healthExposure=status==='Under pressure'?.80:status==='Leveraged'?.94:1;
+ const maxExposure=p.maxExposure*healthExposure*(1+supply.pressure*.20);
+ const reserve=t.reserve*(status==='Under pressure'?1.06:1)*(1-supply.pressure*.18);
+ if(exposure<=maxExposure&&rv.cash-total>=reserve){rv.cash-=total;return true}
+ // When the wider release calendar is drying up, healthy studios can use ordinary slate financing rather than all retreating at once.
+ const borrowThreshold=p.borrowQuality-supply.pressure*7-(status==='Leveraged'?2:0);
+ const pressureBorrow=status==='Under pressure'&&supply.critical;
+ const canBorrow=confidence>=borrowThreshold&&(status!=='Under pressure'||pressureBorrow)&&(rv.debt||0)<p.maxDebt;
  if(!canBorrow)return false;
-
- const targetCashAfter=Math.max(reserve,rv.cash*(1-maxExposure));
- const short=Math.max(0,total+targetCashAfter-rv.cash);
- const borrowingRoom=Math.max(0,p.maxDebt-(rv.debt||0));
- if(short<=0 || short>borrowingRoom)return false;
-
- const draw=Math.ceil(short*2)/2;
- rv.cash+=draw;rv.debt=(rv.debt||0)+draw*1.05;
- addNews(state,`${rv.name} arranged ${money(draw)} of project financing for a package it views as unusually strong.`,'Trade Finance');
- rv.cash-=total;
- return true;
+ const targetCashAfter=Math.max(reserve,rv.cash*(1-maxExposure)),short=Math.max(0,total+targetCashAfter-rv.cash),borrowingRoom=Math.max(0,p.maxDebt-(rv.debt||0));
+ const shortCap=pressureBorrow?Math.min(borrowingRoom,p.maxDebt*.42):borrowingRoom;
+ if(short<=0||short>shortCap)return false;
+ const draw=Math.ceil(short*2)/2;rv.cash+=draw;rv.debt=(rv.debt||0)+draw*1.05;
+ if(draw>=6)addNews(state,`${rv.name} arranged ${money(draw)} of slate financing to keep a priority production moving.`,'Trade Finance');
+ rv.cash-=total;return true;
 }
 function aiLegacyCatalogueWeeklyRevenue(rv){
  // The six incumbent rivals enter Project Slate as established studios, not Week-1 startups.
@@ -644,6 +665,21 @@ function aiWeeklyFinance(){
    addNews(state,`${rv.name} entered a financial restructuring after failing to restore adequate liquidity. Production capacity has been reduced.`,'Industry Alert');
   }
  });
+ // Systemic safeguard: individual rivals may fail, but the whole release market should not become permanently inert.
+ const supply=typeof aiIndustrySupplyPressure==='function'?aiIndustrySupplyPressure():null;
+ if(supply?.critical&&state.week-(state.lastIndustryRecapitalizationWeek||0)>=4){
+  const candidates=state.rivals.filter(rv=>{
+   ensureRivalCharacter(rv);const t=aiTreasurySnapshot(rv),health=aiFinancialHealth(rv),idle=state.week-(rv.lastGreenlightWeek||1);
+   return t.production===0&&idle>=12&&['Under pressure','Financial distress'].includes(health)&&state.week-(rv.lastRecapitalizationWeek||0)>=52;
+  }).sort((a,b)=>(state.week-(b.lastGreenlightWeek||1))-(state.week-(a.lastGreenlightWeek||1)));
+  const rv=candidates[0];
+  if(rv){
+   const t=aiTreasurySnapshot(rv),raise=+clamp(t.plannedFilm*.34,7,14).toFixed(1);
+   rv.cash+=raise;rv.lastRecapitalizationWeek=state.week;state.lastIndustryRecapitalizationWeek=state.week;rv.reputation=clamp((rv.reputation||55)-1,25,90);
+   addNews(state,`${rv.name} secured ${money(raise)} of outside slate capital after an extended production gap. The financing gives the studio room to restart development without erasing its existing debt.`,'Trade Finance');
+  }
+ }
+
 }
 function aiSelectCandidate(list,scoreFn,r){
  if(!list.length)return null;

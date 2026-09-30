@@ -1466,6 +1466,7 @@ function resolveEvent(f,eventId,choice){
  e.resolved=true;e.choice=choice;f.pendingEvent=null;
  if(e.type==='creativefork'){
   f.history.push(`Week ${state.week}: creative direction — ${e.choiceLabel}. ${e.outcome}`);
+  if(typeof recordFilmNarrativeFact==='function')recordFilmNarrativeFact(f,e.outcome,'production','creative-direction');
   ensureShootJournal(f).push({week:state.week,productionWeek:f.productionWeek,text:`${e.choiceLabel}: ${e.outcome}`,topic:'creativeDirection',mood:'decision'});
  }else{
   f.history.push(`Week ${state.week}: resolved ${e.title}.`);
@@ -1982,6 +1983,7 @@ function runPostAction(f,type){
  p.actions.push({id:type,label:action.label,week:state.week,cost:action.cost,targets,resultChanges});p.firstDecisionMade=true;p.cutVersion=(p.cutVersion||1)+1;
  p.lastActionResult={label:action.label,targets,resultChanges,cutVersion:p.cutVersion};p.selectedAction=null;
  f.history.push(`Week ${state.week}: post-production — ${action.label}.`);
+ if(typeof recordFilmNarrativeFact==='function'&&typeof postNarrativeFact==='function')recordFilmNarrativeFact(f,postNarrativeFact(type),'post','intervention');
  makeRoughCut(f);save();
  advanceWeek();
 }
@@ -2293,12 +2295,12 @@ function aiScriptScore(rv,s){
  return creative+genre-scalePenalty-s.price*3.2+industryGenreSignal(s.genre)*.65;
 }
 function aiFinanceTurnaround(rv,total,confidence){
- const t=aiTreasurySnapshot(rv),status=aiFinancialHealth(rv);
+ const t=aiTreasurySnapshot(rv),status=aiFinancialHealth(rv),supply=typeof aiIndustrySupplyPressure==='function'?aiIndustrySupplyPressure():{pressure:0,critical:false};
  if(status==='Financial distress')return false;
- const floor=Math.max(2.5,t.reserve*.20);
- if(total/Math.max(1,rv.cash)<=.70 && rv.cash-total>=floor){rv.cash-=total;return true}
- const room=Math.max(0,(rv.profile.maxDebt||20)-(rv.debt||0)),short=Math.max(0,total+floor-rv.cash);
- if(total<=10&&short>0&&short<=Math.min(status==='Stable'?8:6,room)){rv.cash+=short;rv.debt+=short*1.04;rv.cash-=total;addNews(state,`${rv.name} used a small co-financing facility to restart its production pipeline.`,'Trade Finance');return true}
+ const floor=Math.max(2,t.reserve*(supply.critical?.12:.16));
+ if(total/Math.max(1,rv.cash)<=.76&&rv.cash-total>=floor){rv.cash-=total;return true}
+ const room=Math.max(0,(rv.profile.maxDebt||20)-(rv.debt||0)),short=Math.max(0,total+floor-rv.cash),cap=Math.min(status==='Under pressure'?8:10,room);
+ if(total<=12&&short>0&&short<=cap){rv.cash+=short;rv.debt+=short*1.04;rv.cash-=total;if(short>=5)addNews(state,`${rv.name} used a co-financing facility to put a contained production into motion.`,'Trade Finance');return true}
  return aiFinanceProject(rv,total,confidence);
 }
 function aiStartProjects(){
@@ -2306,17 +2308,17 @@ function aiStartProjects(){
  state.rivals.forEach(rv=>{
   rv.profile=rv.profile||aiStudioProfile(rv.style);rv.debt=rv.debt||0;
   const pipeline=state.films.filter(f=>f.owner===rv.id&&!['complete','shelved'].includes(f.stage));
-  const pressure=aiFinancialHealth(rv),treasury=aiTreasurySnapshot(rv),idleWeeks=state.week-(rv.lastGreenlightWeek||1);
-  const turnaround=treasury.production===0&&((idleWeeks>=5&&['Under pressure','Leveraged'].includes(pressure))||(idleWeeks>=9&&['Stable','Financially strong','Cash-rich'].includes(pressure)));
-  const chanceByHealth={'Financial distress':.01,'Under pressure':.10,'Leveraged':.24,'Stable':.36,'Financially strong':.43,'Cash-rich':.48};
-  let startChance=(chanceByHealth[pressure]??.28)+(rv.profile.risk-.5)*.08;
+  const pressure=aiFinancialHealth(rv),treasury=aiTreasurySnapshot(rv),idleWeeks=state.week-(rv.lastGreenlightWeek||1),supply=typeof aiIndustrySupplyPressure==='function'?aiIndustrySupplyPressure():{pressure:0,critical:false};
+  const turnaround=treasury.production===0&&((idleWeeks>=7&&pressure==='Under pressure')||(idleWeeks>=11&&pressure==='Leveraged')||(idleWeeks>=10&&['Stable','Financially strong','Cash-rich'].includes(pressure)));
+  const chanceByHealth={'Financial distress':.03,'Under pressure':.18,'Leveraged':.34,'Stable':.40,'Financially strong':.47,'Cash-rich':.50};
+  let startChance=(chanceByHealth[pressure]??.32)+(rv.profile.risk-.5)*.08+supply.pressure*(treasury.production===0?.32:.16);
   if(treasury.production>=rv.capacity)startChance=0;
   if(treasury.production===0&&treasury.available>treasury.plannedFilm*.35)startChance+=.10;
   if(idleWeeks>=6&&pressure!=='Financial distress')startChance=Math.max(startChance,.58);
-  if(turnaround)startChance=Math.max(startChance,.78);
-  if(idleWeeks>=10&&['Stable','Financially strong','Cash-rich'].includes(pressure))startChance=Math.max(startChance,.82);
-  if(idleWeeks>=14&&treasury.production===0&&['Stable','Financially strong','Cash-rich'].includes(pressure))startChance=1;
-  if(idleWeeks>=14&&turnaround)startChance=Math.max(startChance,.90);
+  if(turnaround)startChance=Math.max(startChance,.74);
+  if(idleWeeks>=10&&['Stable','Financially strong','Cash-rich'].includes(pressure))startChance=Math.max(startChance,.84);
+  if(supply.critical&&treasury.production===0&&pressure!=='Financial distress')startChance=Math.max(startChance,.88);
+  if(idleWeeks>=14&&treasury.production===0&&pressure!=='Financial distress')startChance=Math.max(startChance,.96);
   if(treasury.nearRelease>2&&treasury.available<treasury.plannedFilm*.22)startChance*=.72;
   if(pipeline.length>=rv.capacity+5&&treasury.production>0)return;
   if(r()>startChance)return;
@@ -2331,13 +2333,16 @@ function aiStartProjects(){
    // Recovery projects may be produced lean, but the screenplay keeps a credible natural production scale.
    ensureScriptEcosystem(c);
    s=c;scriptCost=+(.28+r()*.34).toFixed(2);
-   if(idleWeeks>=10)addNews(state,`${rv.name} is pivoting to a lower-cost ${c.genre.toLowerCase()} project after a quiet stretch in its production pipeline.`,'Trade Report');
+   if(typeof rivalStrategyShift==='function')rivalStrategyShift(rv,'recovery',{genre:c.genre});
   }else if(ownedScripts.length){
+   if(typeof rivalStrategyShift==='function')rivalStrategyShift(rv,'normal');
    ownedScripts.sort((a,b)=>aiScriptScore(rv,b)-aiScriptScore(rv,a));s=ownedScripts[0];scriptCost=0;
   }else if(marketOptions.length&&r()<.42){
+   if(typeof rivalStrategyShift==='function')rivalStrategyShift(rv,'normal');
    const scored=marketOptions.map(x=>({x,score:aiScriptScore(rv,x)+(r()-.5)*(14-rv.skill*.08)})).sort((a,b)=>b.score-a.score);
    s=scored[0].x;scriptCost=s.price;
   }else{
+   if(typeof rivalStrategyShift==='function')rivalStrategyShift(rv,'normal');
    const candidates=[];
    for(let n=0;n<5;n++){
     const c=generateScript(state,state.week,false);c.source=`${rv.name} Development`;c.available=false;c.status='owned';c.owner=rv.id;ensureScriptEcosystem(c);
@@ -2395,8 +2400,8 @@ function aiStartProjects(){
   if(pressure==='Under pressure')marketing*=.64;
   if(pressure==='Financial distress')marketing*=.42;
   marketing=+Math.max(.6,marketing).toFixed(1);
-  const releaseOps=+(Math.max(1,budget*.045)+marketing*.035).toFixed(1);
-  const productionCommit=+(scriptCost+budget+d.fee+a1.fee+a2.fee).toFixed(2);
+  const releaseOps=+(Math.max(1,budget*.045)+marketing*.035).toFixed(1),a2Fee=+(a2.fee*.82).toFixed(2);
+  const productionCommit=+(scriptCost+budget+d.fee+a1.fee+a2Fee).toFixed(2);
   const confidence=aiProjectConfidence(rv,s,d,a1,a2,preview);
 
   const financed=turnaround?aiFinanceTurnaround(rv,productionCommit,confidence):aiFinanceProject(rv,productionCommit,confidence);
@@ -2405,7 +2410,7 @@ function aiStartProjects(){
    if(s.financeFails>=2&&s.owner===rv.id&&!s.filmStarted){
     if(typeof maybeListTurnaround==='function'){if(!maybeListTurnaround(s,rv,'the financing package failed twice'))s.shelved=true}else s.shelved=true;
    }
-   addNews(state,`${rv.name} has deferred a planned ${s.genre.toLowerCase()} package rather than repeatedly overextend. The studio will consider other material in the meantime.`,'Trade Finance');
+   if(state.week-(rv.lastFinanceDeferralNewsWeek||0)>=10){addNews(state,`${rv.name} has deferred a planned ${s.genre.toLowerCase()} package after the financing structure failed to clear its reserve test.`,'Trade Finance');rv.lastFinanceDeferralNewsWeek=state.week}
    return;
   }
 
@@ -2420,7 +2425,7 @@ function aiStartProjects(){
   const f={id:uid('film',state),owner:rv.id,studio:rv.name,title:s.title,genre:s.genre,scriptId:s.id,directorId:d.id,cast:[a1.id,a2.id],ipParentId:s.ipParentFilmId||null,franchiseMode:s.franchiseMode||null,franchiseRootId:s.franchiseRootId||null,sequelInstallment:s.sequelInstallment||null,
    stage:'production',creative,budget,marketing:marketing,campaign:rv.profile.campaign,releaseOps,productionStart:state.week,
    releaseWeek:null,productionEnd:null,aiQuality:0,aiStar:0,aiFit:null,metrics:null,releaseFunded:false,cinemaWeek:0,weeklyPlan:[],weeklyResults:[],
-   studioRevenue:0,investment:productionCommit+sunkRightsCost,review:null,finalGross:0,estimatedProfit:0,scriptCost:scriptCost+sunkRightsCost,aiTalentMarketValue:+(d.fee+a1.fee+a2.fee).toFixed(2),aiGreenlightCost:productionCommit,aiFinanceModel:'v4.0a.3',aiFinancialFinalized:false};
+   studioRevenue:0,investment:productionCommit+sunkRightsCost,review:null,finalGross:0,estimatedProfit:0,scriptCost:scriptCost+sunkRightsCost,aiTalentMarketValue:+(d.fee+a1.fee+a2Fee).toFixed(2),aiGreenlightCost:productionCommit,aiFinanceModel:'v4.10',aiFinancialFinalized:false};
   f.distributionStrategy=aiDistributionStrategy(rv,f);if(f.distributionStrategy==='partner')f.distributorName=distributionPartnerName(f);
 
   const dFit=directorProjectFit(d,f),aFits=[actorProjectFit(a1,f),actorProjectFit(a2,f)],fitAvg=(dFit+aFits[0]+aFits[1])/3;

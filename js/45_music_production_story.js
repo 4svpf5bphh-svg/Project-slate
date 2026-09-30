@@ -157,6 +157,21 @@ function soundtrackPostUI(f){
 // Observational production story: one entry per shoot week, with no extra
 // decisions or stat changes. Entries survive in the completed film's record.
 function ensureShootJournal(f){f.shootJournal=Array.isArray(f.shootJournal)?f.shootJournal:[];return f.shootJournal}
+function ensureFilmNarrativeFacts(f){f.narrativeFacts=Array.isArray(f.narrativeFacts)?f.narrativeFacts:[];return f.narrativeFacts}
+function recordFilmNarrativeFact(f,text,phase='production',kind='decision'){
+ const clean=String(text||'').trim();if(!clean)return null;const facts=ensureFilmNarrativeFacts(f),key=phase+'|'+kind+'|'+clean;
+ if(facts.some(x=>x.key===key))return null;const item={key,week:state.week,phase,kind,text:clean};facts.push(item);if(facts.length>36)facts.shift();return item;
+}
+function postNarrativeFact(type){
+ return ({
+  trim:'In post-production, the cut was tightened to improve pace and remove repetition.',
+  restructure:'In post-production, the middle of the film was substantially restructured in the edit.',
+  clarity:'The production returned for a small pickup shoot to strengthen story clarity and connective material.',
+  performance:'The principal cast returned for focused performance pickups.',
+  vfx:'Post-production received an additional technical finishing pass across effects, sound and polish.',
+  ending:'The final movement was substantially reworked in post-production to strengthen the ending.'
+ })[type]||'Post-production included an additional editorial or finishing intervention.';
+}
 function recordProductionDaily(f){
  const journal=ensureShootJournal(f),week=state.week;
  if(journal.some(x=>x.week===week))return;

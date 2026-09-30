@@ -1,7 +1,7 @@
-// Project Slate v4.8 — Narrative Engine reliability + connected press ecosystem
+// Project Slate v4.10 — Narrative Engine facts-first review context + connected press ecosystem
 // Gameplay remains authoritative. AI prose is automatic enhancement with resilient local fallback.
 
-const NARRATIVE_SCHEMA_VERSION=1;
+const NARRATIVE_SCHEMA_VERSION=2;
 const NARRATIVE_DEFAULT_ENDPOINT='https://project-slate-five.vercel.app/api/narrative';
 const NARRATIVE_REQUEST_TIMEOUT_MS=55000;
 const NARRATIVE_AUTO_RETRY_LIMIT=4;
@@ -206,6 +206,32 @@ function narrativeReviewHistoryLine(text=''){
   .replace(/guided control/gi,'a more controlled creative approach')
   .replace(/performance-first/gi,'a performance-led approach');
 }
+function narrativeLegacyProductionFact(text=''){
+ let line=String(text||'').replace(/^(?:Week\s+\d+|[^:]{3,24}\d{4})\s*:\s*/i,'').trim();
+ let m=line.match(/^creative direction\s*[—-]\s*[^.]+\.\s*(.+)$/i);if(m)return m[1].trim();
+ m=line.match(/^post-production\s*[—-]\s*(.+?)\.?$/i);if(m){
+  const k=m[1].toLowerCase();
+  if(/tighten/.test(k))return 'In post-production, the cut was tightened to improve pace and remove repetition.';
+  if(/restructure/.test(k))return 'In post-production, the middle of the film was substantially restructured in the edit.';
+  if(/pickup/.test(k)&&/performance/.test(k))return 'The principal cast returned for focused performance pickups.';
+  if(/pickup|clarity/.test(k))return 'The production returned for a small pickup shoot to strengthen story clarity and connective material.';
+  if(/technical|vfx|polish/.test(k))return 'Post-production received an additional technical finishing pass.';
+  if(/ending/.test(k))return 'The final movement was substantially reworked in post-production.';
+  return null;
+ }
+ m=line.match(/^Talent crisis resolved\s*[—-]\s*(.+)$/i);if(m)return m[1].trim();
+ m=line.match(/^Talent crisis\s*[—-]\s*(.+)$/i);if(m)return m[1].trim();
+ if(/^picture locked at /i.test(line))return line;
+ if(/^release moved from /i.test(line))return line;
+ if(/^soundtrack committed\s*[—-]/i.test(line))return line.replace(/^soundtrack committed\s*[—-]\s*/i,'The soundtrack plan used ');
+ return null;
+}
+function narrativeFilmFacts(f){
+ const rows=(f.narrativeFacts||[]).map(x=>({week:x.week||0,text:String(x.text||'').trim()})).filter(x=>x.text);
+ (f.history||[]).forEach(line=>{const text=narrativeLegacyProductionFact(line);if(text)rows.push({week:0,text})});
+ const seen=new Set(),out=[];rows.sort((a,b)=>(a.week||0)-(b.week||0)).forEach(x=>{const key=x.text.toLowerCase();if(!seen.has(key)){seen.add(key);out.push(x.text)}});
+ return out.slice(-10);
+}
 function narrativeFilmReviewPacket(f){
  const sc=scriptById(f.scriptId),id=typeof ensureFilmIdentity==='function'?ensureFilmIdentity(f):{},critic=f.review?.critic||{},m=f.metrics||{},post=f.post||{},marketing=typeof ensureMarketingState==='function'?ensureMarketingState(f):f.marketingState||{},tracking=marketing.trackingHistory?.[0]||null;
  const support=typeof supportingActors==='function'?supportingActors(f):[];
@@ -221,7 +247,7 @@ function narrativeFilmReviewPacket(f){
    id:f.id,title:f.title,genre:f.genre,logline:sc?.logline||'',synopsis:sc?.synopsis||'',budget:f.budget,investment:f.investment,
    source:sc?.source||'',runtime:post.runtime||post.targetRuntime||null,projectContext:projectIntelligencePublicContext(sc),
    identity:{archetype:id.archetype||null,texture:id.texture||null,strength:id.strength||null,risk:id.risk||null},
-   creative:deep(f.creative||{}),creativeDirection:f.creativeDirection?.label||null
+   creative:deep(f.creative||{}),creativeDirection:f.creativeDirection?.outcome||null
   },
   package:{director,cast:actors},
   craft:{
@@ -229,8 +255,8 @@ function narrativeFilmReviewPacket(f){
    script:{story:Math.round(sc?.story||0),structure:Math.round(sc?.structure||0),characters:Math.round(sc?.characters||0),emotion:Math.round(sc?.emotion||0),originality:Math.round(sc?.originality||0),access:Math.round(sc?.access||0),hook:Math.round(sc?.hook||0),genreFulfillment:Math.round(sc?.genreFulfillment||0)}
   },
   production:{
-   selectedHistory:(f.history||[]).slice(-10).map(narrativeReviewHistoryLine),
-   shootJournal:(f.shootJournal||[]).slice(-6).map(x=>({week:x.week,text:narrativeReviewHistoryLine(x.text),topic:x.topic||null,mood:x.mood||null})),
+   narrativeFacts:narrativeFilmFacts(f),
+   shootJournal:(f.shootJournal||[]).filter(x=>x.mood!=='decision').slice(-6).map(x=>({week:x.week,text:narrativeReviewHistoryLine(x.text),topic:x.topic||null,mood:x.mood||null})),
    post:{runtime:post.runtime||null,endingStrength:post.endingStrength||null},
    talentCrises:(f.talentCrises||[]).filter(x=>x.status==='resolved').map(x=>({week:x.week,talentId:x.talentId,roleId:x.roleId,reasonId:x.reasonId,resolution:x.resolutionChoice,outcome:x.outcome||null,replacementId:x.replacementId||null,departed:!!x.departed}))
   },

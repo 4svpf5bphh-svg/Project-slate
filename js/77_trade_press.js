@@ -319,6 +319,28 @@ function lotPressThreadAddon(thread){
  if(!thread?.key?.startsWith('lot:'))return '';const storyId=thread.key.slice(4),lot=typeof ensureLotState==='function'?ensureLotState():null,cycle=(lot?.pressCycles||[]).find(x=>x.storyId===storyId);if(!cycle)return '';
  const b=cycle.bundle||cycle.local;return b?'<div class="small" style="margin-top:7px"><strong>Latest press cycle:</strong> '+lotPressEscape(b.gossip_headline||b.trade?.headline||cycle.headline)+'</div>':'';
 }
+
+function lotPressCycleForThread(thread){
+ if(!thread?.key?.startsWith('lot:')||typeof ensureLotState!=='function')return null;
+ const storyId=thread.key.slice(4);
+ return (ensureLotState().pressCycles||[]).filter(x=>x.storyId===storyId).sort((a,b)=>(b.week||0)-(a.week||0))[0]||null;
+}
+function lotPressPulseStoryHTML(thread){
+ const cycle=lotPressCycleForThread(thread);if(!cycle)return '';
+ const b=cycle.bundle||cycle.local;if(!b)return '';
+ const older=(ensureLotState().pressCycles||[]).filter(x=>x.storyId===cycle.storyId&&x.id!==cycle.id).sort((a,b)=>(b.week||0)-(a.week||0)).slice(0,3);
+ const trade=(b.trade?.paragraphs||[]).slice(0,3),status=cycle.status==='ready'?'CONNECTED PRESS':cycle.status==='pending'||cycle.status==='queued'?'FILING':'LOCAL COPY';
+ return '<div class="pulse-story-press">'+
+  '<div class="pulse-story-trade"><div class="pulse-story-source"><span>TRADE</span><b>'+lotPressEscape(status)+'</b></div><h3>'+lotPressEscape(b.trade?.headline||cycle.headline)+'</h3><p class="pulse-story-deck">'+lotPressEscape(b.trade?.deck||cycle.summary||'')+'</p>'+trade.map(p=>'<p>'+lotPressEscape(p)+'</p>').join('')+(cycle.newsId?'<button class="btn ghost pulse-story-open" data-news-id="'+lotPressEscape(cycle.newsId)+'">Open in News archive →</button>':'')+'</div>'+
+  '<div class="pulse-story-rooms">'+
+   '<div class="pulse-story-room gossip"><span>GOSSIP</span><p>'+lotPressEscape(b.gossip_headline||'')+'</p></div>'+
+   '<div class="pulse-story-room agency"><span>REPRESENTATIVES</span><p>'+lotPressEscape(b.agency_statement||'')+'</p></div>'+
+   '<div class="pulse-story-room rival"><span>RIVAL ROOM</span><p>'+lotPressEscape(b.rival_quote||'')+'</p></div>'+
+   '<div class="pulse-story-room crowd"><span>THE CROWD</span>'+(b.pulse_reactions||[]).map(x=>'<p>◉ '+lotPressEscape(x)+'</p>').join('')+'</div>'+
+  '</div>'+
+  (older.length?'<div class="pulse-story-history"><span>PREVIOUS CHAPTERS</span>'+older.map(x=>'<div><b>W'+(x.week||'—')+'</b><p>'+lotPressEscape(x.bundle?.trade?.headline||x.local?.trade?.headline||x.headline||'Earlier chapter')+'</p></div>').join('')+'</div>':'')+
+ '</div>';
+}
 function resumeLotPressNarrative({force=false}={}){
  if(typeof ensureLotState!=='function'||!state?.studio)return;const now=Date.now();
  (ensureLotState().pressCycles||[]).forEach(cycle=>{
