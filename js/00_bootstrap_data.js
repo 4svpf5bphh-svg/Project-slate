@@ -1,4 +1,4 @@
-const VERSION='4.10';
+const VERSION='4.10.1';
 // QA-only Project Intelligence bypass. Normal careers must earn the Creative 70 route.
 const PROJECT_INTELLIGENCE_TEST_BYPASS=typeof location!=='undefined'&&new URLSearchParams(location.search).get('pitest')==='1';
 const KEY='projectSlateCareer_v2';
