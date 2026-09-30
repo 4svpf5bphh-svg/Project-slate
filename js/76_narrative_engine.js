@@ -417,7 +417,6 @@ function resumeNarrativeWork({force=false}={}){
   if((force||!x.nextRetryAt||x.nextRetryAt<=now)&&['retry_wait','degraded'].includes(x.status))void queueProjectIntelligence(s,{force:true,automatic:true});
  });
 }
-}
 function bindNarrativeLifecycle(){
  if(narrativeRuntime.lifecycleBound)return;narrativeRuntime.lifecycleBound=true;
  if(typeof window!=='undefined')window.addEventListener('online',()=>{void testNarrativeConnection();resumeNarrativeWork({force:true})});
