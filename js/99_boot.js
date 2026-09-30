@@ -245,13 +245,12 @@ function projectSlateSmokeChecks(){
  }catch(e){failures.push('v4.6.4 workflow clarity smoke failed'+(e?.message?': '+e.message:''))}
 
  try{
-  if(REVIEW_REVEAL_MIN_WAIT_MS<800||REVIEW_REVEAL_AI_GRACE_MS<5000||REVIEW_REVEAL_AI_GRACE_MS>10000)failures.push('v4.6.4.1 review reveal timing window invalid');
-  if(typeof reviewRevealWaitingScreen!=='function'||!reviewRevealWaitingScreen.toString().includes('Film critic reviews are incoming'))failures.push('v4.6.4.1 review filing state missing');
-  if(!queueAIReview.toString().includes('reviewRevealResolveAI')||!queueAIReview.toString().includes('reviewRevealResolveLocal'))failures.push('v4.6.4.1 AI result is not routed through reveal lock');
-  if(!surfacePendingReviewReveal.toString().includes("displayMode=aiReviewContent(f)?'ai':'waiting'"))failures.push('v4.6.4.1 reveal does not start in filing mode');
-  if(!closeReviewReveal.toString().includes('clearReviewRevealTimer'))failures.push('v4.6.4.1 review reveal timer cleanup missing');
-  if(!reviewRevealScreen.toString().includes("item.displayMode==='ai'"))failures.push('v4.6.4.1 locked reveal copy mode missing');
- }catch(e){failures.push('v4.6.4.1 review reveal polish smoke failed'+(e?.message?': '+e.message:''))}
+  if(!surfacePendingReviewReveal.toString().includes("displayMode='local'"))failures.push('v4.10.2 review reveal is not local-first');
+  if(reviewDisplayContent.toString().includes('aiReviewContent'))failures.push('v4.10.2 review display still prefers AI copy');
+  if(!queueAIReview.toString().includes("status:'disabled'"))failures.push('v4.10.2 AI review requests are still active');
+  if(!reviewRevealScreen.toString().includes('reviewRevealLocalContent'))failures.push('v4.10.2 review reveal is not using Daily Screen copy');
+  if(!closeReviewReveal.toString().includes('clearReviewRevealTimer'))failures.push('v4.10.2 review reveal cleanup missing');
+ }catch(e){failures.push('v4.10.2 local review reveal smoke failed'+(e?.message?': '+e.message:''))}
 
  try{
   if(SAVE_SCHEMA_VERSION<405)failures.push('v4.7 Trade Press save migration missing');
@@ -330,6 +329,14 @@ function projectSlateSmokeChecks(){
   if(!narrativeFilmReviewPacket.toString().includes('narrativeFacts:narrativeFilmFacts')||narrativeFilmReviewPacket.toString().includes('selectedHistory:')||!narrativeFilmReviewPacket.toString().includes("mood!=='decision'"))failures.push('v4.10 review packet still exposes raw player choices');
   if(!narrativeFilmReviewPacket.toString().includes("creativeDirection:f.creativeDirection?.outcome"))failures.push('v4.10 creative-direction consequence translation missing');
  }catch(e){failures.push('v4.10 Studio & Industry Consolidation smoke failed'+(e?.message?': '+e.message:''))}
+
+ try{
+  if(!activeCareerThreads.toString().includes('careerThreadUpdateStamp'))failures.push('v4.10.2 Pulse stories are not date ordered');
+  if(!upsertCareerThread.toString().includes("meaningful=['type','tone','title','summary','detail'"))failures.push('v4.10.2 story timestamps still refresh without a real development');
+  if(!deskPulseBody.toString().includes('In cinemas now')||!deskPulseBody.toString().includes('newest developments first'))failures.push('v4.10.2 Pulse release/story ordering missing');
+  if(criticClosingParagraph.toString().includes('creativeDirection?.label')||criticCraftParagraph.toString().includes('filmChoiceCallback'))failures.push('v4.10.2 Daily Screen still exposes player decision labels');
+  if(!narrativeSettingsHTML.toString().includes('Film reviews now stay with the deterministic Daily Screen critic system'))failures.push('v4.10.2 Narrative settings still describe AI reviews');
+ }catch(e){failures.push('v4.10.2 Review & Pulse ordering smoke failed'+(e?.message?': '+e.message:''))}
 
  try{const r=makeRng(3141),p=generatedPremise(state,r,'Action Thriller');if(!p.premiseDNA?.name||!p.logline.includes(p.premiseDNA.name))failures.push('premise DNA generation invalid');if(!makeReviewRoundup.toString().includes('headline:capsuleOutletLine'))failures.push('personality capsules missing');if(!makeReview.toString().includes('criticOpeningParagraph'))failures.push('personality main review missing');if(launchLateGameChallenger.toString().indexOf('addNews(state')>=0)failures.push('Apex news still publishes before reveal')}catch(e){failures.push('v3.14.2 critic personality smoke failed')}
  try{
