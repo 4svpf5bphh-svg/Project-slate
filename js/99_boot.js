@@ -235,7 +235,7 @@ function projectSlateSmokeChecks(){
   if(NARRATIVE_REQUEST_TIMEOUT_MS>=60000)failures.push('v4.6.4 Narrative timeout exceeds server ceiling');
   if(!surfaceCalendarInterrupt.toString().includes('surfaceNextSignatureMoment'))failures.push('v4.6.4 calendar still has a separate signature priority path');
   if(!render.toString().includes('surfaceNextSignatureMoment'))failures.push('v4.6.4 render still has a separate signature priority path');
-  if(!studioGrowthUI.toString().includes('careerArcCard'))failures.push('v4.6.4 Career Form missing from Growth');
+  if(!studioOperationsBody.toString().includes('careerArcCard'))failures.push('v4.6.4 Career Form missing from consolidated Operations');
   if(deskBriefingBody.toString().includes('careerArcCard'))failures.push('v4.6.4 Career Form still occupies Desk briefing');
   if(!deskBriefingBody.toString().includes('deskStudioStatusStrip')||!deskBriefingBody.toString().includes('deskScriptMarketPressureHTML'))failures.push('v4.6.4 compact Desk intelligence missing');
   if(!developmentUI.toString().includes('castingDealsHTML'))failures.push('v4.6.4 Casting / package status missing from film page');
@@ -284,7 +284,7 @@ function projectSlateSmokeChecks(){
   if(!continueTime.toString().includes('released&&surfaceCalendarInterrupt'))failures.push('v4.7.2 release-day review interrupt missing');
   if(contractQuote.toString().includes('upfront*=1.06')||contractQuote.toString().includes('upfront*=1.12')||!contractQuote.toString().includes('upfront*=.95')||!contractQuote.toString().includes('upfront*=.88'))failures.push('v4.7.2 sequel-term economics not reversed');
   if(!deskBriefingBody.toString().includes('unreadBriefing')||!deskBriefingBody.toString().includes('Chronological studio feed'))failures.push('v4.7.2 chronological Desk briefing missing');
-  if(!deskSubnav.toString().includes('Active Stories')||!deskThreadsBody.toString().includes('ACTIVE STORIES'))failures.push('v4.7.2 Active Stories surface missing');
+  if(deskSubnav.toString().includes('Active Stories')||!deskSubnav.toString().includes("['pulse'")||!deskPulseBody.toString().includes('activeCareerThreads'))failures.push('v4.7.2 story surface not migrated into Pulse');
   if(!industryScreen.toString().includes('latestNews')||!industryScreen.toString().includes('Featured now'))failures.push('v4.7.2 newest-first News flow missing');
   if(!toggleProjectHold.toString().includes('heldFor>=8'))failures.push('v4.7.2 hold-news suppression missing');
   if(typeof lotMaybeTalentCrisis!=='function'||typeof lotResolveTalentCrisisDeskChoice!=='function'||!processLotWeek.toString().includes('lotMaybeTalentCrisis'))failures.push('v4.7.2 talent crisis engine missing');
